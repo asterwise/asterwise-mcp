@@ -28,16 +28,18 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_generate_kundli_report",
         description=(
-            "Generate a comprehensive Kundli PDF report for a person — includes the "
-            "natal chart, divisional charts (Navamsa and others), Vimshottari Dasha "
-            "timeline, yoga analysis, dosha summary, and remedial suggestions, "
-            "compiled into a formatted document. Source: compiled BPHS-style report. "
-            "Returns a download URL for the generated PDF. Each call generates a new file. "
-            "Use when the user wants a complete shareable birth chart document. "
-            "Do not use this for on-screen analysis — call the individual tools "
+            "Generate a comprehensive Kundli PDF report for a person. The report "
+            "includes: natal chart with all nine planets and ascendant, key divisional "
+            "charts (Navamsa D9 and Dasamsa D10 at minimum), complete Vimshottari "
+            "Dasha timeline across the lifetime, yoga analysis with formation "
+            "conditions, dosha summary with severity ratings, and remedial suggestions "
+            "— all compiled into a formatted, printable document. "
+            "Source: compiled BPHS-style report. Returns a download URL for the PDF. "
+            "Use when the user wants a complete shareable birth chart document to "
+            "print, email, or present to their family or astrologer. "
+            "Do not use for on-screen analysis — use the individual tools "
             "(asterwise_get_natal_chart, asterwise_get_dasha, asterwise_get_yogas) "
-            "for interactive readings. This tool is for generating a PDF to download "
-            "or share."
+            "for interactive conversation. This tool is for generating a document."
         ),
         annotations=REPORT_ANNOTATIONS,
     )
