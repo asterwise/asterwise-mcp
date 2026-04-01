@@ -57,11 +57,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_compatibility",
         description=(
-            "Calculate Ashtakoota Guna Milan — eight kootas, total /36, and **Rajju** / **Vedha** as hard "
-            "vetoes (not soft scores). A match failing Rajju or Vedha should not proceed regardless of Guna "
-            "score (Parashara). Source: BPHS Ch.18.\n"
-            "Inputs: person1 BirthData, person2 BirthData, response_format.\n"
-            "Returns: Koota table, veto status, assessment."
+            "Calculate Ashtakoota Guna Milan — the standard North Indian matchmaking "
+            "system that scores compatibility across eight kootas: Varna (1pt), "
+            "Vashya (2pt), Tara (3pt), Yoni (4pt), Graha Maitri (5pt), Gana (6pt), "
+            "Bhakoot (7pt), and Nadi (8pt), totalling 36 points. Also evaluates "
+            "Rajju and Vedha as hard vetoes — a match failing either veto should not "
+            "proceed regardless of the Guna total (Parashara's explicit instruction). "
+            "Source: BPHS Chapter 18. "
+            "Use for all standard North Indian marriage compatibility assessments. "
+            "Use asterwise_get_dashakoot for South Indian 10-point system, "
+            "asterwise_get_porutham for Tamil 10-point system, or "
+            "asterwise_get_thirumana_porutham for Tamil 12-koota system instead."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -93,10 +99,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dashakoot",
         description=(
-            "Dashakoot compatibility — 10-point South Indian system including Rajju, Vedha, and extended "
-            "kootas. Source: regional marriage compatibility texts.\n"
-            "Inputs: two BirthData, response_format.\n"
-            "Returns: 10-point breakdown."
+            "Calculate Dashakoot compatibility — the South Indian 10-point system that "
+            "extends Ashtakoota with additional factors. Includes Rajju and Vedha as "
+            "vetoes. Source: South Indian marriage astrology texts. "
+            "Use when the couple or their families follow South Indian matching "
+            "traditions, particularly Kannada or Telugu communities. "
+            "Use asterwise_get_compatibility for standard North Indian Ashtakoota, "
+            "asterwise_get_porutham for Tamil tradition."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -132,10 +141,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_papasamyam",
         description=(
-            "Papa Samyam — malefic balance between charts (relevant for Mangal Dosha and related rules). "
-            "Source: classical dosha-matching logic.\n"
-            "Inputs: two BirthData, response_format.\n"
-            "Returns: Papa Samyam analysis."
+            "Calculate Papa Samyam — the assessment of malefic planet balance between "
+            "two charts. Checks whether the malefic affliction level (Mangal Dosha and "
+            "related factors) is comparable between the partners, since serious "
+            "imbalance is considered inauspicious. Source: classical dosha-matching logic. "
+            "Use alongside Ashtakoota when Mangal Dosha is present in one or both charts "
+            "to determine whether the dosha is balanced or cancelled. "
+            "This is a supplementary check — always run asterwise_get_compatibility first."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -171,10 +183,12 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_porutham",
         description=(
-            "Tamil Porutham — 10-point compatibility with Rajju and Vedha as absolute vetoes. Source: Tamil "
-            "marriage astrology.\n"
-            "Inputs: two BirthData, response_format.\n"
-            "Returns: 10 Porutham results."
+            "Calculate Tamil Porutham — the 10-point marriage compatibility system "
+            "used in Tamil Nadu. The ten Poruthams are: Dinam, Ganam, Mahendram, "
+            "Stree Deergham, Yoni, Rasi, Rasiyathipaty, Rajju, Vetham, and Vasiyam. "
+            "Rajju and Vedha are absolute vetoes. Source: Tamil marriage astrology tradition. "
+            "Use for Tamil community marriage matching. "
+            "Use asterwise_get_thirumana_porutham for the extended 12-koota Tamil system."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -210,9 +224,11 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_thirumana_porutham",
         description=(
-            "Thirumana Porutham — extended 12-koota Tamil compatibility. Source: Tamil marriage classics.\n"
-            "Inputs: two BirthData, response_format.\n"
-            "Returns: 12 koota results."
+            "Calculate Thirumana Porutham — the extended Tamil marriage compatibility "
+            "system with 12 kootas, offering more granular assessment than the standard "
+            "10-point Porutham. Source: Tamil marriage classics. "
+            "Use when a more detailed Tamil compatibility analysis is required beyond "
+            "the standard 10-point Porutham."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

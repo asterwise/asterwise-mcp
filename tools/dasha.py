@@ -56,11 +56,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dasha",
         description=(
-            "Calculate Vimshottari Dasha periods up to 5 levels deep (Maha, Antar, Pratyantar, Sookshma, "
-            "Prana). Specify levels=1 for Mahadasha only through levels=5 for the full tree. Source: BPHS "
-            "Dasha chapters.\n"
-            "Inputs: BirthData, levels (1–5, default 3), response_format.\n"
-            "Returns: Hierarchical dasha tree or full periods JSON."
+            "Calculate Vimshottari Dasha periods — the primary timing system of Parashari "
+            "Jyotish, based on the Moon's nakshatra at birth and a 120-year planetary "
+            "cycle. Returns a hierarchical tree of Mahadasha (major period), Antardasha "
+            "(sub-period), Pratyantar, Sookshma, and Prana levels. Source: BPHS Dasha "
+            "chapters. "
+            "Use this as the core timing tool for predicting when events unfold. "
+            "levels=1 returns Mahadasha only (fast, lightweight); levels=2 adds "
+            "Antardasha (recommended for most readings); levels=3 gives Pratyantar "
+            "(detailed timing); levels=4–5 are highly granular and return large responses. "
+            "Do not confuse with asterwise_get_char_dasha (Jaimini sign-based system), "
+            "asterwise_get_yogini_dasha (36-year Yogini cycle), or "
+            "asterwise_get_ashtottari_dasha (108-year alternative). "
+            "Use Vimshottari (this tool) for all standard Parashari timing analysis."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -90,10 +98,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dasha_transits",
         description=(
-            "Get planetary transits during the current Dasha period — how transits interact with the "
-            "running Dasha for timing. Source: classical Gochar with Dasha overlay.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Transit–Dasha combinations."
+            "Get the correlation between the current running Dasha periods and active "
+            "planetary transits — showing which transiting planets are supporting or "
+            "challenging the Dasha lord and sub-lord at this moment. Source: classical "
+            "Gochar overlaid on Dasha. "
+            "Use this when you need to assess the quality of the current period — "
+            "whether the Dasha promise is being activated or blocked by transits right now. "
+            "Do not confuse with asterwise_get_gochar (which shows all transits vs "
+            "the natal chart without Dasha context) or asterwise_get_transits (which "
+            "shows transits across a custom date range). "
+            "Use this tool when the user asks: 'Is this a good time for me?' or "
+            "'Why is my Mars Dasha not delivering results?' "
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -126,9 +141,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_char_dasha",
         description=(
-            "Calculate Char Dasha (Jaimini) — sign-based periods. Source: Jaimini Sutras.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Char Dasha periods."
+            "Calculate Char Dasha — the Jaimini sign-based timing system in which "
+            "zodiac signs (not planets) take turns as the major period lord, each sign "
+            "ruling for a number of years determined by its lord's position. Gives "
+            "a different timing perspective from Vimshottari, particularly for "
+            "relationship and dharma events. Source: Jaimini Sutras. "
+            "Use when the user follows Jaimini astrology, or when Vimshottari Dasha "
+            "does not clearly explain events and a cross-system check is needed. "
+            "Do not use as a replacement for Vimshottari — use both together for "
+            "corroboration of timing."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -159,9 +180,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_yogini_dasha",
         description=(
-            "Calculate Yogini Dasha — 36-year cycle with eight Yoginis. Source: Yogini Dasha tradition.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Yogini periods."
+            "Calculate Yogini Dasha — an alternative timing system based on an "
+            "8-Yogini cycle totalling 36 years: Mangala (1yr), Pingala (2yr), "
+            "Dhanya (3yr), Bhramari (4yr), Bhadrika (5yr), Ulka (6yr), Siddha (7yr), "
+            "Sankata (8yr), then repeating. Particularly valued for timing events "
+            "in the near term. Source: Yogini Dasha tradition, referenced in "
+            "Muhurta Chintamani and other texts. "
+            "Use when the user wants a second timing perspective alongside Vimshottari, "
+            "or when their life events match Yogini cycles better than Vimshottari. "
+            "This is a secondary system — always check Vimshottari first."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -192,9 +219,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_ashtottari_dasha",
         description=(
-            "Calculate Ashtottari Dasha — 108-year alternative cycle. Source: classical Ashtottari rules.\n"
-            "Inputs: BirthData, levels (1–5, default 3), response_format.\n"
-            "Returns: Ashtottari periods."
+            "Calculate Ashtottari Dasha — a 108-year alternative timing cycle using "
+            "eight planets (excluding Ketu) with different period lengths than "
+            "Vimshottari. Applicable when Rahu is in a Kendra or Trikona from Lagna "
+            "or Moon (the classical condition), though some astrologers apply it broadly. "
+            "Source: classical Ashtottari rules. "
+            "Use as a secondary timing system for cross-checking Vimshottari results, "
+            "or specifically when the chart meets the Rahu-in-Kendra/Trikona condition. "
+            "Do not replace Vimshottari with this — use them together."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

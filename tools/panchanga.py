@@ -28,10 +28,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_panchanga",
         description=(
-            "Panchanga — Tithi, Vara, Nakshatra, Yoga, Karana for a date and location (fresh computation). "
-            "Source: classical Panchanga rules.\n"
-            "Inputs: LocationInput (date, lat, lon, timezone, response_format).\n"
-            "Returns: All five elements with timings as provided by the API."
+            "Calculate the five elements of the Panchanga for a specific date and "
+            "location: Tithi (lunar day 1–30), Vara (weekday and its lord), Nakshatra "
+            "(Moon's nakshatra with timings), Yoga (Sun-Moon combined nakshatra), and "
+            "Karana (half-tithi). Includes sunrise, sunset, and key timing windows. "
+            "Source: classical Panchanga rules. "
+            "Use when a user asks about the astrological quality of a day, wants to "
+            "know the current Tithi or Nakshatra, or needs a daily almanac. "
+            "For muhurta (electional timing for a specific activity), use "
+            "asterwise_get_muhurta instead. For just Choghadiya slots, use "
+            "asterwise_get_choghadiya. For just Rahu Kaal, use asterwise_get_rahu_kaal."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -67,9 +73,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_choghadiya",
         description=(
-            "Choghadiya muhurta slots for a day and location. Source: Muhurta tradition.\n"
-            "Inputs: LocationInput.\n"
-            "Returns: Day and night Choghadiya periods."
+            "Get Choghadiya (Chogadia) muhurta slots for a day — the traditional "
+            "North Indian system that divides daytime and nighttime into 8 periods "
+            "each, ruled by planets in a fixed sequence. Auspicious periods: Amrit, "
+            "Shubh, Labh, Char. Inauspicious: Rog, Kaal, Udveg. Source: Muhurta texts. "
+            "Use when the user wants to know the best time slot within a day to start "
+            "an activity without specifying the activity type. "
+            "Use asterwise_get_muhurta when the user has a specific activity "
+            "(marriage, travel, business launch) and wants the best date-range window, "
+            "not just today's slots."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -105,9 +117,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_hora",
         description=(
-            "Planetary Hora rulers for each hour of the day. Source: Hora shastra.\n"
-            "Inputs: LocationInput.\n"
-            "Returns: Hourly rulers."
+            "Get the planetary Hora (hourly ruler) table for a day and location — "
+            "each hour of the day and night is governed by a planet in a repeating "
+            "sequence starting from the day's ruling planet. Used for selecting the "
+            "best hour for a specific activity. Source: Hora Shastra. "
+            "Use when the user wants to know which planet rules the current hour "
+            "or plans to act at a specific hour and wants astrological support. "
+            "Do not confuse with Horasha (birth chart) — this is about planetary "
+            "hourly rulers, not natal chart analysis."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -143,9 +160,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_rahu_kaal",
         description=(
-            "Rahu Kaal — daily inauspicious window ruled by Rahu. Source: Muhurta texts.\n"
-            "Inputs: LocationInput.\n"
-            "Returns: Start/end times."
+            "Get Rahu Kaal — the daily 90-minute inauspicious period associated with "
+            "Rahu, considered unfavourable for starting new ventures. Timing varies "
+            "by day of the week (Monday: morning, Tuesday: afternoon, etc.) and "
+            "precise sunrise/sunset for the location. Source: Muhurta texts. "
+            "Use when the user wants to avoid starting something during Rahu Kaal "
+            "today, or when checking if a planned activity falls in this window. "
+            "For a full day's auspicious slots, use asterwise_get_choghadiya instead."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -181,10 +202,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_muhurta",
         description=(
-            "Auspicious muhurta (electional timing) for a given activity on a date. Source: Muhurta "
-            "classics.\n"
-            "Inputs: LocationInput (lat/lon/timezone), activity/event_type label, from_date and to_date (YYYY-MM-DD).\n"
-            "Returns: Recommended windows."
+            "Find auspicious muhurta windows for a specific activity type across a "
+            "date range. Activity types include: marriage, travel, griha_pravesh "
+            "(housewarming), business, education, medical, vehicle purchase, and others. "
+            "Returns the best windows within the range with Panchanga quality scores. "
+            "Source: Muhurta classics (Muhurta Chintamani, Muhurta Martanda). "
+            "Use when the user needs to pick the best date for an important life event "
+            "over a future period (weeks or months). "
+            "Do not use this for 'what time today' questions — use "
+            "asterwise_get_choghadiya for same-day slot selection."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -225,9 +251,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_panchanga_calendar",
         description=(
-            "Monthly Panchanga calendar — Tithi, Nakshatra, and key dates. Source: Panchanga computation.\n"
-            "Inputs: PanchangaCalendarInput (year, month, lat, lon → API latitude/longitude params).\n"
-            "Returns: Month-level calendar data."
+            "Get a full month's Panchanga calendar — Tithi, Nakshatra, and key "
+            "astrological events for every day in a given month and year, for a "
+            "specific location. Useful for planning across a calendar month. "
+            "Source: Panchanga computation. "
+            "Use when a user wants to review the whole month's astrological quality "
+            "at once, or when building a monthly astrology feature. "
+            "For a single day's details, use asterwise_get_panchanga instead."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
