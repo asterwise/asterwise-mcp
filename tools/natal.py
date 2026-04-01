@@ -17,7 +17,6 @@ from models import (
     DivisionalChartType,
     PrashnaInput,
     ResponseFormat,
-    birth_dict,
     prashna_dict,
 )
 from runtime import (
@@ -89,7 +88,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/astro/natal", api_key, birth_dict(birth),
+                "/v1/astro/natal", api_key, birth.to_api_dict(),
                 timeout=20.0,
             )
             return format_tool_result(
@@ -125,7 +124,7 @@ def register(mcp: FastMCP) -> None:
         """Compute divisional (varga) chart."""
         try:
             api_key = await require_api_key(ctx)
-            body = {**birth_dict(birth), "chart_type": chart_type.value}
+            body = {**birth.to_api_dict(), "chart_type": chart_type.value}
             data = await get_client().post("/v1/astro/divisional", api_key, body, timeout=20.0)
             return format_tool_result(
                 data,
@@ -159,7 +158,7 @@ def register(mcp: FastMCP) -> None:
         """Shadbala and Bhavbala."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/strength", api_key, birth_dict(birth),
+            data = await get_client().post("/v1/astro/strength", api_key, birth.to_api_dict(),
                 timeout=20.0)
             return format_tool_result(
                 data,
@@ -194,7 +193,7 @@ def register(mcp: FastMCP) -> None:
         """Atmakaraka and Ishta Devata (two API calls)."""
         try:
             api_key = await require_api_key(ctx)
-            bd = birth_dict(birth)
+            bd = birth.to_api_dict()
             atm = await get_client().post("/v1/astro/atmakaraka", api_key, bd, timeout=20.0)
             ishta = await get_client().post("/v1/astro/ishta-devta", api_key, bd, timeout=20.0)
             merged = {"atmakaraka": atm, "ishta_devata": ishta}
@@ -273,7 +272,7 @@ def register(mcp: FastMCP) -> None:
         """Sade Sati check."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/sade-sati", api_key, birth_dict(birth),
+            data = await get_client().post("/v1/astro/sade-sati", api_key, birth.to_api_dict(),
                 timeout=20.0)
             return format_tool_result(
                 data,
@@ -346,7 +345,7 @@ def register(mcp: FastMCP) -> None:
         """Varshaphal solar return."""
         try:
             api_key = await require_api_key(ctx)
-            body = {**birth_dict(birth), "target_year": year}
+            body = {**birth.to_api_dict(), "target_year": year}
             data = await get_client().post("/v1/astro/varshaphal", api_key, body, timeout=20.0)
             return format_tool_result(
                 data,
@@ -381,7 +380,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/astro/lal-kitab/chart", api_key, birth_dict(birth),
+                "/v1/astro/lal-kitab/chart", api_key, birth.to_api_dict(),
                 timeout=20.0,
             )
             return format_tool_result(
@@ -417,7 +416,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/astro/lal-kitab/remedies", api_key, birth_dict(birth),
+                "/v1/astro/lal-kitab/remedies", api_key, birth.to_api_dict(),
                 timeout=20.0,
             )
             return format_tool_result(
@@ -452,7 +451,7 @@ def register(mcp: FastMCP) -> None:
         """KP chart."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/kp/chart", api_key, birth_dict(birth),
+            data = await get_client().post("/v1/astro/kp/chart", api_key, birth.to_api_dict(),
                 timeout=20.0)
             return format_tool_result(
                 data,
@@ -486,7 +485,7 @@ def register(mcp: FastMCP) -> None:
         """KP significators."""
         try:
             api_key = await require_api_key(ctx)
-            body: dict[str, Any] = birth_dict(birth)
+            body: dict[str, Any] = birth.to_api_dict()
             if house_number is not None:
                 body["house_number"] = house_number
             data = await get_client().post("/v1/astro/kp/significators", api_key, body, timeout=20.0)
@@ -561,7 +560,7 @@ def register(mcp: FastMCP) -> None:
         """Ashtakavarga."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/ashtakavarga", api_key, birth_dict(birth),
+            data = await get_client().post("/v1/astro/ashtakavarga", api_key, birth.to_api_dict(),
                 timeout=20.0)
             return format_tool_result(
                 data,

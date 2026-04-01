@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from client import get_client
 from errors import AsterwiseMCPError
-from models import BirthData, ResponseFormat, birth_dict
+from models import BirthData, ResponseFormat
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
@@ -75,7 +75,7 @@ def register(mcp: FastMCP) -> None:
             if levels < 1 or levels > 5:
                 invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key(ctx)
-            body = {**birth_dict(birth), "levels": levels}
+            body = {**birth.to_api_dict(), "levels": levels}
             data = await get_client().post("/v1/astro/dasha", api_key, body, timeout=20.0)
             return format_tool_result(data, response_format, _dasha_tree_md)
         except McpError:
@@ -106,7 +106,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/astro/dasha-transits", api_key, birth_dict(birth),
+                "/v1/astro/dasha-transits", api_key, birth.to_api_dict(),
                 timeout=20.0,
             )
             return format_tool_result(
@@ -140,7 +140,7 @@ def register(mcp: FastMCP) -> None:
         """Char Dasha."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/char-dasha", api_key, birth_dict(birth),
+            data = await get_client().post("/v1/astro/char-dasha", api_key, birth.to_api_dict(),
                 timeout=20.0)
             return format_tool_result(
                 data,
@@ -173,7 +173,7 @@ def register(mcp: FastMCP) -> None:
         """Yogini Dasha."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/yogini", api_key, birth_dict(birth),
+            data = await get_client().post("/v1/astro/yogini", api_key, birth.to_api_dict(),
                 timeout=20.0)
             return format_tool_result(
                 data,
@@ -209,7 +209,7 @@ def register(mcp: FastMCP) -> None:
             if levels < 1 or levels > 5:
                 invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key(ctx)
-            body = {**birth_dict(birth), "levels": levels}
+            body = {**birth.to_api_dict(), "levels": levels}
             data = await get_client().post(
                 "/v1/astro/ashtottari", api_key, body, timeout=20.0
             )

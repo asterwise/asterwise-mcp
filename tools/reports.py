@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from client import get_client
 from errors import AsterwiseMCPError
-from models import BirthData, ResponseFormat, birth_dict
+from models import BirthData, ResponseFormat
 from runtime import (
     REPORT_ANNOTATIONS,
     format_tool_result,
@@ -44,7 +44,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/report/kundli", api_key, birth_dict(birth), timeout=45.0
+                "/v1/report/kundli", api_key, birth.to_api_dict(), timeout=45.0
             )
             return format_tool_result(
                 data,
@@ -78,7 +78,7 @@ def register(mcp: FastMCP) -> None:
         """Matchmaking PDF."""
         try:
             api_key = await require_api_key(ctx)
-            body = {"person1": birth_dict(person1), "person2": birth_dict(person2)}
+            body = {"person1": person1.to_api_dict(), "person2": person2.to_api_dict()}
             data = await get_client().post(
                 "/v1/report/matchmaking", api_key, body, timeout=45.0
             )
@@ -114,7 +114,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/report/dasha", api_key, birth_dict(birth), timeout=45.0
+                "/v1/report/dasha", api_key, birth.to_api_dict(), timeout=45.0
             )
             return format_tool_result(
                 data,
@@ -149,11 +149,11 @@ def register(mcp: FastMCP) -> None:
         """Varshaphal PDF (two-step)."""
         try:
             api_key = await require_api_key(ctx)
-            chart_payload: dict[str, Any] = {**birth_dict(birth), "target_year": year}
+            chart_payload: dict[str, Any] = {**birth.to_api_dict(), "target_year": year}
             chart = await get_client().post(
                 "/v1/astro/varshaphal", api_key, chart_payload, timeout=45.0
             )
-            report_body = {**birth_dict(birth), "year": year, "varshaphal": chart}
+            report_body = {**birth.to_api_dict(), "year": year, "varshaphal": chart}
             data = await get_client().post(
                 "/v1/report/varshaphal", api_key, report_body, timeout=45.0
             )

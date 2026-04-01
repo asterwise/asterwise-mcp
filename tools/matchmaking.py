@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from client import get_client
 from errors import AsterwiseMCPError
-from models import BirthData, ResponseFormat, birth_dict
+from models import BirthData, ResponseFormat
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
@@ -52,7 +52,7 @@ def _ashtakoota_md(data: dict[str, Any]) -> str:
 
 def register(mcp: FastMCP) -> None:
     def _pair_body(p1: BirthData, p2: BirthData) -> dict[str, Any]:
-        return {"person1": birth_dict(p1), "person2": birth_dict(p2)}
+        return {"person1": p1.to_api_dict(), "person2": p2.to_api_dict()}
 
     @mcp.tool(
         name="asterwise_get_compatibility",

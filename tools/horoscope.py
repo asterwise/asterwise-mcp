@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from client import get_client, safe_segment
 from errors import AsterwiseMCPError
-from models import BirthData, HoroscopePeriod, ResponseFormat, birth_dict
+from models import BirthData, HoroscopePeriod, ResponseFormat
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
@@ -80,7 +80,7 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key(ctx)
             data = await get_client().post(
-                "/v1/astro/gochar", api_key, birth_dict(birth), timeout=10.0
+                "/v1/astro/gochar", api_key, birth.to_api_dict(), timeout=10.0
             )
             return format_tool_result(
                 data,
@@ -115,7 +115,7 @@ def register(mcp: FastMCP) -> None:
         """Date-range transits."""
         try:
             api_key = await require_api_key(ctx)
-            body = {**birth_dict(birth), "from_date": from_date, "to_date": to_date}
+            body = {**birth.to_api_dict(), "from_date": from_date, "to_date": to_date}
             data = await get_client().post(
                 "/v1/astro/transits", api_key, body, timeout=10.0
             )
