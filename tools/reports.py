@@ -149,11 +149,11 @@ def register(mcp: FastMCP) -> None:
         """Varshaphal PDF (two-step)."""
         try:
             api_key = await require_api_key(ctx)
-            chart_payload: dict[str, Any] = {**birth_dict(birth), "year": year}
+            chart_payload: dict[str, Any] = {**birth_dict(birth), "target_year": year}
             chart = await get_client().post(
                 "/v1/astro/varshaphal", api_key, chart_payload, timeout=45.0
             )
-            report_body = {**chart_payload, "varshaphal": chart}
+            report_body = {**birth_dict(birth), "year": year, "varshaphal": chart}
             data = await get_client().post(
                 "/v1/report/varshaphal", api_key, report_body, timeout=45.0
             )

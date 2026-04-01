@@ -62,6 +62,30 @@ class BirthData(BaseModel):
         ge=-180.0,
         le=180.0,
     )
+    person_name: str = Field(
+        default="Chart",
+        description=(
+            "Name of the person for this chart. "
+            "Example: 'Arjun Mehta'"
+        ),
+    )
+    timezone: str = Field(
+        default="Asia/Kolkata",
+        description=(
+            "IANA timezone for the birth location. "
+            "Examples: 'Asia/Kolkata' (India), "
+            "'America/New_York' (New York), "
+            "'Europe/London' (London), "
+            "'Asia/Tokyo' (Japan), "
+            "'America/Los_Angeles' (Los Angeles), "
+            "'Europe/Paris' (Paris), "
+            "'Asia/Dubai' (Dubai), "
+            "'Asia/Singapore' (Singapore), "
+            "'America/Chicago' (Chicago), "
+            "'Australia/Sydney' (Sydney). "
+            "Default: Asia/Kolkata"
+        ),
+    )
     ayanamsa: AyanamsaType = Field(
         default=AyanamsaType.LAHIRI,
         description=(
@@ -105,10 +129,12 @@ class BirthData(BaseModel):
     def to_api_dict(self) -> dict[str, Any]:
         """Convert to the dict format the Asterwise API expects."""
         return {
+            "name": self.person_name,
             "date": self.date,
             "time": self.time,
-            "lat": self.lat,
-            "lon": self.lon,
+            "latitude": self.lat,
+            "longitude": self.lon,
+            "timezone": self.timezone,
             "ayanamsa": self.ayanamsa.value,
         }
 
@@ -138,6 +164,10 @@ class LocationInput(BaseModel):
         ge=-180.0,
         le=180.0,
         description="Longitude in decimal degrees",
+    )
+    timezone: str = Field(
+        default="Asia/Kolkata",
+        description="IANA timezone for the location.",
     )
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
 
@@ -235,7 +265,10 @@ def birth_dict(b: BirthData) -> dict[str, Any]:
 
 
 def prashna_dict(p: PrashnaInput) -> dict[str, Any]:
-    """Serialize PrashnaInput for the API."""
-    d = p.model_dump(mode="json")
-    d.pop("response_format", None)
-    return d
+    """Serialize PrashnaInput for the API (BirthInput-style location + question)."""
+    return {
+        "latitude": p.lat,
+        "longitude": p.lon,
+        "question": p.question,
+        "ayanamsa": p.ayanamsa.value,
+    }

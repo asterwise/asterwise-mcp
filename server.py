@@ -763,7 +763,7 @@ async def oauth_token(request: Request) -> Response:
 
         try:
             await get_client().get(
-                "/v1/numerology/meaning/1",
+                "/v1/account",
                 client_id,
                 timeout=10.0,
             )

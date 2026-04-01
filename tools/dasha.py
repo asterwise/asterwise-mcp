@@ -193,7 +193,7 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_ashtottari_dasha",
         description=(
             "Calculate Ashtottari Dasha — 108-year alternative cycle. Source: classical Ashtottari rules.\n"
-            "Inputs: BirthData, response_format.\n"
+            "Inputs: BirthData, levels (1–5, default 3), response_format.\n"
             "Returns: Ashtottari periods."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -201,13 +201,18 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_ashtottari_dasha(
         ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat
+        response_format: ResponseFormat,
+        levels: int = 3,
     ) -> str:
         """Ashtottari Dasha."""
         try:
+            if levels < 1 or levels > 5:
+                invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/ashtottari", api_key, birth_dict(birth),
-                timeout=20.0)
+            body = {**birth_dict(birth), "levels": levels}
+            data = await get_client().post(
+                "/v1/astro/ashtottari", api_key, body, timeout=20.0
+            )
             return format_tool_result(
                 data,
                 response_format,

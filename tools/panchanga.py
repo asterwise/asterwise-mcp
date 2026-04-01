@@ -30,7 +30,7 @@ def register(mcp: FastMCP) -> None:
         description=(
             "Panchanga — Tithi, Vara, Nakshatra, Yoga, Karana for a date and location (fresh computation). "
             "Source: classical Panchanga rules.\n"
-            "Inputs: LocationInput (date, lat, lon, response_format).\n"
+            "Inputs: LocationInput (date, lat, lon, timezone, response_format).\n"
             "Returns: All five elements with timings as provided by the API."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -42,7 +42,12 @@ def register(mcp: FastMCP) -> None:
         """Daily Panchanga."""
         try:
             api_key = await require_api_key(ctx)
-            body = {"date": location.date, "lat": location.lat, "lon": location.lon}
+            body = {
+                "date": location.date,
+                "latitude": location.lat,
+                "longitude": location.lon,
+                "timezone": location.timezone,
+            }
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga", api_key, body, timeout=10.0)
             return format_tool_result(
@@ -75,7 +80,12 @@ def register(mcp: FastMCP) -> None:
         """Choghadiya."""
         try:
             api_key = await require_api_key(ctx)
-            body = {"date": location.date, "lat": location.lat, "lon": location.lon}
+            body = {
+                "date": location.date,
+                "latitude": location.lat,
+                "longitude": location.lon,
+                "timezone": location.timezone,
+            }
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga/choghadiya", api_key, body, timeout=10.0)
             return format_tool_result(
@@ -108,7 +118,12 @@ def register(mcp: FastMCP) -> None:
         """Hora table."""
         try:
             api_key = await require_api_key(ctx)
-            body = {"date": location.date, "lat": location.lat, "lon": location.lon}
+            body = {
+                "date": location.date,
+                "latitude": location.lat,
+                "longitude": location.lon,
+                "timezone": location.timezone,
+            }
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga/hora", api_key, body, timeout=10.0)
             return format_tool_result(
@@ -141,7 +156,12 @@ def register(mcp: FastMCP) -> None:
         """Rahu Kaal."""
         try:
             api_key = await require_api_key(ctx)
-            body = {"date": location.date, "lat": location.lat, "lon": location.lon}
+            body = {
+                "date": location.date,
+                "latitude": location.lat,
+                "longitude": location.lon,
+                "timezone": location.timezone,
+            }
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga/rahu-kaal", api_key, body, timeout=10.0)
             return format_tool_result(
@@ -163,7 +183,7 @@ def register(mcp: FastMCP) -> None:
         description=(
             "Auspicious muhurta (electional timing) for a given activity on a date. Source: Muhurta "
             "classics.\n"
-            "Inputs: LocationInput and activity (e.g. marriage, business).\n"
+            "Inputs: LocationInput (lat/lon/timezone), activity/event_type label, from_date and to_date (YYYY-MM-DD).\n"
             "Returns: Recommended windows."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -171,16 +191,20 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_muhurta(
         ctx: Context,
         location: LocationInput,
-        activity: str
+        activity: str,
+        from_date: str,
+        to_date: str,
     ) -> str:
         """Activity-specific muhurta."""
         try:
             api_key = await require_api_key(ctx)
             body = {
-                "date": location.date,
-                "lat": location.lat,
-                "lon": location.lon,
-                "activity": activity,
+                "event_type": activity,
+                "from_date": from_date,
+                "to_date": to_date,
+                "latitude": location.lat,
+                "longitude": location.lon,
+                "timezone": location.timezone,
             }
             rf = location.response_format
             data = await get_client().post("/v1/astro/muhurta", api_key, body, timeout=10.0)
@@ -202,7 +226,7 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_panchanga_calendar",
         description=(
             "Monthly Panchanga calendar — Tithi, Nakshatra, and key dates. Source: Panchanga computation.\n"
-            "Inputs: PanchangaCalendarInput (year, month, lat, lon, response_format).\n"
+            "Inputs: PanchangaCalendarInput (year, month, lat, lon → API latitude/longitude params).\n"
             "Returns: Month-level calendar data."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -217,8 +241,8 @@ def register(mcp: FastMCP) -> None:
             params: dict[str, Any] = {
                 "year": calendar.year,
                 "month": calendar.month,
-                "lat": calendar.lat,
-                "lon": calendar.lon,
+                "latitude": calendar.lat,
+                "longitude": calendar.lon,
             }
             rf = calendar.response_format
             data = await get_client().get(

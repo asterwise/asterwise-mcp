@@ -78,11 +78,30 @@ class TestBirthData:
             )
 
     def test_to_api_dict(self) -> None:
-        b = BirthData(date="1985-11-12", time="06:45", lat=19.07, lon=72.87)
+        b = BirthData(
+            date="1985-11-12",
+            time="06:45",
+            lat=19.07,
+            lon=72.87,
+            person_name="Test Person",
+            timezone="Asia/Kolkata",
+        )
         d = b.to_api_dict()
-        assert d["date"] == "1985-11-12"
-        assert d["ayanamsa"] == "lahiri"
-        assert isinstance(d["lat"], float)
+        assert d == {
+            "name": "Test Person",
+            "date": "1985-11-12",
+            "time": "06:45",
+            "latitude": 19.07,
+            "longitude": 72.87,
+            "timezone": "Asia/Kolkata",
+            "ayanamsa": "lahiri",
+        }
+
+    def test_birth_data_default_name_and_timezone(self) -> None:
+        b = BirthData(date="1985-11-12", time="06:45", lat=0.0, lon=0.0)
+        d = b.to_api_dict()
+        assert d["name"] == "Chart"
+        assert d["timezone"] == "Asia/Kolkata"
 
     def test_year_before_1800_rejected(self) -> None:
         with pytest.raises(ValidationError, match="1800 or later"):
@@ -98,3 +117,10 @@ class TestLocationInput:
     def test_valid(self) -> None:
         loc = LocationInput(date="2020-01-15", lat=19.0, lon=72.0)
         assert loc.date == "2020-01-15"
+        assert loc.timezone == "Asia/Kolkata"
+
+    def test_location_timezone_override(self) -> None:
+        loc = LocationInput(
+            date="2020-01-15", lat=19.0, lon=72.0, timezone="America/New_York"
+        )
+        assert loc.timezone == "America/New_York"
