@@ -81,10 +81,16 @@ async def _parse_request_body(request: Request) -> Any:
 # Public routes (no API key / Bearer required). OAuth discovery and token endpoints.
 EXEMPT_PATHS = frozenset(
     {
+        "/",
         "/health",
         "/.well-known/oauth-authorization-server",
+        "/.well-known/oauth-authorization-server/mcp",
         "/.well-known/openid-configuration",
         "/.well-known/oauth-protected-resource",
+        "/.well-known/oauth-protected-resource/mcp",
+        "/authorize",
+        "/token",
+        "/register",
         "/oauth/register",
         "/oauth/token",
         "/oauth/revoke",
@@ -365,7 +371,7 @@ async def oauth_metadata(request: Request) -> Response:
     return JSONResponse(
         {
             "issuer": "https://mcp.asterwise.com",
-            "authorization_endpoint": "https://mcp.asterwise.com/oauth/authorize",
+            "authorization_endpoint": "https://mcp.asterwise.com/authorize",
             "token_endpoint": "https://mcp.asterwise.com/oauth/token",
             "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
@@ -392,7 +398,7 @@ async def openid_metadata(request: Request) -> Response:
     return JSONResponse(
         {
             "issuer": "https://mcp.asterwise.com",
-            "authorization_endpoint": "https://mcp.asterwise.com/oauth/authorize",
+            "authorization_endpoint": "https://mcp.asterwise.com/authorize",
             "token_endpoint": "https://mcp.asterwise.com/oauth/token",
             "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
@@ -840,6 +846,16 @@ async def oauth_authorize_proxy(request: Request) -> Response:
     )
 
 
+async def head_handler(request: Request) -> Response:
+    _ = request
+    return Response(
+        status_code=200,
+        headers={
+            "MCP-Protocol-Version": "2025-06-18",
+        }
+    )
+
+
 # Public ASGI app — explicit custom Router first; everything else to FastMCP (no greedy Mount("/")).
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route, Router
@@ -849,11 +865,17 @@ _mcp_asgi = mcp.http_app(transport="streamable-http")
 
 _custom_route_keys = frozenset(
     {
+        ("/", "HEAD"),
         ("/health", "GET"),
         ("/health", "HEAD"),
         ("/.well-known/oauth-authorization-server", "GET"),
+        ("/.well-known/oauth-authorization-server/mcp", "GET"),
         ("/.well-known/openid-configuration", "GET"),
         ("/.well-known/oauth-protected-resource", "GET"),
+        ("/.well-known/oauth-protected-resource/mcp", "GET"),
+        ("/authorize", "GET"),
+        ("/token", "POST"),
+        ("/register", "POST"),
         ("/oauth/authorize", "GET"),
         ("/oauth/register", "POST"),
         ("/oauth/token", "POST"),
@@ -864,12 +886,22 @@ _custom_paths = frozenset(p for p, _ in _custom_route_keys)
 
 _custom_routes = [
     Route(
+        "/",
+        endpoint=head_handler,
+        methods=["HEAD"],
+    ),
+    Route(
         "/health",
         endpoint=health_check,
         methods=["GET", "HEAD"],
     ),
     Route(
         "/.well-known/oauth-authorization-server",
+        endpoint=oauth_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/.well-known/oauth-authorization-server/mcp",
         endpoint=oauth_metadata,
         methods=["GET"],
     ),
@@ -882,6 +914,26 @@ _custom_routes = [
         "/.well-known/oauth-protected-resource",
         endpoint=oauth_protected_resource_metadata,
         methods=["GET"],
+    ),
+    Route(
+        "/.well-known/oauth-protected-resource/mcp",
+        endpoint=oauth_protected_resource_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/authorize",
+        endpoint=oauth_authorize_proxy,
+        methods=["GET"],
+    ),
+    Route(
+        "/token",
+        endpoint=oauth_token,
+        methods=["POST"],
+    ),
+    Route(
+        "/register",
+        endpoint=oauth_dynamic_client_register,
+        methods=["POST"],
     ),
     Route(
         "/oauth/authorize",
@@ -934,7 +986,7 @@ async def _dispatch_app(scope: Scope, receive: Receive, send: Send) -> None:
 app = CORSMiddleware(
     APIKeyASGIWrapper(_dispatch_app),
     allow_origins=["*"],
-    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
+    allow_methods=["GET", "HEAD", "POST", "OPTIONS", "DELETE"],
     allow_headers=[
         "Authorization",
         "Content-Type",
