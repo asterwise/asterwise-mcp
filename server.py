@@ -14,9 +14,10 @@ from typing import Any, AsyncIterator
 import httpx
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from context import set_request_api_key
 
@@ -52,20 +53,27 @@ _WWW_AUTHENTICATE_MCP = (
 )
 
 
-class APIKeyMiddleware(BaseHTTPMiddleware):
-    """Resolve Bearer / X-API-Key from HTTP headers into a ContextVar for tool handlers."""
+class APIKeyASGIWrapper:
+    """Bearer / X-API-Key → ContextVar; 401 when required auth is missing (pure ASGI)."""
 
-    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        path = request.url.path
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        method = scope.get("method", "GET")
         logger.debug(
             "middleware_auth_enter",
-            extra={
-                "path": path,
-                "method": request.method,
-            },
+            extra={"path": path, "method": method},
         )
+
+        hdr = Headers(scope=scope)
         api_key: str | None = None
-        auth_header = request.headers.get("authorization", "")
+        auth_header = hdr.get("authorization", "")
         bearer_present = False
         if auth_header.lower().startswith("bearer "):
             token = auth_header[7:].strip()
@@ -78,12 +86,12 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                 except Exception:
                     pass
 
-        xkey_present = bool(request.headers.get("x-api-key", "").strip())
+        xkey_present = bool(hdr.get("x-api-key", "").strip())
         if not api_key:
-            api_key = request.headers.get("x-api-key", "").strip() or None
+            api_key = hdr.get("x-api-key", "").strip() or None
 
-        if path not in EXEMPT_PATHS and request.method != "OPTIONS" and api_key is None:
-            return JSONResponse(
+        if path not in EXEMPT_PATHS and method != "OPTIONS" and api_key is None:
+            resp = JSONResponse(
                 {
                     "error": "unauthorized",
                     "error_description": (
@@ -99,12 +107,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                     "Content-Type": "application/json",
                 },
             )
+            await resp(scope, receive, send)
+            return
 
-        # ContextVar: tools read via get_request_api_key() (same async context as MCP handler).
         set_request_api_key(api_key)
-        # request.state: available to any code with access to the Starlette Request.
-        request.state.api_key = api_key
-
         logger.debug(
             "middleware_auth",
             extra={
@@ -120,11 +126,9 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             },
         )
         try:
-            response = await call_next(request)
-            return response
+            await self.app(scope, receive, send)
         finally:
             set_request_api_key(None)
-            request.state.api_key = None
 
 
 # OAuth token endpoint: max 10 requests per minute per IP (in-memory)
@@ -770,20 +774,26 @@ async def oauth_token(request: Request) -> Response:
         )
 
 
-# Public ASGI app for tests and mounting — custom routes first, then FastMCP.
-from starlette.applications import Starlette
+# Public ASGI app — explicit custom Router first; everything else to FastMCP (no greedy Mount("/")).
 from starlette.middleware.cors import CORSMiddleware
-from starlette.routing import Mount, Route
+from starlette.routing import Route, Router
 
-# FastMCP ASGI app — MCP protocol (e.g. POST /mcp); must run its lifespan for sessions.
+# FastMCP ASGI app — MCP protocol + lifespan (session manager, httpx client).
 _mcp_asgi = mcp.http_app(transport="streamable-http")
 
-
-@asynccontextmanager
-async def _composite_lifespan(_app: Starlette) -> AsyncIterator[None]:
-    async with _mcp_asgi.router.lifespan_context(_mcp_asgi):
-        yield
-
+_custom_route_keys = frozenset(
+    {
+        ("/health", "GET"),
+        ("/health", "HEAD"),
+        ("/.well-known/oauth-authorization-server", "GET"),
+        ("/.well-known/openid-configuration", "GET"),
+        ("/.well-known/oauth-protected-resource", "GET"),
+        ("/oauth/register", "POST"),
+        ("/oauth/token", "POST"),
+        ("/oauth/revoke", "POST"),
+    }
+)
+_custom_paths = frozenset(p for p, _ in _custom_route_keys)
 
 _custom_routes = [
     Route(
@@ -821,15 +831,36 @@ _custom_routes = [
         endpoint=oauth_revoke,
         methods=["POST"],
     ),
-    Mount("/", app=_mcp_asgi),
 ]
 
-app = Starlette(routes=_custom_routes, lifespan=_composite_lifespan)
+_custom_router = Router(routes=_custom_routes)
 
-# add_middleware: APIKey then CORS so CORS wraps outermost (runs first on the request).
-app.add_middleware(APIKeyMiddleware)
-app.add_middleware(
-    CORSMiddleware,
+
+async def _dispatch_app(scope: Scope, receive: Receive, send: Send) -> None:
+    """Lifespan → FastMCP; HTTP → custom routes when path+method match, else FastMCP."""
+    if scope["type"] == "lifespan":
+        await _mcp_asgi(scope, receive, send)
+        return
+    if scope["type"] == "websocket":
+        await _mcp_asgi(scope, receive, send)
+        return
+    if scope["type"] != "http":
+        await _mcp_asgi(scope, receive, send)
+        return
+
+    path = scope.get("path", "")
+    method = scope.get("method", "GET")
+    if (path, method) in _custom_route_keys or (
+        method == "OPTIONS" and path in _custom_paths
+    ):
+        await _custom_router(scope, receive, send)
+        return
+    await _mcp_asgi(scope, receive, send)
+
+
+# CORS outermost (added last in chain below = first to run), then API key auth, then dispatch.
+app = CORSMiddleware(
+    APIKeyASGIWrapper(_dispatch_app),
     allow_origins=["*"],
     allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
     allow_headers=[
