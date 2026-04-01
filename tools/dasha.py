@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import FastMCP
+
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 from client import get_client
@@ -17,6 +19,8 @@ from runtime import (
     require_api_key,
     structured_markdown,
     tool_error,
+    raise_validation_error,
+    unexpected_tool_error,
 )
 
 
@@ -71,14 +75,16 @@ def register(mcp: FastMCP) -> None:
                 invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key()
             body = {**birth_dict(birth), "levels": levels}
-            data = await get_client().post("/v1/astro/dasha", api_key, body)
+            data = await get_client().post("/v1/astro/dasha", api_key, body, timeout=20.0)
             return format_tool_result(data, response_format, _dasha_tree_md)
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_dasha", exc)
 
     @mcp.tool(
         name="asterwise_get_dasha_transits",
@@ -98,19 +104,22 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key()
             data = await get_client().post(
-                "/v1/astro/dasha-transits", api_key, birth_dict(birth)
+                "/v1/astro/dasha-transits", api_key, birth_dict(birth),
+                timeout=20.0,
             )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Dasha transits", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_dasha_transits", exc)
 
     @mcp.tool(
         name="asterwise_get_char_dasha",
@@ -128,18 +137,21 @@ def register(mcp: FastMCP) -> None:
         """Char Dasha."""
         try:
             api_key = await require_api_key()
-            data = await get_client().post("/v1/astro/char-dasha", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/char-dasha", api_key, birth_dict(birth),
+                timeout=20.0)
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Char Dasha", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_char_dasha", exc)
 
     @mcp.tool(
         name="asterwise_get_yogini_dasha",
@@ -157,18 +169,21 @@ def register(mcp: FastMCP) -> None:
         """Yogini Dasha."""
         try:
             api_key = await require_api_key()
-            data = await get_client().post("/v1/astro/yogini", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/yogini", api_key, birth_dict(birth),
+                timeout=20.0)
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Yogini Dasha", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_yogini_dasha", exc)
 
     @mcp.tool(
         name="asterwise_get_ashtottari_dasha",
@@ -186,15 +201,18 @@ def register(mcp: FastMCP) -> None:
         """Ashtottari Dasha."""
         try:
             api_key = await require_api_key()
-            data = await get_client().post("/v1/astro/ashtottari", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/ashtottari", api_key, birth_dict(birth),
+                timeout=20.0)
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Ashtottari Dasha", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_ashtottari_dasha", exc)

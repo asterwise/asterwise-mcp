@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from fastmcp import FastMCP
+
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
-from client import _safe_path_segment, get_client
+from client import get_client, safe_segment
 from errors import AsterwiseMCPError
 from models import BirthData, HoroscopePeriod, ResponseFormat, birth_dict
 from runtime import (
@@ -15,6 +17,8 @@ from runtime import (
     require_api_key,
     structured_markdown,
     tool_error,
+    raise_validation_error,
+    unexpected_tool_error,
 )
 
 
@@ -38,21 +42,23 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key()
             path = (
-                f"/v1/horoscope/{_safe_path_segment(period.value)}/"
-                f"{_safe_path_segment(moon_sign.lower())}"
+                f"/v1/horoscope/{safe_segment(period.value)}/"
+                f"{safe_segment(moon_sign.lower())}"
             )
-            data = await get_client().get(path, api_key)
+            data = await get_client().get(path, api_key, timeout=10.0)
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown(f"Horoscope ({period.value}, {moon_sign})", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_horoscope", exc)
 
     @mcp.tool(
         name="asterwise_get_gochar",
@@ -71,18 +77,22 @@ def register(mcp: FastMCP) -> None:
         """Gochar from natal chart."""
         try:
             api_key = await require_api_key()
-            data = await get_client().post("/v1/astro/gochar", api_key, birth_dict(birth))
+            data = await get_client().post(
+                "/v1/astro/gochar", api_key, birth_dict(birth), timeout=10.0
+            )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Gochar (transits)", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_gochar", exc)
 
     @mcp.tool(
         name="asterwise_get_transits",
@@ -103,15 +113,19 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key()
             body = {**birth_dict(birth), "from_date": from_date, "to_date": to_date}
-            data = await get_client().post("/v1/astro/transits", api_key, body)
+            data = await get_client().post(
+                "/v1/astro/transits", api_key, body, timeout=10.0
+            )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown(f"Transits {from_date} → {to_date}", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_transits", exc)

@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import FastMCP
+
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 from client import get_client
@@ -17,6 +19,8 @@ from runtime import (
     require_api_key,
     structured_markdown,
     tool_error,
+    raise_validation_error,
+    unexpected_tool_error,
 )
 
 
@@ -70,15 +74,20 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key()
             data = await get_client().post(
-                "/v1/astro/matchmaking", api_key, _pair_body(person1, person2)
+                "/v1/astro/matchmaking",
+                api_key,
+                _pair_body(person1, person2),
+                timeout=20.0,
             )
             return format_tool_result(data, response_format, _ashtakoota_md)
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_compatibility", exc)
 
     @mcp.tool(
         name="asterwise_get_dashakoot",
@@ -102,18 +111,21 @@ def register(mcp: FastMCP) -> None:
                 "/v1/astro/matchmaking/dashakoot",
                 api_key,
                 _pair_body(person1, person2),
+                timeout=20.0,
             )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Dashakoot", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_dashakoot", exc)
 
     @mcp.tool(
         name="asterwise_get_papasamyam",
@@ -137,18 +149,21 @@ def register(mcp: FastMCP) -> None:
                 "/v1/astro/matchmaking/papasamyam",
                 api_key,
                 _pair_body(person1, person2),
+                timeout=20.0,
             )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Papa Samyam", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_papasamyam", exc)
 
     @mcp.tool(
         name="asterwise_get_porutham",
@@ -172,18 +187,21 @@ def register(mcp: FastMCP) -> None:
                 "/v1/astro/matchmaking/porutham",
                 api_key,
                 _pair_body(person1, person2),
+                timeout=20.0,
             )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Porutham", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_porutham", exc)
 
     @mcp.tool(
         name="asterwise_get_thirumana_porutham",
@@ -206,15 +224,18 @@ def register(mcp: FastMCP) -> None:
                 "/v1/astro/matchmaking/thirumana-porutham",
                 api_key,
                 _pair_body(person1, person2),
+                timeout=20.0,
             )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Thirumana Porutham", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_thirumana_porutham", exc)

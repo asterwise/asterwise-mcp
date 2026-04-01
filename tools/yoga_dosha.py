@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from fastmcp import FastMCP
+
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 from client import get_client
@@ -15,6 +17,8 @@ from runtime import (
     require_api_key,
     structured_markdown,
     tool_error,
+    raise_validation_error,
+    unexpected_tool_error,
 )
 
 
@@ -42,12 +46,14 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Yogas", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_yogas", exc)
 
     @mcp.tool(
         name="asterwise_get_doshas",
@@ -72,12 +78,14 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Doshas", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_doshas", exc)
 
     @mcp.tool(
         name="asterwise_get_remedies",
@@ -102,12 +110,14 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Remedies", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_remedies", exc)
 
     @mcp.tool(
         name="asterwise_get_gemstone_recommendations",
@@ -132,9 +142,11 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Gemstone recommendations", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_gemstone_recommendations", exc)

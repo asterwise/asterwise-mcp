@@ -1,8 +1,8 @@
-"""Shared Pydantic input models for Asterwise MCP tools."""
+"""Strict Pydantic input models for Asterwise MCP tools."""
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -24,7 +24,11 @@ class ResponseFormat(str, Enum):
 class BirthData(BaseModel):
     """Birth data for a single person."""
 
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+    )
 
     date: str = Field(
         ...,
@@ -36,26 +40,34 @@ class BirthData(BaseModel):
     time: str = Field(
         ...,
         description=(
-            "Birth time in HH:MM format (24h). Example: '06:45'"
+            "Birth time in HH:MM format (24-hour). Example: '06:45'. Use '00:00' if unknown."
         ),
         pattern=r"^\d{2}:\d{2}$",
     )
     lat: float = Field(
         ...,
-        description="Birth latitude. Example: 19.0760 for Mumbai",
+        description=(
+            "Birth latitude in decimal degrees. North positive, south negative. "
+            "Example: 19.0760 for Mumbai, -33.8688 for Sydney"
+        ),
         ge=-90.0,
         le=90.0,
     )
     lon: float = Field(
         ...,
-        description="Birth longitude. Example: 72.8777 for Mumbai",
+        description=(
+            "Birth longitude in decimal degrees. East positive, west negative. "
+            "Example: 72.8777 for Mumbai, -74.0060 for New York"
+        ),
         ge=-180.0,
         le=180.0,
     )
     ayanamsa: AyanamsaType = Field(
         default=AyanamsaType.LAHIRI,
         description=(
-            "Ayanamsa system: 'lahiri' (default), 'kp', 'raman', 'tropical'"
+            "Ayanamsa system for sidereal calculations. "
+            "'lahiri' (default, recommended for Vedic), "
+            "'kp' (Krishnamurti Paddhati), 'raman', 'tropical' (Western)"
         ),
     )
 
@@ -63,9 +75,19 @@ class BirthData(BaseModel):
     @classmethod
     def validate_date(cls, v: str) -> str:
         try:
-            datetime.strptime(v, "%Y-%m-%d")
+            parsed = datetime.strptime(v, "%Y-%m-%d")
         except ValueError:
-            raise ValueError(f"date must be YYYY-MM-DD format. Got: {v!r}") from None
+            raise ValueError(
+                f"date must be YYYY-MM-DD. Got: {v!r}. Example: '1985-11-12'"
+            ) from None
+        parsed_d = parsed.date()
+        if parsed_d.year < 1800:
+            raise ValueError(f"date year must be 1800 or later. Got: {parsed_d.year}")
+        latest = date.today() + timedelta(days=365)
+        if parsed_d > latest:
+            raise ValueError(
+                "date cannot be more than one year in the future relative to today"
+            )
         return v
 
     @field_validator("time")
@@ -74,19 +96,36 @@ class BirthData(BaseModel):
         try:
             datetime.strptime(v, "%H:%M")
         except ValueError:
-            raise ValueError(f"time must be HH:MM format (24h). Got: {v!r}") from None
+            raise ValueError(
+                f"time must be HH:MM in 24-hour format. Got: {v!r}. "
+                "Example: '06:45', '14:30', '00:00'"
+            ) from None
         return v
+
+    def to_api_dict(self) -> dict[str, Any]:
+        """Convert to the dict format the Asterwise API expects."""
+        return {
+            "date": self.date,
+            "time": self.time,
+            "lat": self.lat,
+            "lon": self.lon,
+            "ayanamsa": self.ayanamsa.value,
+        }
 
 
 class LocationInput(BaseModel):
-    """Date + geolocation for Panchanga and similar tools (not full birth time)."""
+    """For tools that need location but not birth time."""
 
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+    )
 
     date: str = Field(
         ...,
-        description="Date in YYYY-MM-DD format",
         pattern=r"^\d{4}-\d{2}-\d{2}$",
+        description="Date in YYYY-MM-DD format",
     )
     lat: float = Field(
         ...,
@@ -100,10 +139,7 @@ class LocationInput(BaseModel):
         le=180.0,
         description="Longitude in decimal degrees",
     )
-    response_format: ResponseFormat = Field(
-        default=ResponseFormat.MARKDOWN,
-        description='Response format: "markdown" or "json"',
-    )
+    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
 
     @field_validator("date")
     @classmethod
@@ -111,14 +147,18 @@ class LocationInput(BaseModel):
         try:
             datetime.strptime(v, "%Y-%m-%d")
         except ValueError:
-            raise ValueError(f"date must be YYYY-MM-DD format. Got: {v!r}") from None
+            raise ValueError(f"date must be YYYY-MM-DD. Got: {v!r}") from None
         return v
 
 
 class PanchangaCalendarInput(BaseModel):
     """Monthly Panchanga calendar parameters."""
 
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+    )
 
     year: int = Field(..., ge=1900, le=2100)
     month: int = Field(..., ge=1, le=12)
@@ -130,7 +170,11 @@ class PanchangaCalendarInput(BaseModel):
 class PrashnaInput(BaseModel):
     """Prashna (horary) query parameters."""
 
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+    )
 
     question: str = Field(..., min_length=1)
     date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
@@ -187,7 +231,7 @@ class HoroscopePeriod(str, Enum):
 
 def birth_dict(b: BirthData) -> dict[str, Any]:
     """Serialize BirthData for JSON request bodies."""
-    return b.model_dump(mode="json")
+    return b.to_api_dict()
 
 
 def prashna_dict(p: PrashnaInput) -> dict[str, Any]:

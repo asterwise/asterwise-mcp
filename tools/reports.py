@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import FastMCP
+
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 from client import get_client
@@ -17,6 +19,8 @@ from runtime import (
     require_api_key,
     structured_markdown,
     tool_error,
+    raise_validation_error,
+    unexpected_tool_error,
 )
 
 
@@ -38,18 +42,22 @@ def register(mcp: FastMCP) -> None:
         """Kundli PDF."""
         try:
             api_key = await require_api_key()
-            data = await get_client().post("/v1/report/kundli", api_key, birth_dict(birth))
+            data = await get_client().post(
+                "/v1/report/kundli", api_key, birth_dict(birth), timeout=45.0
+            )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Kundli report", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_generate_kundli_report", exc)
 
     @mcp.tool(
         name="asterwise_generate_matchmaking_report",
@@ -69,18 +77,22 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key()
             body = {"person1": birth_dict(person1), "person2": birth_dict(person2)}
-            data = await get_client().post("/v1/report/matchmaking", api_key, body)
+            data = await get_client().post(
+                "/v1/report/matchmaking", api_key, body, timeout=45.0
+            )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Matchmaking report", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_generate_matchmaking_report", exc)
 
     @mcp.tool(
         name="asterwise_generate_dasha_report",
@@ -98,18 +110,22 @@ def register(mcp: FastMCP) -> None:
         """Dasha PDF."""
         try:
             api_key = await require_api_key()
-            data = await get_client().post("/v1/report/dasha", api_key, birth_dict(birth))
+            data = await get_client().post(
+                "/v1/report/dasha", api_key, birth_dict(birth), timeout=45.0
+            )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown("Dasha report", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_generate_dasha_report", exc)
 
     @mcp.tool(
         name="asterwise_generate_varshaphal_report",
@@ -130,17 +146,23 @@ def register(mcp: FastMCP) -> None:
         try:
             api_key = await require_api_key()
             chart_payload: dict[str, Any] = {**birth_dict(birth), "year": year}
-            chart = await get_client().post("/v1/astro/varshaphal", api_key, chart_payload)
+            chart = await get_client().post(
+                "/v1/astro/varshaphal", api_key, chart_payload, timeout=45.0
+            )
             report_body = {**chart_payload, "varshaphal": chart}
-            data = await get_client().post("/v1/report/varshaphal", api_key, report_body)
+            data = await get_client().post(
+                "/v1/report/varshaphal", api_key, report_body, timeout=45.0
+            )
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown(f"Varshaphal report ({year})", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_generate_varshaphal_report", exc)

@@ -1,8 +1,11 @@
-"""Asterwise MCP server — streamable HTTP transport, tools, OAuth token, health."""
+"""Asterwise MCP server — streamable HTTP, OAuth, health, structured logs."""
 
 from __future__ import annotations
 
+import hmac
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -14,15 +17,35 @@ from starlette.responses import JSONResponse, Response
 
 load_dotenv()
 
-from auth import create_token
+from logging_config import configure_logging
+
+configure_logging()
+
+from auth import TOKEN_TTL, _token_cache, create_token
 from client import get_client
 from errors import AsterwiseAPIError
 from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, reports, yoga_dosha
 
+logger = logging.getLogger("asterwise_mcp.server")
+
+# OAuth token endpoint: max 10 requests per minute per IP (in-memory)
+_oauth_attempts: dict[str, list[float]] = {}
+_OAUTH_MAX = 10
+_OAUTH_WINDOW_SEC = 60.0
+
+
+def _oauth_rate_allow(client_ip: str) -> bool:
+    now = time.time()
+    times = _oauth_attempts.setdefault(client_ip, [])
+    times[:] = [t for t in times if now - t < _OAUTH_WINDOW_SEC]
+    if len(times) >= _OAUTH_MAX:
+        return False
+    times.append(now)
+    return True
+
 
 @asynccontextmanager
 async def lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
-    """Open the shared httpx client for the process lifetime."""
     _ = server
     client = get_client()
     await client.open()
@@ -86,13 +109,48 @@ _register_tools()
 
 
 @mcp.custom_route("/health", methods=["GET"])
-async def health_check(_request: Request) -> Response:
-    return JSONResponse({"status": "ok", "version": "1.0.0"})
+async def health_check(request: Request) -> Response:
+    """Health with upstream probe and token cache size."""
+    _ = request
+    start = time.perf_counter()
+    upstream_ok = False
+    upstream_error: str | None = None
+    base = os.getenv("ASTERWISE_API_BASE_URL", "").rstrip("/")
+
+    if base:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as c:
+                r = await c.get(f"{base}/health")
+                upstream_ok = r.status_code == 200
+        except Exception as e:
+            upstream_error = str(e)
+    else:
+        upstream_error = "ASTERWISE_API_BASE_URL not set"
+
+    elapsed = round((time.perf_counter() - start) * 1000, 1)
+    body = {
+        "status": "ok" if upstream_ok else "degraded",
+        "version": "1.0.0",
+        "upstream": {"reachable": upstream_ok, "error": upstream_error},
+        "latency_ms": elapsed,
+        "token_cache_size": len(_token_cache),
+    }
+    return JSONResponse(body, status_code=200 if upstream_ok else 503)
 
 
 @mcp.custom_route("/oauth/token", methods=["POST"])
 async def oauth_token(request: Request) -> Response:
-    """OAuth 2.1-style client_credentials using the API key as both id and secret."""
+    """OAuth 2.1 client_credentials (API key as both id and secret)."""
+    client_ip = request.client.host if request.client else "unknown"
+    if not _oauth_rate_allow(client_ip):
+        return JSONResponse(
+            {
+                "error": "too_many_requests",
+                "error_description": "Rate limit: max 10 token requests per minute per IP.",
+            },
+            status_code=429,
+        )
+
     try:
         try:
             body = await request.json()
@@ -100,7 +158,7 @@ async def oauth_token(request: Request) -> Response:
             return JSONResponse(
                 {
                     "error": "invalid_request",
-                    "error_description": "Request body must be valid JSON object",
+                    "error_description": "Request body must be valid JSON",
                 },
                 status_code=400,
             )
@@ -114,11 +172,14 @@ async def oauth_token(request: Request) -> Response:
                 status_code=400,
             )
 
-        if body.get("grant_type") != "client_credentials":
+        grant_type = body.get("grant_type", "")
+        if grant_type != "client_credentials":
             return JSONResponse(
                 {
                     "error": "unsupported_grant_type",
-                    "error_description": "Only client_credentials grant type is supported",
+                    "error_description": (
+                        f"Only 'client_credentials' is supported. Got: {grant_type!r}"
+                    ),
                 },
                 status_code=400,
             )
@@ -130,22 +191,40 @@ async def oauth_token(request: Request) -> Response:
             return JSONResponse(
                 {
                     "error": "invalid_client",
-                    "error_description": "client_id and client_secret are required",
-                },
-                status_code=401,
-            )
-
-        if client_id != client_secret:
-            return JSONResponse(
-                {
-                    "error": "invalid_client",
-                    "error_description": "client_id and client_secret must match your Asterwise API key",
+                    "error_description": (
+                        "Both client_id and client_secret are required. "
+                        "They must equal your Asterwise API key."
+                    ),
                 },
                 status_code=401,
             )
 
         try:
-            await get_client().get("/v1/numerology/meaning/1", client_id)
+            cid_b = client_id.encode("utf-8")
+            csec_b = client_secret.encode("utf-8")
+            if len(cid_b) != len(csec_b) or not hmac.compare_digest(cid_b, csec_b):
+                return JSONResponse(
+                    {
+                        "error": "invalid_client",
+                        "error_description": (
+                            "client_id and client_secret must match and must equal "
+                            "your Asterwise API key."
+                        ),
+                    },
+                    status_code=401,
+                )
+        except Exception:
+            return JSONResponse(
+                {"error": "invalid_client", "error_description": "Invalid credentials."},
+                status_code=401,
+            )
+
+        try:
+            await get_client().get(
+                "/v1/numerology/meaning/1",
+                client_id,
+                timeout=10.0,
+            )
         except AsterwiseAPIError as e:
             return JSONResponse(
                 {"error": "invalid_client", "error_description": str(e)},
@@ -155,27 +234,33 @@ async def oauth_token(request: Request) -> Response:
             return JSONResponse(
                 {
                     "error": "temporarily_unavailable",
-                    "error_description": "Upstream validation timed out. Try again shortly.",
+                    "error_description": (
+                        "Upstream validation timed out. Try again in a moment. "
+                        "Check status.asterwise.com"
+                    ),
                 },
                 status_code=503,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(
+                "oauth_upstream_error",
+                extra={"error": str(e), "error_type": type(e).__name__},
+            )
             return JSONResponse(
                 {
                     "error": "server_error",
-                    "error_description": "Token issuance failed. Check status.asterwise.com",
+                    "error_description": (
+                        "Token issuance failed. Check status.asterwise.com"
+                    ),
                 },
                 status_code=500,
             )
 
         try:
             token = create_token(client_id)
-        except Exception:
+        except RuntimeError as e:
             return JSONResponse(
-                {
-                    "error": "server_error",
-                    "error_description": "JWT_SECRET not configured. Contact support.",
-                },
+                {"error": "server_error", "error_description": str(e)},
                 status_code=503,
             )
 
@@ -183,10 +268,12 @@ async def oauth_token(request: Request) -> Response:
             {
                 "access_token": token,
                 "token_type": "bearer",
-                "expires_in": 3600,
+                "expires_in": TOKEN_TTL,
+                "scope": "asterwise:read",
             }
         )
     except Exception:
+        logger.exception("oauth_token_unhandled")
         return JSONResponse(
             {
                 "error": "server_error",
@@ -194,6 +281,10 @@ async def oauth_token(request: Request) -> Response:
             },
             status_code=500,
         )
+
+
+# Public ASGI app for tests and mounting
+app = mcp.http_app(transport="streamable-http")
 
 
 if __name__ == "__main__":
