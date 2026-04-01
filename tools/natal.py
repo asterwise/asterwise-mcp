@@ -75,7 +75,7 @@ def register(mcp: FastMCP) -> None:
             "signs, houses, nakshatras, combustion flags, Vargottama markers, Dig Bala, and ascendant "
             "details. Source: Brihat Parashara Hora Shastra (BPHS). Use this as the foundation for any "
             "Jyotish analysis.\n"
-            "Inputs: BirthData (date, time, lat, lon, ayanamsa) and response_format.\n"
+            "Inputs: BirthData (date, time, lat, lon, timezone, person name, ayanamsa) and response_format.\n"
             "Returns: Markdown planet table or full JSON from the API."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -295,7 +295,7 @@ def register(mcp: FastMCP) -> None:
             "Generate a Prashna (horary) chart for a question asked at a specific moment. Prashna Jyotish "
             "answers questions from planetary positions at the moment of asking, without requiring a birth "
             "chart. Source: Prashna classics.\n"
-            "Inputs: question, date, time, lat, lon, ayanamsa, response_format.\n"
+            "Inputs: PrashnaInput (question, lat, lon, ayanamsa; date/time optional for context), response_format.\n"
             "Returns: Prashna chart and interpretation payload."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -332,7 +332,7 @@ def register(mcp: FastMCP) -> None:
             "Calculate Varshaphal (Solar Return chart) — the chart cast for the moment the Sun returns to "
             "its natal degree each year. Reveals themes and events for that year of life. Source: "
             "Varshaphal tradition.\n"
-            "Inputs: BirthData, year (age/year of interest), response_format.\n"
+            "Inputs: BirthData, target year (solar return year), response_format.\n"
             "Returns: Solar return chart data."
         ),
         annotations=STANDARD_ANNOTATIONS,
@@ -346,7 +346,7 @@ def register(mcp: FastMCP) -> None:
         """Varshaphal solar return."""
         try:
             api_key = await require_api_key(ctx)
-            body = {**birth_dict(birth), "year": year}
+            body = {**birth_dict(birth), "target_year": year}
             data = await get_client().post("/v1/astro/varshaphal", api_key, body, timeout=20.0)
             return format_tool_result(
                 data,
