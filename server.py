@@ -114,7 +114,7 @@ def _api_base() -> str:
 
 
 def _internal_bearer_headers() -> dict[str, str] | None:
-    token = os.getenv("ASTERWISE_INTERNAL_TOKEN", "").strip()
+    token = os.getenv("INTERNAL_API_TOKEN", "").strip()
     if not token:
         return None
     return {"Authorization": f"Bearer {token}"}
