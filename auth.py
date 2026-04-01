@@ -166,11 +166,7 @@ def decode_token(token: str) -> str:
             last_error = exc
             continue
 
-        if _hash_key(api_key) != key_hash:
-            last_error = jwt.InvalidTokenError("sub mismatch")
-            continue
-
-        _token_cache[key_hash] = (api_key, float(payload["exp"]))
+        _token_cache[_hash_key(api_key)] = (api_key, float(payload["exp"]))
         return api_key
 
     if isinstance(last_error, jwt.ExpiredSignatureError):

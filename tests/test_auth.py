@@ -148,6 +148,26 @@ class TestTokenDecoding:
         recovered = decode_token(token)
         assert recovered == api_key
 
+    def test_decode_token_accepts_sub_not_equal_to_key_hash(self) -> None:
+        """asterwise-api authorization_code JWTs use account UUID as sub, not _hash_key(api_key)."""
+        api_key = "oauth-style-raw-key-xyz"
+        f = _get_fernet()
+        enc = f.encrypt(api_key.encode("utf-8")).decode("utf-8")
+        payload = {
+            "sub": "550e8400-e29b-41d4-a716-446655440000",
+            "key": enc,
+            "iat": int(time.time()),
+            "exp": int(time.time()) + TOKEN_TTL,
+            "iss": "asterwise-mcp",
+        }
+        token = pyjwt.encode(
+            payload,
+            os.environ["JWT_SECRET"],
+            algorithm="HS256",
+        )
+        assert decode_token(token) == api_key
+        assert _hash_key(api_key) in _token_cache
+
     def test_wrong_issuer_raises_invalid(self) -> None:
         payload = {
             "sub": "somehash",
