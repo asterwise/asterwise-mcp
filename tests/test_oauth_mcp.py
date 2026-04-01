@@ -188,7 +188,7 @@ async def test_openid_configuration_matches_as_metadata() -> None:
         r = await ac.get("/.well-known/openid-configuration")
     assert r.status_code == 200
     meta = r.json()
-    assert meta["authorization_endpoint"] == "https://mcp.asterwise.com/oauth/authorize"
+    assert meta["authorization_endpoint"] == "https://mcp.asterwise.com/authorize"
     assert meta["registration_endpoint"] == "https://mcp.asterwise.com/oauth/register"
     assert meta["code_challenge_methods_supported"] == ["S256"]
 
@@ -202,7 +202,7 @@ async def test_well_known_includes_authorization_endpoint() -> None:
         r = await ac.get("/.well-known/oauth-authorization-server")
     assert r.status_code == 200
     meta = r.json()
-    assert meta["authorization_endpoint"] == "https://mcp.asterwise.com/oauth/authorize"
+    assert meta["authorization_endpoint"] == "https://mcp.asterwise.com/authorize"
 
 
 @pytest.mark.asyncio
