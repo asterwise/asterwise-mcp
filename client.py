@@ -108,7 +108,7 @@ class AsterwiseClient:
         request_id = str(uuid.uuid4())[:8]
         start = time.perf_counter()
         headers = {
-            "X-API-Key": api_key,
+            "Authorization": f"Bearer {api_key}",
             "User-Agent": "asterwise-mcp/1.0",
             "Accept": "application/json",
         }
