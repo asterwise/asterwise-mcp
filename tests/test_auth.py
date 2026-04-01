@@ -15,7 +15,7 @@ from auth import (
     TOKEN_TTL,
     TokenExpiredError,
     TokenInvalidError,
-    _evict_expired,
+    _evict_expired_tokens,
     _hash_key,
     _token_cache,
     create_token,
@@ -87,9 +87,9 @@ class TestTokenDecoding:
         api_key = "expiry-test-key"
         token = create_token(api_key)
         key_hash = _hash_key(api_key)
-        # decode_token calls _evict_expired first; skip eviction so we can
+        # decode_token calls _evict_expired_tokens first; skip eviction so we can
         # simulate a stale cache row after JWT verification.
-        with patch("auth._evict_expired"):
+        with patch("auth._evict_expired_tokens"):
             _token_cache[key_hash] = (api_key, time.time() - 1)
             with pytest.raises(TokenExpiredError):
                 decode_token(token)
@@ -166,6 +166,6 @@ class TestCacheEviction:
     def test_evict_removes_expired_entries(self) -> None:
         _token_cache["expired_hash"] = ("some-key", time.time() - 1)
         _token_cache["valid_hash"] = ("other-key", time.time() + 3600)
-        _evict_expired()
+        _evict_expired_tokens()
         assert "expired_hash" not in _token_cache
         assert "valid_hash" in _token_cache
