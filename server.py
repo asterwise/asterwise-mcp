@@ -42,7 +42,7 @@ EXEMPT_PATHS = frozenset(
         "/.well-known/oauth-authorization-server",
         "/.well-known/openid-configuration",
         "/.well-known/oauth-protected-resource",
-        "/register",
+        "/oauth/register",
         "/oauth/token",
         "/oauth/revoke",
     }
@@ -342,7 +342,7 @@ async def oauth_metadata(request: Request) -> Response:
             "issuer": "https://mcp.asterwise.com",
             "authorization_endpoint": "https://asterwise.com/oauth/authorize",
             "token_endpoint": "https://mcp.asterwise.com/oauth/token",
-            "registration_endpoint": "https://mcp.asterwise.com/register",
+            "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
                 "client_secret_post",
             ],
@@ -370,7 +370,7 @@ async def openid_metadata(request: Request) -> Response:
             "issuer": "https://mcp.asterwise.com",
             "authorization_endpoint": "https://asterwise.com/oauth/authorize",
             "token_endpoint": "https://mcp.asterwise.com/oauth/token",
-            "registration_endpoint": "https://mcp.asterwise.com/register",
+            "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
                 "client_secret_post",
             ],
@@ -403,7 +403,7 @@ async def oauth_protected_resource_metadata(request: Request) -> Response:
     )
 
 
-@mcp.custom_route("/register", methods=["POST"])
+@mcp.custom_route("/oauth/register", methods=["POST"])
 async def oauth_dynamic_client_register(request: Request) -> Response:
     """RFC 7591-style dynamic client registration (proxied to asterwise-api)."""
     client_ip = request.client.host if request.client else "unknown"

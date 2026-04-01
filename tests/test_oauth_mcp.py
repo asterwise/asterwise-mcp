@@ -58,7 +58,7 @@ async def test_register_empty_redirect_uris_returns_400(monkeypatch: pytest.Monk
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        r = await ac.post("/register", json={"redirect_uris": []})
+        r = await ac.post("/oauth/register", json={"redirect_uris": []})
     assert r.status_code == 400
 
 
@@ -71,7 +71,7 @@ async def test_register_missing_internal_token_returns_503(monkeypatch: pytest.M
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         r = await ac.post(
-            "/register",
+            "/oauth/register",
             json={"redirect_uris": ["https://app/cb"]},
         )
     assert r.status_code == 503
@@ -101,7 +101,7 @@ async def test_register_upstream_unreachable_returns_503(monkeypatch: pytest.Mon
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         r = await ac.post(
-            "/register",
+            "/oauth/register",
             json={"redirect_uris": ["https://app/cb"]},
         )
     assert r.status_code == 503
@@ -116,7 +116,7 @@ async def test_register_endpoint_validates_https(monkeypatch: pytest.MonkeyPatch
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         r = await ac.post(
-            "/register",
+            "/oauth/register",
             json={
                 "redirect_uris": ["http://evil.com/cb"],
             },
@@ -155,7 +155,7 @@ async def test_register_endpoint_accepts_localhost(monkeypatch: pytest.MonkeyPat
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         r = await ac.post(
-            "/register",
+            "/oauth/register",
             json={"redirect_uris": ["http://localhost:3000/cb"]},
         )
     assert r.status_code == 201
@@ -174,7 +174,7 @@ async def test_openid_configuration_matches_as_metadata() -> None:
     assert r.status_code == 200
     meta = r.json()
     assert meta["authorization_endpoint"] == "https://asterwise.com/oauth/authorize"
-    assert meta["registration_endpoint"] == "https://mcp.asterwise.com/register"
+    assert meta["registration_endpoint"] == "https://mcp.asterwise.com/oauth/register"
     assert meta["code_challenge_methods_supported"] == ["S256"]
 
 
@@ -197,7 +197,7 @@ async def test_well_known_includes_registration_endpoint() -> None:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         r = await ac.get("/.well-known/oauth-authorization-server")
-    assert r.json()["registration_endpoint"] == "https://mcp.asterwise.com/register"
+    assert r.json()["registration_endpoint"] == "https://mcp.asterwise.com/oauth/register"
 
 
 @pytest.mark.asyncio
