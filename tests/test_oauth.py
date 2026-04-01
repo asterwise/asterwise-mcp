@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -140,4 +141,50 @@ class TestOAuthEndpoint:
         assert body["token_type"] == "bearer"
         assert body["scope"] == "asterwise:read"
         assert len(body["access_token"].split(".")) == 3
+        mock_upstream_get.get.assert_called()
+
+    async def test_client_credentials_accepts_form_urlencoded(
+        self,
+        mock_upstream_get: MagicMock,
+    ) -> None:
+        from server import app
+
+        api_key = "valid-asterwise-api-key-for-oauth-test-12345"
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            r = await ac.post(
+                "/oauth/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": api_key,
+                    "client_secret": api_key,
+                },
+            )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["token_type"] == "bearer"
+        mock_upstream_get.get.assert_called()
+
+    async def test_client_credentials_json_body_non_json_content_type(
+        self,
+        mock_upstream_get: MagicMock,
+    ) -> None:
+        """Valid JSON body with a non-JSON Content-Type uses the generic parse path."""
+        from server import app
+
+        api_key = "valid-asterwise-api-key-for-oauth-test-12345"
+        transport = ASGITransport(app=app)
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": api_key,
+            "client_secret": api_key,
+        }
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            r = await ac.post(
+                "/oauth/token",
+                content=json.dumps(payload),
+                headers={"Content-Type": "text/plain"},
+            )
+        assert r.status_code == 200
+        assert r.json()["token_type"] == "bearer"
         mock_upstream_get.get.assert_called()
