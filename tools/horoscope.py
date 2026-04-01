@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from fastmcp import FastMCP
+from pydantic import ValidationError
 
-from client import get_client
+from client import _safe_path_segment, get_client
+from errors import AsterwiseMCPError
 from models import BirthData, HoroscopePeriod, ResponseFormat, birth_dict
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
-    mcp_error_message,
+    invalid_params,
     require_api_key,
     structured_markdown,
+    tool_error,
 )
 
 
@@ -34,15 +37,22 @@ def register(mcp: FastMCP) -> None:
         """Moon-sign horoscope by period."""
         try:
             api_key = await require_api_key()
-            path = f"/v1/horoscope/{period.value}/{moon_sign.lower()}"
+            path = (
+                f"/v1/horoscope/{_safe_path_segment(period.value)}/"
+                f"{_safe_path_segment(moon_sign.lower())}"
+            )
             data = await get_client().get(path, api_key)
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown(f"Horoscope ({period.value}, {moon_sign})", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_gochar",
@@ -67,8 +77,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Gochar (transits)", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_transits",
@@ -95,5 +109,9 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Transits {from_date} → {to_date}", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")

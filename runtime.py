@@ -1,16 +1,16 @@
-"""Shared tool runtime: auth, response formatting, MCP annotations."""
+"""Shared tool runtime: auth, response formatting, MCP annotations, protocol errors."""
 
 from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NoReturn
 
 from fastmcp.server.dependencies import get_http_request
-from mcp.types import ToolAnnotations
+from mcp.shared.exceptions import McpError
+from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
 
 from auth import validate_and_get_key
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 
 STANDARD_ANNOTATIONS = ToolAnnotations(
@@ -26,6 +26,16 @@ REPORT_ANNOTATIONS = ToolAnnotations(
     idempotentHint=False,
     openWorldHint=True,
 )
+
+
+def tool_error(message: str, code: int = INTERNAL_ERROR) -> NoReturn:
+    """Raise a proper MCP protocol error. Never returns."""
+    raise McpError(ErrorData(code=code, message=message))
+
+
+def invalid_params(message: str) -> NoReturn:
+    """Raise MCP invalid params error. Never returns."""
+    raise McpError(ErrorData(code=INVALID_PARAMS, message=message))
 
 
 async def require_api_key() -> str:
@@ -81,16 +91,3 @@ def _md_value(obj: Any, depth: int = 0) -> str:
                 parts.append(f"{indent}- {_md_value(item, depth)}")
         return "\n".join(parts)
     return str(obj)
-
-
-def mcp_error_message(exc: BaseException) -> str:
-    """User-facing error string for tool results."""
-    if isinstance(exc, AsterwiseMCPError):
-        base = str(exc)
-        if getattr(exc, "hint", None):
-            return f"{base}\n\nNext step: {exc.hint}"
-        return base
-    return (
-        f"{type(exc).__name__}: {exc}\n\n"
-        "Retry with corrected parameters or check Asterwise API status."
-    )

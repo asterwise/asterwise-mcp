@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from fastmcp import FastMCP
+from pydantic import ValidationError
 
-from client import get_client
+from client import _safe_path_segment, get_client
+from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
-    mcp_error_message,
+    invalid_params,
     require_api_key,
     structured_markdown,
+    tool_error,
 )
 
 
@@ -44,8 +47,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Numerology profile", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_numerology_compatibility",
@@ -78,8 +85,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Numerology compatibility", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_chaldean_numerology",
@@ -108,8 +119,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Chaldean numerology", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_lo_shu_grid",
@@ -138,8 +153,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lo Shu grid", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_name_correction",
@@ -169,8 +188,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Name correction", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_lucky_numbers",
@@ -199,8 +222,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lucky numbers", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_personal_year",
@@ -229,8 +256,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Personal year", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_number_meaning",
@@ -248,12 +279,12 @@ def register(mcp: FastMCP) -> None:
         """Number dictionary entry."""
         try:
             if number < 1 or number > 33:
-                return mcp_error_message(
-                    ValueError("number must be between 1 and 33 (including master numbers 11, 22, 33).")
+                invalid_params(
+                    "number must be between 1 and 33 (including master numbers 11, 22, 33)."
                 )
             api_key = await require_api_key()
             data = await get_client().get(
-                f"/v1/numerology/meaning/{number}",
+                f"/v1/numerology/meaning/{_safe_path_segment(str(number))}",
                 api_key,
             )
             return format_tool_result(
@@ -261,8 +292,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Meaning of {number}", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_check_mobile_number",
@@ -292,8 +327,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Mobile number analysis", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_check_vehicle_number",
@@ -323,8 +362,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Vehicle number analysis", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_business_name_analysis",
@@ -353,5 +396,9 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Business name analysis", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")

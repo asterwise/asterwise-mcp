@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import uuid
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
 from errors import AsterwiseAPIError, map_http_status_to_message
+
+logger = logging.getLogger("asterwise_mcp")
+
+
+def _safe_path_segment(value: str) -> str:
+    """URL-encode a single path segment."""
+    return quote(str(value), safe="")
 
 
 class AsterwiseClient:
@@ -73,31 +83,91 @@ class AsterwiseClient:
 
     async def post(self, path: str, api_key: str, body: dict[str, Any]) -> dict[str, Any]:
         """POST JSON to Asterwise API with auth."""
-        r = await self._client().post(
-            path,
-            json=body,
-            headers={"X-API-Key": api_key},
+        request_id = str(uuid.uuid4())[:8]
+        logger.info(
+            "upstream_request",
+            extra={
+                "request_id": request_id,
+                "method": "POST",
+                "path": path,
+            },
         )
-        self._raise_for_status(r)
-        data = r.json()
-        if not isinstance(data, dict):
-            return {"data": data}
-        return data
+        try:
+            r = await self._client().post(
+                path,
+                json=body,
+                headers={"X-API-Key": api_key},
+            )
+            logger.info(
+                "upstream_response",
+                extra={
+                    "request_id": request_id,
+                    "status": r.status_code,
+                    "path": path,
+                },
+            )
+            self._raise_for_status(r)
+            data = r.json()
+            if not isinstance(data, dict):
+                return {"data": data}
+            return data
+        except AsterwiseAPIError:
+            raise
+        except Exception as e:
+            logger.error(
+                "upstream_error",
+                extra={
+                    "request_id": request_id,
+                    "path": path,
+                    "error": str(e),
+                },
+            )
+            raise
 
     async def get(
         self, path: str, api_key: str, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """GET from Asterwise API with auth."""
-        r = await self._client().get(
-            path,
-            params=params or {},
-            headers={"X-API-Key": api_key},
+        request_id = str(uuid.uuid4())[:8]
+        logger.info(
+            "upstream_request",
+            extra={
+                "request_id": request_id,
+                "method": "GET",
+                "path": path,
+            },
         )
-        self._raise_for_status(r)
-        data = r.json()
-        if not isinstance(data, dict):
-            return {"data": data}
-        return data
+        try:
+            r = await self._client().get(
+                path,
+                params=params or {},
+                headers={"X-API-Key": api_key},
+            )
+            logger.info(
+                "upstream_response",
+                extra={
+                    "request_id": request_id,
+                    "status": r.status_code,
+                    "path": path,
+                },
+            )
+            self._raise_for_status(r)
+            data = r.json()
+            if not isinstance(data, dict):
+                return {"data": data}
+            return data
+        except AsterwiseAPIError:
+            raise
+        except Exception as e:
+            logger.error(
+                "upstream_error",
+                extra={
+                    "request_id": request_id,
+                    "path": path,
+                    "error": str(e),
+                },
+            )
+            raise
 
 
 _client_singleton: AsterwiseClient | None = None
