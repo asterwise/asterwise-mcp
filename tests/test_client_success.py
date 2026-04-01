@@ -25,6 +25,8 @@ async def test_get_success_returns_dict() -> None:
     with patch.object(c, "_client", return_value=mock_http):
         data = await c.get("/v1/ping", "key1")
     assert data == {"result": "ok"}
+    _args, kwargs = mock_http.request.call_args
+    assert kwargs["headers"]["Authorization"] == "Bearer key1"
     await c.close()
 
 
@@ -43,6 +45,8 @@ async def test_post_success_returns_dict() -> None:
     with patch.object(c, "_client", return_value=mock_http):
         data = await c.post("/v1/astro/natal", "key", {"a": 1})
     assert data == {"ok": True}
+    _args, kwargs = mock_http.request.call_args
+    assert kwargs["headers"]["Authorization"] == "Bearer key"
     await c.close()
 
 
@@ -61,4 +65,6 @@ async def test_post_non_dict_json_wrapped() -> None:
     with patch.object(c, "_client", return_value=mock_http):
         data = await c.post("/x", "k", {})
     assert data == {"data": ["a", "b"]}
+    _args, kwargs = mock_http.request.call_args
+    assert kwargs["headers"]["Authorization"] == "Bearer k"
     await c.close()
