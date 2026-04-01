@@ -277,15 +277,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_check_sade_sati",
         description=(
-            "Check whether a person is currently passing through Sade Sati — Saturn's "
-            "transit through the sign before, the sign of, and the sign after the natal "
-            "Moon — a 7.5-year period of pressure and transformation. Returns the "
-            "current phase (rising/peak/setting), intensity rating, start and end dates, "
-            "and whether a previous cycle was also active. Source: classical transit texts. "
-            "Use specifically when a user is experiencing unexplained difficulty, "
-            "delays, or setbacks and wants to know if Saturn is a factor. "
-            "Do not confuse with asterwise_get_gochar — Gochar shows all planet transits "
-            "simultaneously; Sade Sati focuses exclusively on Saturn's Moon transit."
+            "Check Sade Sati status — Saturn's 7.5-year transit through the sign "
+            "before, the sign of, and the sign after the natal Moon. Returns: "
+            "active/inactive status, current phase (rising/peak/setting if active), "
+            "intensity score, start date, and projected end date. Always computed "
+            "for today's date — not configurable for past or future dates. "
+            "Use specifically when the user is experiencing unexplained delays, "
+            "setbacks, or pressure and wants to know if Saturn is the cause. "
+            "Do not use asterwise_get_gochar for this — Gochar shows all transits; "
+            "this focuses exclusively on Saturn's Moon transit with full phase detail. "
+            "Source: classical transit texts."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -357,21 +358,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_varshaphal",
         description=(
-            "Calculate the Varshaphal (Solar Return) chart — the chart cast for the "
-            "exact moment the Sun returns to its natal degree each year. Reveals the "
-            "dominant themes, the Muntha lord, the Muntha position, the year lord "
-            "(Varsha Pati), and the planetary configuration for that twelve-month "
-            "period. Source: Varshaphal tradition (Tajika system). "
-            "year parameter: pass the calendar year of interest as a 4-digit integer "
-            "(e.g. 2026 for the solar return occurring in calendar year 2026), "
-            "not the person's age. "
-            "Use when the user asks what a particular year holds for them, or when "
-            "assessing the active influences for the current or upcoming year of life. "
-            "Do not confuse with asterwise_get_dasha — Dasha shows the planetary "
-            "timing cycle from birth; Varshaphal shows the annual solar return chart. "
-            "Do not confuse with asterwise_get_transits — that shows transit events "
-            "over a date range; this shows the chart cast for one specific solar "
-            "return moment."
+            "Calculate the Varshaphal (Solar Return) chart — cast for the exact "
+            "moment the Sun returns to its natal degree each year. Reveals the year "
+            "lord (Varsha Pati), Muntha position, and dominant planetary configuration "
+            "for that twelve-month period. "
+            "year parameter: pass the calendar year as a 4-digit integer (e.g. 2026), "
+            "NOT the person's age. Passing age instead of year will produce incorrect "
+            "results. "
+            "Use when the user asks what a particular year holds. "
+            "Do not confuse with asterwise_get_dasha (lifetime timing cycles) or "
+            "asterwise_get_transits (transit events over a date range). "
+            "Source: Varshaphal tradition (Tajika system)."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -444,19 +441,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_lal_kitab_remedies",
         description=(
-            "Get Lal Kitab remedies — practical, low-cost remedial measures specific "
-            "to the Lal Kitab tradition, organised per house and planet: debt (Rin) "
-            "clearance remedies for planets in problematic houses, charity prescriptions "
-            "(feeding specific birds or animals, distributing specific items), "
-            "household rituals (burying items, keeping or avoiding certain objects "
-            "at home), and flowing remedies (releasing items in flowing water). "
-            "Source: Lal Kitab texts (1952 edition). "
-            "Use after asterwise_get_lal_kitab_chart when the user asks for Lal Kitab "
-            "style remedial measures. "
-            "Do not confuse with asterwise_get_remedies — that provides BPHS/Parashari "
-            "remedies (mantras, gemstones, rituals with Sanskrit authority); this "
-            "provides distinctly different Lal Kitab practical remedies. The two "
-            "systems are not interchangeable."
+            "Lal Kitab remedies per planet and house — includes debt (Rin) clearance "
+            "rituals, charity prescriptions (feeding specific animals, distributing "
+            "specific items), household-level practical actions, and planetary "
+            "appeasement methods. Structurally different from classical Jyotish "
+            "remedies — Lal Kitab does not use Sanskrit mantras or gemstones in the "
+            "same framework. "
+            "Use after asterwise_get_lal_kitab_chart for Lal Kitab-specific remedial "
+            "measures. Do not use as a replacement for asterwise_get_remedies — "
+            "that provides BPHS/Parashari remedies; this provides Lal Kitab remedies. "
+            "Source: Lal Kitab texts (1952 edition)."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -611,21 +605,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_ashtakavarga",
         description=(
-            "Calculate Ashtakavarga — the system of benefic point scores (Bindus) "
-            "contributed by each of eight references (seven planets + Lagna) to each "
-            "of the twelve signs. Returns three layers of data: "
+            "Calculate Ashtakavarga — returns three layers: "
             "(1) Bhinna Ashtakavarga — per-planet Bindu scores in each sign; "
-            "(2) Sarvashtakavarga — combined total Bindus per sign (most used for "
-            "transit quality assessment — signs with 30+ Bindus support transiting "
-            "planets well; signs below 25 create difficulty); "
-            "(3) Trikona and Ekadhipatya reductions for refined assessment. "
-            "Source: BPHS Ashtakavarga chapters. "
-            "Use when assessing transit quality (which signs are strong for Saturn, "
-            "Jupiter, or any transiting planet), or when doing a detailed Dasha-transit "
-            "analysis to determine if a transit will deliver its promised results. "
+            "(2) Sarvashtakavarga — combined totals per sign (28+ Bindus = strong "
+            "transit support; below 25 = difficulty for transiting planets); "
+            "(3) Trikona and Ekadhipatya reduced tables — the tables most Jyotishis "
+            "use for refined transit prediction. "
+            "Use when assessing transit quality or building a transit strength feature. "
             "Do not confuse with asterwise_get_chart_strength — Shadbala measures "
-            "natal planetary strength at birth; Ashtakavarga measures how receptive "
-            "each sign is to transiting planets."
+            "natal planetary strength; Ashtakavarga measures transit receptivity. "
+            "Source: BPHS Ashtakavarga chapters."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

@@ -141,13 +141,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_papasamyam",
         description=(
-            "Calculate Papa Samyam — the assessment of malefic planet balance between "
-            "two charts. Checks whether the malefic affliction level (Mangal Dosha and "
-            "related factors) is comparable between the partners, since serious "
-            "imbalance is considered inauspicious. Source: classical dosha-matching logic. "
-            "Use alongside Ashtakoota when Mangal Dosha is present in one or both charts "
-            "to determine whether the dosha is balanced or cancelled. "
-            "This is a supplementary check — always run asterwise_get_compatibility first."
+            "Calculate Papa Samyam — malefic balance between two charts. Checks "
+            "whether both individuals carry equivalent affliction weight (from "
+            "malefic placements in 1st, 2nd, 4th, 7th, 8th, 12th houses), "
+            "relevant for Mangal Dosha compatibility clearance. A significant "
+            "imbalance means the more afflicted partner bears disproportionate "
+            "karmic weight in the marriage. "
+            "Use this after asterwise_get_doshas flags Mangal Dosha on either person. "
+            "For full compatibility scoring use asterwise_get_compatibility first. "
+            "Source: classical dosha-matching logic."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

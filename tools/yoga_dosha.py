@@ -26,21 +26,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_yogas",
         description=(
-            "Detect classical yogas present in the natal chart — planetary "
-            "combinations that produce specific life results. Currently detects: "
-            "Raj yogas (lords of Kendras and Trikonas conjoined or in mutual kendras), "
-            "Dhana yogas (wealth combinations from 2nd, 5th, 9th, 11th lord interactions), "
-            "Gajakesari yoga (Jupiter in Kendra from Moon), "
-            "Neecha Bhanga Raja yoga (debility cancellation conditions), "
-            "Parivartana yoga (mutual sign exchange between two planets), "
-            "Viparita Raja yoga (malefics in 6th, 8th, 12th lords in dusthanas), "
-            "Pancha Mahapurusha yogas (Ruchaka, Bhadra, Hamsa, Malavya — "
-            "note: Shasha yoga detection is in development). "
-            "Source: BPHS, Phaladeepika, Saravali. "
-            "Use after asterwise_get_natal_chart to identify configurations and their "
-            "promised results. Yogas indicate promise — whether that promise manifests "
-            "depends on Dasha timing. Always check asterwise_get_dasha alongside "
-            "to determine when yoga results are likely to activate."
+            "Detect classical yogas present in the natal chart with formation "
+            "conditions and classical results. Currently detects: Gajakesari, "
+            "Chandra-Mangal, Dhana yogas (house-based and planetary), "
+            "Papa Kartari (malefic scissors on Lagna and Moon), Parivartana "
+            "(mutual exchange), select Raja yogas (Kendra-Kona combinations), "
+            "and Viparita Raja yoga. Pancha Mahapurusha and Neecha Bhanga "
+            "detection coverage is expanding. "
+            "Source: BPHS Chapters 36, 38, 41 — Phaladeepika Chapters 6, 7."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
