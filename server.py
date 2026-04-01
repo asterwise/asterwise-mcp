@@ -34,15 +34,34 @@ from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, r
 
 logger = logging.getLogger("asterwise_mcp.server")
 
+# Public routes (no API key / Bearer required). OAuth discovery and token endpoints.
+EXEMPT_PATHS = frozenset(
+    {
+        "/health",
+        "/.well-known/oauth-authorization-server",
+        "/.well-known/openid-configuration",
+        "/.well-known/oauth-protected-resource",
+        "/register",
+        "/oauth/token",
+        "/oauth/revoke",
+    }
+)
+
+_WWW_AUTHENTICATE_MCP = (
+    'Bearer realm="Asterwise MCP", '
+    'resource_metadata="https://mcp.asterwise.com/.well-known/oauth-protected-resource"'
+)
+
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
     """Resolve Bearer / X-API-Key from HTTP headers into a ContextVar for tool handlers."""
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        path = request.url.path
         logger.debug(
             "middleware_auth_enter",
             extra={
-                "path": request.url.path,
+                "path": path,
                 "method": request.method,
             },
         )
@@ -64,6 +83,24 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if not api_key:
             api_key = request.headers.get("x-api-key", "").strip() or None
 
+        if path not in EXEMPT_PATHS and request.method != "OPTIONS" and api_key is None:
+            return JSONResponse(
+                {
+                    "error": "unauthorized",
+                    "error_description": (
+                        "Authentication required. "
+                        "Get a free API key at "
+                        "asterwise.com/dashboard "
+                        "or connect via OAuth."
+                    ),
+                },
+                status_code=401,
+                headers={
+                    "WWW-Authenticate": _WWW_AUTHENTICATE_MCP,
+                    "Content-Type": "application/json",
+                },
+            )
+
         # ContextVar: tools read via get_request_api_key() (same async context as MCP handler).
         set_request_api_key(api_key)
         # request.state: available to any code with access to the Starlette Request.
@@ -72,7 +109,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         logger.debug(
             "middleware_auth",
             extra={
-                "path": request.url.path,
+                "path": path,
                 "has_api_key": api_key is not None,
                 "method": (
                     "bearer_jwt"

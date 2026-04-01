@@ -23,6 +23,35 @@ def _oauth_rate_off(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_unauthenticated_mcp_returns_401_with_www_authenticate() -> None:
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        r = await ac.get("/mcp")
+    assert r.status_code == 401
+    assert "www-authenticate" in {k.lower() for k in r.headers.keys()}
+    wwa = r.headers.get("www-authenticate") or r.headers.get("WWW-Authenticate", "")
+    assert "resource_metadata" in wwa
+    assert "Asterwise MCP" in wwa
+    body = r.json()
+    assert body["error"] == "unauthorized"
+    assert "asterwise.com/dashboard" in body["error_description"]
+
+
+@pytest.mark.asyncio
+async def test_options_request_bypasses_auth_required() -> None:
+    """OPTIONS must not receive middleware 401 (CORS preflight). Use /health so the
+    request reaches the app without FastMCP /mcp lifespan requirements in tests."""
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        r = await ac.request("OPTIONS", "/health")
+    assert r.status_code != 401
+
+
+@pytest.mark.asyncio
 async def test_register_empty_redirect_uris_returns_400(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("INTERNAL_API_TOKEN", "internal-test-token")
     from server import app
