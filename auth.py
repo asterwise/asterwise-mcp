@@ -1,137 +1,162 @@
-"""Two-layer auth: X-API-Key and Bearer JWT (OAuth-style token exchange)."""
+"""JWT + server-side cache: Bearer tokens never embed the raw API key."""
 
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import time
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Optional
 
 import jwt
-from starlette.requests import Request
 
 from errors import AuthError, TokenExpiredError, TokenInvalidError
 
+logger = logging.getLogger("asterwise_mcp.auth")
+
 JWT_ALGORITHM = "HS256"
-JWT_TTL_SECONDS = 3600
+TOKEN_TTL = 3600
+ISSUER = "asterwise-mcp"
 
-# In-memory store: {key_hash: (api_key, expires_at)}
-_key_cache: dict[str, tuple[str, float]] = {}
-
-
-def _hash_key(api_key: str) -> str:
-    return hashlib.sha256(api_key.encode()).hexdigest()
+# Server-side token cache: {key_hash: (api_key, expires_at)}
+_token_cache: dict[str, tuple[str, float]] = {}
 
 
-def _evict_expired_tokens() -> None:
-    """Remove expired entries from cache."""
-    now = time.time()
-    expired = [h for h, (_, exp) in _key_cache.items() if now > exp]
-    for h in expired:
-        _key_cache.pop(h, None)
-
-
-def _jwt_secret() -> str:
+def _get_jwt_secret() -> str:
     secret = os.getenv("JWT_SECRET")
     if not secret:
-        raise AuthError(
-            "JWT_SECRET is not configured on the server. "
-            "Set JWT_SECRET in the environment to use Bearer token auth, "
-            "or use X-API-Key instead.",
-            hint="Configure JWT_SECRET or pass X-API-Key.",
+        raise RuntimeError(
+            "JWT_SECRET environment variable is not set. Cannot issue or verify tokens."
+        )
+    if len(secret) < 32:
+        raise RuntimeError(
+            "JWT_SECRET must be at least 32 characters. Generate one with: "
+            "python3 -c \"import secrets; print(secrets.token_hex(32))\""
         )
     return secret
 
 
-def extract_api_key(request: Request) -> str | None:
-    """Try Bearer JWT first, then X-API-Key."""
-    auth = request.headers.get("authorization") or request.headers.get("Authorization")
-    if auth and auth.lower().startswith("bearer "):
-        token = auth[7:].strip()
-        if not token:
-            return None
-        try:
-            return decode_token(token)
-        except TokenExpiredError:
-            raise
-        except TokenInvalidError:
-            raise
-    raw = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
-    if raw and raw.strip():
-        return raw.strip()
-    return None
+def _hash_key(api_key: str) -> str:
+    """One-way hash of API key. Never reversible."""
+    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
 
-def validate_and_get_key(request: Request) -> str:
-    """Return a valid API key or raise AuthError."""
-    key = extract_api_key(request)
-    if not key:
-        raise AuthError(
-            "Missing authentication. Provide "
-            "`X-API-Key: <your Asterwise API key>` or "
-            "`Authorization: Bearer <token>` from POST /oauth/token. "
-            "Obtain a key at https://asterwise.com/dashboard.",
-            hint="Add X-API-Key or Authorization Bearer.",
+def _evict_expired() -> None:
+    """Remove expired entries to prevent memory leak."""
+    now = time.time()
+    expired = [h for h, (_, exp) in _token_cache.items() if now > exp]
+    for h in expired:
+        _token_cache.pop(h, None)
+    if expired:
+        logger.debug(
+            "token_cache_eviction",
+            extra={"evicted": len(expired), "remaining": len(_token_cache)},
         )
-    return key
 
 
 def create_token(api_key: str) -> str:
-    """Create a signed JWT referencing the API key only via hash (cache holds the secret)."""
+    """
+    Create a signed JWT. Payload contains only a hash of the API key.
+    The real key lives in _token_cache only.
+    """
+    _evict_expired()
     key_hash = _hash_key(api_key)
-    expires_at = time.time() + JWT_TTL_SECONDS
-    _key_cache[key_hash] = (api_key, expires_at)
-    now = int(time.time())
+    now = time.time()
+    expires_at = now + TOKEN_TTL
+    _token_cache[key_hash] = (api_key, expires_at)
     payload: dict[str, Any] = {
         "sub": key_hash,
-        "iat": now,
+        "iat": int(now),
         "exp": int(expires_at),
+        "iss": ISSUER,
     }
-    return jwt.encode(payload, _jwt_secret(), algorithm=JWT_ALGORITHM)
+    token = jwt.encode(payload, _get_jwt_secret(), algorithm=JWT_ALGORITHM)
+    logger.info(
+        "token_issued",
+        extra={
+            "key_hash_prefix": key_hash[:8],
+            "expires_in": TOKEN_TTL,
+        },
+    )
+    return token
 
 
 def decode_token(token: str) -> str:
     """Validate JWT and return the API key from the server cache."""
+    _evict_expired()
     try:
         payload = jwt.decode(
             token,
-            _jwt_secret(),
+            _get_jwt_secret(),
             algorithms=[JWT_ALGORITHM],
-            options={"require": ["exp", "iat", "sub"]},
+            options={"require": ["sub", "exp", "iat", "iss"]},
+            issuer=ISSUER,
         )
     except jwt.ExpiredSignatureError as exc:
         raise TokenExpiredError(
-            "Bearer token expired. Request a new token from POST /oauth/token "
-            "or use X-API-Key directly.",
-            hint="Refresh OAuth token or use X-API-Key.",
+            "Token has expired. Request a new one via POST /oauth/token"
         ) from exc
     except jwt.InvalidTokenError as exc:
         raise TokenInvalidError(
-            "Invalid Bearer token. Use a token from POST /oauth/token with a valid API key, "
-            "or pass X-API-Key instead.",
-            hint="Obtain a fresh token or use X-API-Key.",
+            f"Invalid token: {exc}. Request a new one via POST /oauth/token"
         ) from exc
 
     key_hash = payload.get("sub")
+    issuer = payload.get("iss")
+    if issuer != ISSUER:
+        raise TokenInvalidError("Token was not issued by this server")
+
     if not isinstance(key_hash, str) or not key_hash.strip():
         raise TokenInvalidError(
-            "Invalid token structure.",
-            hint="Request a new token from POST /oauth/token.",
+            "Invalid token structure. Request a new one via POST /oauth/token"
         )
 
-    cached = _key_cache.get(key_hash)
+    cached = _token_cache.get(key_hash)
     if not cached:
         raise TokenInvalidError(
-            "Token not recognized. Please re-authenticate via POST /oauth/token",
-            hint="Obtain a fresh token from POST /oauth/token.",
+            "Token not recognized or was revoked. Request a new one via POST /oauth/token"
         )
 
     api_key, expires_at = cached
     if time.time() > expires_at:
-        _key_cache.pop(key_hash, None)
-        raise TokenExpiredError(
-            "Token expired. Request a new one via POST /oauth/token",
-            hint="Refresh OAuth token or use X-API-Key.",
-        )
-    _evict_expired_tokens()
+        _token_cache.pop(key_hash, None)
+        raise TokenExpiredError("Token has expired. Request a new one via POST /oauth/token")
+
     return api_key
+
+
+def _lower_headers(headers: Mapping[str, str] | dict[str, str]) -> dict[str, str]:
+    return {str(k).lower(): v for k, v in headers.items()}
+
+
+def extract_api_key(headers: Mapping[str, str] | dict[str, str]) -> Optional[str]:
+    """
+    Extract API key from normalized headers (Bearer first, then X-API-Key).
+    Returns None if neither is present. Does not raise for missing auth.
+    """
+    h = _lower_headers(headers)
+    auth_header = h.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+        if token:
+            try:
+                return decode_token(token)
+            except (TokenExpiredError, TokenInvalidError):
+                raise
+    api_key = h.get("x-api-key", "").strip()
+    if api_key:
+        return api_key
+    return None
+
+
+def validate_and_get_key(headers: Mapping[str, str] | dict[str, str]) -> str:
+    """Return the API key or raise AuthError."""
+    result = extract_api_key(headers)
+    if not result:
+        raise AuthError(
+            "No API key provided. Pass X-API-Key header "
+            "or Authorization: Bearer <token>. "
+            "Get a free key at asterwise.com/dashboard"
+        )
+    return result

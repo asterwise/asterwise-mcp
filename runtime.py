@@ -1,4 +1,4 @@
-"""Shared tool runtime: auth, response formatting, MCP annotations, protocol errors."""
+"""Tool runtime: MCP errors, auth, formatting, validation helpers."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from typing import Any, NoReturn
 from fastmcp.server.dependencies import get_http_request
 from mcp.shared.exceptions import McpError
 from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
+from pydantic import ValidationError
 
 from auth import validate_and_get_key
 from models import ResponseFormat
@@ -29,18 +30,43 @@ REPORT_ANNOTATIONS = ToolAnnotations(
 
 
 def tool_error(message: str, code: int = INTERNAL_ERROR) -> NoReturn:
-    """Raise a proper MCP protocol error. Never returns."""
+    """
+    Raise a proper MCP protocol error.
+    This function never returns — it always raises.
+    Use for upstream API errors, unexpected failures.
+    """
     raise McpError(ErrorData(code=code, message=message))
 
 
 def invalid_params(message: str) -> NoReturn:
-    """Raise MCP invalid params error. Never returns."""
+    """
+    Raise MCP invalid params error.
+    This function never returns — it always raises.
+    Use for bad input detected before calling upstream.
+    """
     raise McpError(ErrorData(code=INVALID_PARAMS, message=message))
+
+
+def raise_validation_error(exc: ValidationError) -> NoReturn:
+    """Convert Pydantic ValidationError to MCP invalid_params."""
+    first = exc.errors()[0]
+    loc = first.get("loc", ())
+    field = " -> ".join(str(x) for x in loc)
+    msg = first.get("msg", "")
+    invalid_params(f"Invalid '{field}': {msg}")
+
+
+def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
+    """Unexpected exception inside a tool handler."""
+    tool_error(
+        f"Unexpected error in {tool_name}: {type(exc).__name__}: {exc}"
+    )
 
 
 async def require_api_key() -> str:
     """Validate HTTP auth and return the Asterwise API key."""
-    return validate_and_get_key(get_http_request())
+    req = get_http_request()
+    return validate_and_get_key(dict(req.headers))
 
 
 def format_tool_result(

@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import FastMCP
+
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 from client import get_client
@@ -17,6 +19,8 @@ from runtime import (
     require_api_key,
     structured_markdown,
     tool_error,
+    raise_validation_error,
+    unexpected_tool_error,
 )
 
 
@@ -39,18 +43,20 @@ def register(mcp: FastMCP) -> None:
             api_key = await require_api_key()
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
-            data = await get_client().post("/v1/astro/panchanga", api_key, body)
+            data = await get_client().post("/v1/astro/panchanga", api_key, body, timeout=10.0)
             return format_tool_result(
                 data,
                 rf,
                 lambda d: structured_markdown("Panchanga", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_panchanga", exc)
 
     @mcp.tool(
         name="asterwise_get_choghadiya",
@@ -69,18 +75,20 @@ def register(mcp: FastMCP) -> None:
             api_key = await require_api_key()
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
-            data = await get_client().post("/v1/astro/panchanga/choghadiya", api_key, body)
+            data = await get_client().post("/v1/astro/panchanga/choghadiya", api_key, body, timeout=10.0)
             return format_tool_result(
                 data,
                 rf,
                 lambda d: structured_markdown("Choghadiya", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_choghadiya", exc)
 
     @mcp.tool(
         name="asterwise_get_hora",
@@ -99,18 +107,20 @@ def register(mcp: FastMCP) -> None:
             api_key = await require_api_key()
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
-            data = await get_client().post("/v1/astro/panchanga/hora", api_key, body)
+            data = await get_client().post("/v1/astro/panchanga/hora", api_key, body, timeout=10.0)
             return format_tool_result(
                 data,
                 rf,
                 lambda d: structured_markdown("Hora", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_hora", exc)
 
     @mcp.tool(
         name="asterwise_get_rahu_kaal",
@@ -129,18 +139,20 @@ def register(mcp: FastMCP) -> None:
             api_key = await require_api_key()
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
-            data = await get_client().post("/v1/astro/panchanga/rahu-kaal", api_key, body)
+            data = await get_client().post("/v1/astro/panchanga/rahu-kaal", api_key, body, timeout=10.0)
             return format_tool_result(
                 data,
                 rf,
                 lambda d: structured_markdown("Rahu Kaal", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_rahu_kaal", exc)
 
     @mcp.tool(
         name="asterwise_get_muhurta",
@@ -166,18 +178,20 @@ def register(mcp: FastMCP) -> None:
                 "activity": activity,
             }
             rf = location.response_format
-            data = await get_client().post("/v1/astro/muhurta", api_key, body)
+            data = await get_client().post("/v1/astro/muhurta", api_key, body, timeout=10.0)
             return format_tool_result(
                 data,
                 rf,
                 lambda d: structured_markdown(f"Muhurta — {activity}", d),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_muhurta", exc)
 
     @mcp.tool(
         name="asterwise_get_panchanga_calendar",
@@ -202,7 +216,7 @@ def register(mcp: FastMCP) -> None:
             }
             rf = calendar.response_format
             data = await get_client().get(
-                "/v1/astro/panchanga/calendar", api_key, params
+                "/v1/astro/panchanga/calendar", api_key, params, timeout=10.0
             )
             return format_tool_result(
                 data,
@@ -211,9 +225,11 @@ def register(mcp: FastMCP) -> None:
                     f"Panchanga calendar {calendar.year}-{calendar.month:02d}", d
                 ),
             )
+        except McpError:
+            raise
         except AsterwiseMCPError as exc:
             tool_error(str(exc))
         except ValidationError as exc:
-            invalid_params(str(exc))
+            raise_validation_error(exc)
         except Exception as exc:
-            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
+            unexpected_tool_error("asterwise_get_panchanga_calendar", exc)

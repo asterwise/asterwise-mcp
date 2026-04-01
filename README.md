@@ -1,75 +1,191 @@
-# Asterwise MCP
+# Asterwise MCP Server
 
-Remote [Model Context Protocol](https://modelcontextprotocol.io) server that exposes the **Asterwise Vedic astrology REST API** as tools for LLM clients (Claude, GPT, and any MCP-compatible client).
+Classical Vedic astrology calculations as MCP tools. **52 tools** covering natal charts, Dasha, matchmaking, Panchanga, numerology, and interpretations — derived from BPHS, Phaladeepika, and Saravali with citations.
 
-This repository is a standalone Python service. It does not include the Asterwise API implementation.
+## Quick Start (2 minutes)
 
-## Features
+### Get your API key
 
-- **Streamable HTTP** MCP transport (`transport="streamable-http"`), not SSE.
-- **Stateless proxy**: API keys are sent by the client per request (`X-API-Key` or Bearer JWT), not stored in environment variables.
-- **52 read tools** covering natal charts, divisional charts, Dasha systems, matchmaking, Panchanga, yogas/doshas, numerology, horoscopes, transits, and PDF reports.
+Sign up free at [asterwise.com/dashboard](https://asterwise.com/dashboard): 2,000 calls/month. No credit card. No time limit.
 
-## Configuration (environment)
+### Connect to Claude Desktop
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ASTERWISE_API_BASE_URL` | Yes | Base URL of the Asterwise API (e.g. `https://api.asterwise.com`). |
-| `MCP_SERVER_HOST` | No | Bind address (default `0.0.0.0`). |
-| `MCP_SERVER_PORT` | No | Port (default `8000`). |
-| `JWT_SECRET` | For OAuth tokens only | Secret used to sign JWTs from `POST /oauth/token`. |
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
-Optional: use a `.env` file in the working directory; `server.py` loads it via `python-dotenv`.
+```json
+{
+  "mcpServers": {
+    "asterwise": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.asterwise.com/mcp"
+      ],
+      "env": {
+        "MCP_HEADER_X_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Connect to Cursor
+
+Add to `.cursor/mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "asterwise": {
+      "url": "https://mcp.asterwise.com/mcp",
+      "headers": {
+        "X-API-Key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Test the connection
+
+```bash
+curl https://mcp.asterwise.com/health
+```
 
 ## Authentication
 
-1. **API key (simplest)**  
-   Send `X-API-Key: <your Asterwise API key>` on MCP HTTP requests.
+Two methods supported:
 
-2. **Bearer JWT**  
-   `POST /oauth/token` with JSON:
-   `{"grant_type":"client_credentials","client_id":"<api_key>","client_secret":"<api_key>"}`  
-   Use `Authorization: Bearer <access_token>` on MCP requests. Requires `JWT_SECRET` on the server.
+**Method 1 — API Key (quick start)**  
+Pass `X-API-Key` with your Asterwise API key.
 
-The server never persists keys; it forwards them to Asterwise as `X-API-Key`.
+**Method 2 — OAuth 2.1 (production)**  
+Exchange your API key for a short-lived token:
+
+```bash
+curl -X POST https://mcp.asterwise.com/oauth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "client_credentials",
+    "client_id": "your-api-key",
+    "client_secret": "your-api-key"
+  }'
+```
+
+Returns: `{"access_token": "...", "expires_in": 3600, ...}`
+
+Use the token: `Authorization: Bearer <access_token>`
+
+JWTs issued by this server store only a **SHA-256 hash** of the API key server-side; the raw key is never embedded in the token payload.
+
+## Configuration
+
+Copy `.env.example` to `.env` and set at least:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ASTERWISE_API_BASE_URL` | Yes | Asterwise API base URL (e.g. `https://api.asterwise.com`). |
+| `JWT_SECRET` | For `/oauth/token` | At least 32 characters; used to sign access tokens. |
+| `MCP_SERVER_HOST` / `MCP_SERVER_PORT` | No | Bind address and port for the MCP HTTP server. |
+| `LOG_LEVEL` | No | Default `INFO`. |
+
+## Tools Reference (52 tools)
+
+### Natal & charts (14)
+
+- `asterwise_get_natal_chart` — Full natal chart (BPHS-style).
+- `asterwise_get_divisional_chart` — Varga / divisional charts (D1–D60).
+- `asterwise_get_chart_strength` — Shadbala / Bhavbala.
+- `asterwise_get_special_ascendants` — Atmakaraka and Ishta Devata.
+- `asterwise_get_nakshatra_details` — Nakshatra reference profile.
+- `asterwise_check_sade_sati` — Sade Sati status.
+- `asterwise_get_prashna_chart` — Prashna (horary) chart.
+- `asterwise_get_varshaphal` — Varshaphal (solar return).
+- `asterwise_get_lal_kitab_chart` — Lal Kitab chart.
+- `asterwise_get_lal_kitab_remedies` — Lal Kitab remedies.
+- `asterwise_get_kp_chart` — KP chart.
+- `asterwise_get_kp_significators` — KP significators.
+- `asterwise_get_kp_ruling_planets` — KP ruling planets.
+- `asterwise_get_ashtakavarga` — Ashtakavarga tables.
+
+### Dasha (5)
+
+- `asterwise_get_dasha` — Vimshottari Dasha (multi-level).
+- `asterwise_get_dasha_transits` — Transits within Dasha periods.
+- `asterwise_get_char_dasha` — Char (Jaimini) Dasha.
+- `asterwise_get_yogini_dasha` — Yogini Dasha.
+- `asterwise_get_ashtottari_dasha` — Ashtottari Dasha.
+
+### Matchmaking (5)
+
+- `asterwise_get_compatibility` — Ashtakoota with Rajju / Vedha vetoes.
+- `asterwise_get_dashakoot` — Dashakoot compatibility.
+- `asterwise_get_papasamyam` — Papa Samyam.
+- `asterwise_get_porutham` — Tamil Porutham.
+- `asterwise_get_thirumana_porutham` — Thirumana Porutham.
+
+### Yogas & doshas (4)
+
+- `asterwise_get_yogas` — Yoga detection.
+- `asterwise_get_doshas` — Dosha analysis.
+- `asterwise_get_remedies` — Remedial guidance.
+- `asterwise_get_gemstone_recommendations` — Gemstone suggestions.
+
+### Panchanga & timing (6)
+
+- `asterwise_get_panchanga` — Daily Panchanga.
+- `asterwise_get_choghadiya` — Choghadiya periods.
+- `asterwise_get_hora` — Planetary hora.
+- `asterwise_get_rahu_kaal` — Rahu Kaal.
+- `asterwise_get_muhurta` — Muhurta windows.
+- `asterwise_get_panchanga_calendar` — Monthly Panchanga calendar.
+
+### Horoscope & transits (3)
+
+- `asterwise_get_horoscope` — Sign-based horoscope (daily/weekly/monthly/yearly).
+- `asterwise_get_gochar` — Gochar (transit) snapshot.
+- `asterwise_get_transits` — Current transits detail.
+
+### Numerology (11)
+
+- `asterwise_get_numerology_profile` — Full numerology profile.
+- `asterwise_get_numerology_compatibility` — Relationship compatibility.
+- `asterwise_get_chaldean_numerology` — Chaldean analysis.
+- `asterwise_get_lo_shu_grid` — Lo Shu grid.
+- `asterwise_get_name_correction` — Name correction suggestions.
+- `asterwise_get_lucky_numbers` — Lucky numbers.
+- `asterwise_get_personal_year` — Personal year cycle.
+- `asterwise_get_number_meaning` — Single number meaning.
+- `asterwise_check_mobile_number` — Mobile number analysis.
+- `asterwise_check_vehicle_number` — Vehicle number analysis.
+- `asterwise_get_business_name_analysis` — Business name analysis.
+
+### Reports (4)
+
+- `asterwise_generate_kundli_report` — Kundli PDF report.
+- `asterwise_generate_matchmaking_report` — Matchmaking report.
+- `asterwise_generate_dasha_report` — Dasha report.
+- `asterwise_generate_varshaphal_report` — Varshaphal report.
 
 ## Run locally
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 export ASTERWISE_API_BASE_URL=https://api.asterwise.com
-export JWT_SECRET=your-long-random-secret   # optional, for /oauth/token
+export JWT_SECRET="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 python server.py
 ```
 
-Health check:
+## Tests
 
 ```bash
-curl http://localhost:8000/health
+pytest
 ```
 
-MCP endpoint (FastMCP default): `/mcp/` (see [FastMCP HTTP deployment](https://gofastmcp.com/v2/deployment/http)).
+Coverage is enforced at **80%** for core modules (`auth`, `client`, `errors`, `logging_config`, `models`, `runtime`, `server`); tool modules are excluded from the gate (see `.coveragerc`).
 
-## Docker
+## Status
 
-```bash
-docker build -t asterwise-mcp .
-docker run -e ASTERWISE_API_BASE_URL=https://api.asterwise.com -e JWT_SECRET=changeme -p 8000:8000 asterwise-mcp
-```
-
-## Deploy (Railway)
-
-`railway.toml` uses the Dockerfile, health check path `/health`, and `python server.py` as the start command.
-
-## Development
-
-Dependencies are listed in `requirements.txt`. Install with:
-
-```bash
-pip install -r requirements.txt
-```
-
-Verify imports:
-
-```bash
-python -c "import server"
-```
+[https://status.asterwise.com](https://status.asterwise.com)
