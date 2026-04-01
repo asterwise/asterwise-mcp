@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -66,13 +66,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_compatibility(
+        ctx: Context,
         person1: BirthData,
         person2: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Ashtakoota with vetoes."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking",
                 api_key,
@@ -100,13 +101,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_dashakoot(
+        ctx: Context,
         person1: BirthData,
         person2: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Dashakoot."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/dashakoot",
                 api_key,
@@ -138,13 +140,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_papasamyam(
+        ctx: Context,
         person1: BirthData,
         person2: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Papa Samyam."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/papasamyam",
                 api_key,
@@ -176,13 +179,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_porutham(
+        ctx: Context,
         person1: BirthData,
         person2: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Tamil Porutham."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/porutham",
                 api_key,
@@ -213,13 +217,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_thirumana_porutham(
+        ctx: Context,
         person1: BirthData,
         person2: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Thirumana Porutham."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/thirumana-porutham",
                 api_key,

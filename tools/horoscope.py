@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -34,13 +34,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_horoscope(
+        ctx: Context,
         moon_sign: str,
         period: HoroscopePeriod,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Moon-sign horoscope by period."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             path = (
                 f"/v1/horoscope/{safe_segment(period.value)}/"
                 f"{safe_segment(moon_sign.lower())}"
@@ -71,12 +72,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_gochar(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Gochar from natal chart."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/gochar", api_key, birth_dict(birth), timeout=10.0
             )
@@ -104,14 +106,15 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_transits(
+        ctx: Context,
         birth: BirthData,
         from_date: str,
         to_date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Date-range transits."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {**birth_dict(birth), "from_date": from_date, "to_date": to_date}
             data = await get_client().post(
                 "/v1/astro/transits", api_key, body, timeout=10.0

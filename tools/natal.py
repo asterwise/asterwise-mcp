@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 
@@ -81,12 +81,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_natal_chart(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Compute full natal chart from BPHS-style calculations."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/natal", api_key, birth_dict(birth),
                 timeout=20.0,
@@ -116,13 +117,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_divisional_chart(
+        ctx: Context,
         birth: BirthData,
         chart_type: DivisionalChartType,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Compute divisional (varga) chart."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {**birth_dict(birth), "chart_type": chart_type.value}
             data = await get_client().post("/v1/astro/divisional", api_key, body, timeout=20.0)
             return format_tool_result(
@@ -150,12 +152,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_chart_strength(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Shadbala and Bhavbala."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/strength", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(
@@ -184,12 +187,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_special_ascendants(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Atmakaraka and Ishta Devata (two API calls)."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             bd = birth_dict(birth)
             atm = await get_client().post("/v1/astro/atmakaraka", api_key, bd, timeout=20.0)
             ishta = await get_client().post("/v1/astro/ishta-devta", api_key, bd, timeout=20.0)
@@ -227,12 +231,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_nakshatra_details(
+        ctx: Context,
         nakshatra_name: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Nakshatra reference details."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             path = f"/v1/astro/nakshatra/{safe_segment(nakshatra_name)}"
             data = await get_client().get(path, api_key, timeout=20.0)
             return format_tool_result(
@@ -261,12 +266,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_check_sade_sati(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Sade Sati check."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/sade-sati", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(
@@ -295,11 +301,12 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_prashna_chart(
-        prashna: PrashnaInput,
+        ctx: Context,
+        prashna: PrashnaInput
     ) -> str:
         """Prashna horary chart."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             rf = prashna.response_format
             data = await get_client().post(
                 "/v1/astro/prashna", api_key, prashna_dict(prashna),
@@ -331,13 +338,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_varshaphal(
+        ctx: Context,
         birth: BirthData,
         year: int,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Varshaphal solar return."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {**birth_dict(birth), "year": year}
             data = await get_client().post("/v1/astro/varshaphal", api_key, body, timeout=20.0)
             return format_tool_result(
@@ -365,12 +373,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_lal_kitab_chart(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Lal Kitab chart."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/lal-kitab/chart", api_key, birth_dict(birth),
                 timeout=20.0,
@@ -400,12 +409,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_lal_kitab_remedies(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Lal Kitab remedies."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/lal-kitab/remedies", api_key, birth_dict(birth),
                 timeout=20.0,
@@ -435,12 +445,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_kp_chart(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """KP chart."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/kp/chart", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(
@@ -467,13 +478,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_kp_significators(
+        ctx: Context,
         birth: BirthData,
         response_format: ResponseFormat,
-        house_number: int | None = None,
+        house_number: int | None = None
     ) -> str:
         """KP significators."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body: dict[str, Any] = birth_dict(birth)
             if house_number is not None:
                 body["house_number"] = house_number
@@ -503,13 +515,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_kp_ruling_planets(
+        ctx: Context,
         lat: float,
         lon: float,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """KP ruling planets (time/location)."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/kp/ruling-planets",
                 api_key,
@@ -541,12 +554,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_ashtakavarga(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Ashtakavarga."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/ashtakavarga", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(

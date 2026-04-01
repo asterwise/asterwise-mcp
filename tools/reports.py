@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -36,12 +36,13 @@ def register(mcp: FastMCP) -> None:
         annotations=REPORT_ANNOTATIONS,
     )
     async def asterwise_generate_kundli_report(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Kundli PDF."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/report/kundli", api_key, birth_dict(birth), timeout=45.0
             )
@@ -69,13 +70,14 @@ def register(mcp: FastMCP) -> None:
         annotations=REPORT_ANNOTATIONS,
     )
     async def asterwise_generate_matchmaking_report(
+        ctx: Context,
         person1: BirthData,
         person2: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Matchmaking PDF."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {"person1": birth_dict(person1), "person2": birth_dict(person2)}
             data = await get_client().post(
                 "/v1/report/matchmaking", api_key, body, timeout=45.0
@@ -104,12 +106,13 @@ def register(mcp: FastMCP) -> None:
         annotations=REPORT_ANNOTATIONS,
     )
     async def asterwise_generate_dasha_report(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Dasha PDF."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/report/dasha", api_key, birth_dict(birth), timeout=45.0
             )
@@ -138,13 +141,14 @@ def register(mcp: FastMCP) -> None:
         annotations=REPORT_ANNOTATIONS,
     )
     async def asterwise_generate_varshaphal_report(
+        ctx: Context,
         birth: BirthData,
         year: int,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Varshaphal PDF (two-step)."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             chart_payload: dict[str, Any] = {**birth_dict(birth), "year": year}
             chart = await get_client().post(
                 "/v1/astro/varshaphal", api_key, chart_payload, timeout=45.0
