@@ -6,6 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
+import httpx
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from starlette.requests import Request
@@ -15,7 +16,7 @@ load_dotenv()
 
 from auth import create_token
 from client import get_client
-from errors import AsterwiseAPIError, AuthError
+from errors import AsterwiseAPIError
 from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, reports, yoga_dosha
 
 
@@ -84,11 +85,6 @@ def _register_tools() -> None:
 _register_tools()
 
 
-async def _validate_api_key_with_asterwise(api_key: str) -> None:
-    """Lightweight authenticated call to prove the key works."""
-    await get_client().get("/v1/numerology/meaning/1", api_key)
-
-
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(_request: Request) -> Response:
     return JSONResponse({"status": "ok", "version": "1.0.0"})
@@ -98,74 +94,106 @@ async def health_check(_request: Request) -> Response:
 async def oauth_token(request: Request) -> Response:
     """OAuth 2.1-style client_credentials using the API key as both id and secret."""
     try:
-        body = await request.json()
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                {
+                    "error": "invalid_request",
+                    "error_description": "Request body must be valid JSON object",
+                },
+                status_code=400,
+            )
+
+        if not isinstance(body, dict):
+            return JSONResponse(
+                {
+                    "error": "invalid_request",
+                    "error_description": "Request body must be a JSON object",
+                },
+                status_code=400,
+            )
+
+        if body.get("grant_type") != "client_credentials":
+            return JSONResponse(
+                {
+                    "error": "unsupported_grant_type",
+                    "error_description": "Only client_credentials grant type is supported",
+                },
+                status_code=400,
+            )
+
+        client_id = str(body.get("client_id", "")).strip()
+        client_secret = str(body.get("client_secret", "")).strip()
+
+        if not client_id or not client_secret:
+            return JSONResponse(
+                {
+                    "error": "invalid_client",
+                    "error_description": "client_id and client_secret are required",
+                },
+                status_code=401,
+            )
+
+        if client_id != client_secret:
+            return JSONResponse(
+                {
+                    "error": "invalid_client",
+                    "error_description": "client_id and client_secret must match your Asterwise API key",
+                },
+                status_code=401,
+            )
+
+        try:
+            await get_client().get("/v1/numerology/meaning/1", client_id)
+        except AsterwiseAPIError as e:
+            return JSONResponse(
+                {"error": "invalid_client", "error_description": str(e)},
+                status_code=401,
+            )
+        except httpx.TimeoutException:
+            return JSONResponse(
+                {
+                    "error": "temporarily_unavailable",
+                    "error_description": "Upstream validation timed out. Try again shortly.",
+                },
+                status_code=503,
+            )
+        except Exception:
+            return JSONResponse(
+                {
+                    "error": "server_error",
+                    "error_description": "Token issuance failed. Check status.asterwise.com",
+                },
+                status_code=500,
+            )
+
+        try:
+            token = create_token(client_id)
+        except Exception:
+            return JSONResponse(
+                {
+                    "error": "server_error",
+                    "error_description": "JWT_SECRET not configured. Contact support.",
+                },
+                status_code=503,
+            )
+
+        return JSONResponse(
+            {
+                "access_token": token,
+                "token_type": "bearer",
+                "expires_in": 3600,
+            }
+        )
     except Exception:
         return JSONResponse(
             {
-                "error": "invalid_request",
-                "error_description": "Send JSON: grant_type, client_id, client_secret (your API key).",
-            },
-            status_code=400,
-        )
-
-    if body.get("grant_type") != "client_credentials":
-        return JSONResponse(
-            {
-                "error": "unsupported_grant_type",
-                "error_description": 'Only grant_type "client_credentials" is supported.',
-            },
-            status_code=400,
-        )
-
-    cid = body.get("client_id")
-    csec = body.get("client_secret")
-    if not cid or not csec or str(cid).strip() != str(csec).strip():
-        return JSONResponse(
-            {
-                "error": "invalid_client",
-                "error_description": "client_id and client_secret must both be your Asterwise API key.",
-            },
-            status_code=401,
-        )
-
-    api_key = str(cid).strip()
-
-    jwt_secret = os.getenv("JWT_SECRET")
-    if not jwt_secret:
-        return JSONResponse(
-            {
                 "error": "server_error",
-                "error_description": "JWT_SECRET is not configured; Bearer tokens cannot be issued.",
+                "error_description": "Token endpoint failed. Check status.asterwise.com",
             },
-            status_code=503,
+            status_code=500,
         )
-
-    try:
-        await _validate_api_key_with_asterwise(api_key)
-    except AsterwiseAPIError as exc:
-        return JSONResponse(
-            {
-                "error": "invalid_client",
-                "error_description": str(exc),
-            },
-            status_code=401,
-        )
-
-    try:
-        token = create_token(api_key)
-    except AuthError as exc:
-        return JSONResponse(
-            {"error": "server_error", "error_description": str(exc)},
-            status_code=503,
-        )
-
-    return JSONResponse(
-        {
-            "access_token": token,
-            "token_type": "bearer",
-            "expires_in": 3600,
-        }
-    )
 
 
 if __name__ == "__main__":

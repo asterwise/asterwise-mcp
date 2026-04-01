@@ -5,15 +5,18 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import FastMCP
+from pydantic import ValidationError
 
 from client import get_client
+from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat, birth_dict
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
-    mcp_error_message,
+    invalid_params,
     require_api_key,
     structured_markdown,
+    tool_error,
 )
 
 
@@ -70,8 +73,12 @@ def register(mcp: FastMCP) -> None:
                 "/v1/astro/matchmaking", api_key, _pair_body(person1, person2)
             )
             return format_tool_result(data, response_format, _ashtakoota_md)
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_dashakoot",
@@ -101,8 +108,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Dashakoot", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_papasamyam",
@@ -132,8 +143,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Papa Samyam", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_porutham",
@@ -163,8 +178,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Porutham", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_thirumana_porutham",
@@ -193,5 +212,9 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Thirumana Porutham", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")

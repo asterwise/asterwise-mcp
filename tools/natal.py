@@ -6,14 +6,25 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from client import get_client
-from models import BirthData, DivisionalChartType, ResponseFormat, birth_dict
+from pydantic import ValidationError
+
+from client import _safe_path_segment, get_client
+from errors import AsterwiseMCPError
+from models import (
+    BirthData,
+    DivisionalChartType,
+    PrashnaInput,
+    ResponseFormat,
+    birth_dict,
+    prashna_dict,
+)
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
-    mcp_error_message,
+    invalid_params,
     require_api_key,
     structured_markdown,
+    tool_error,
 )
 
 
@@ -80,8 +91,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 _natal_table_md,
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_divisional_chart",
@@ -108,8 +123,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Divisional chart {chart_type.value}", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_chart_strength",
@@ -134,8 +153,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Chart strength (Shadbala / Bhavbala)", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_special_ascendants",
@@ -171,8 +194,12 @@ def register(mcp: FastMCP) -> None:
                 return "\n".join(parts)
 
             return format_tool_result(merged, response_format, _md)
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_nakshatra_details",
@@ -192,15 +219,19 @@ def register(mcp: FastMCP) -> None:
         """Nakshatra reference details."""
         try:
             api_key = await require_api_key()
-            path = f"/v1/astro/nakshatra/{nakshatra_name}"
+            path = f"/v1/astro/nakshatra/{_safe_path_segment(nakshatra_name)}"
             data = await get_client().get(path, api_key)
             return format_tool_result(
                 data,
                 response_format,
                 lambda d: structured_markdown(f"Nakshatra: {nakshatra_name}", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_check_sade_sati",
@@ -226,8 +257,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Sade Sati", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_prashna_chart",
@@ -241,33 +276,26 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_prashna_chart(
-        question: str,
-        date: str,
-        time: str,
-        lat: float,
-        lon: float,
-        ayanamsa: str = "lahiri",
-        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        prashna: PrashnaInput,
     ) -> str:
         """Prashna horary chart."""
         try:
             api_key = await require_api_key()
-            body = {
-                "question": question,
-                "date": date,
-                "time": time,
-                "lat": lat,
-                "lon": lon,
-                "ayanamsa": ayanamsa,
-            }
-            data = await get_client().post("/v1/astro/prashna", api_key, body)
+            rf = prashna.response_format
+            data = await get_client().post(
+                "/v1/astro/prashna", api_key, prashna_dict(prashna)
+            )
             return format_tool_result(
                 data,
-                response_format,
+                rf,
                 lambda d: structured_markdown("Prashna chart", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_varshaphal",
@@ -295,8 +323,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Varshaphal ({year})", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_lal_kitab_chart",
@@ -323,8 +355,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lal Kitab chart", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_lal_kitab_remedies",
@@ -351,8 +387,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lal Kitab remedies", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_kp_chart",
@@ -377,8 +417,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("KP chart", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_kp_significators",
@@ -406,8 +450,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("KP significators", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_kp_ruling_planets",
@@ -437,8 +485,12 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("KP ruling planets", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
 
     @mcp.tool(
         name="asterwise_get_ashtakavarga",
@@ -463,5 +515,9 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Ashtakavarga", d),
             )
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            invalid_params(str(exc))
         except Exception as exc:
-            return mcp_error_message(exc)
+            tool_error(f"Unexpected error: {type(exc).__name__}: {exc}")
