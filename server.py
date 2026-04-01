@@ -138,6 +138,51 @@ async def health_check(request: Request) -> Response:
     return JSONResponse(body, status_code=200 if upstream_ok else 503)
 
 
+@mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])
+async def oauth_metadata(request: Request) -> Response:
+    """OAuth 2.0 Authorization Server Metadata (RFC 8414)."""
+    _ = request
+    return JSONResponse(
+        {
+            "issuer": "https://mcp.asterwise.com",
+            "token_endpoint": "https://mcp.asterwise.com/oauth/token",
+            "token_endpoint_auth_methods_supported": [
+                "client_secret_post",
+            ],
+            "grant_types_supported": [
+                "client_credentials",
+            ],
+            "response_types_supported": [
+                "token",
+            ],
+            "scopes_supported": [
+                "asterwise:read",
+            ],
+        }
+    )
+
+
+@mcp.custom_route("/.well-known/openid-configuration", methods=["GET"])
+async def openid_metadata(request: Request) -> Response:
+    """OpenID Connect Discovery (for broad compatibility)."""
+    _ = request
+    return JSONResponse(
+        {
+            "issuer": "https://mcp.asterwise.com",
+            "token_endpoint": "https://mcp.asterwise.com/oauth/token",
+            "token_endpoint_auth_methods_supported": [
+                "client_secret_post",
+            ],
+            "grant_types_supported": [
+                "client_credentials",
+            ],
+            "scopes_supported": [
+                "asterwise:read",
+            ],
+        }
+    )
+
+
 @mcp.custom_route("/oauth/token", methods=["POST"])
 async def oauth_token(request: Request) -> Response:
     """OAuth 2.1 client_credentials (API key as both id and secret)."""
