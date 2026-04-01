@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -128,7 +129,25 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             request.state.api_key = None
 
 
-API_KEY_MIDDLEWARE: list[Middleware] = [Middleware(APIKeyMiddleware)]
+CORS_MIDDLEWARE = Middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+        "Accept",
+        "Mcp-Session-Id",
+    ],
+    expose_headers=["Mcp-Session-Id", "WWW-Authenticate"],
+    allow_credentials=False,
+)
+
+API_KEY_MIDDLEWARE: list[Middleware] = [
+    CORS_MIDDLEWARE,
+    Middleware(APIKeyMiddleware),
+]
 
 # OAuth token endpoint: max 10 requests per minute per IP (in-memory)
 _oauth_attempts: dict[str, list[float]] = {}
