@@ -16,6 +16,7 @@ from auth import (
     TokenExpiredError,
     TokenInvalidError,
     _evict_expired_tokens,
+    _get_fernet,
     _hash_key,
     _token_cache,
     create_token,
@@ -57,6 +58,8 @@ class TestTokenCreation:
         payload_b64 += "=" * (padding % 4)
         payload = json.loads(base64.b64decode(payload_b64))
         assert payload["sub"] == _hash_key(api_key)
+        assert "key" in payload
+        assert isinstance(payload["key"], str)
         assert payload["iss"] == "asterwise-mcp"
 
     def test_token_stored_in_cache(self) -> None:
@@ -83,24 +86,32 @@ class TestTokenDecoding:
         recovered = decode_token(token)
         assert recovered == api_key
 
-    def test_expired_cache_raises_expired_error(self) -> None:
+    def test_expired_jwt_raises_expired_error(self) -> None:
         api_key = "expiry-test-key"
-        token = create_token(api_key)
-        key_hash = _hash_key(api_key)
-        # decode_token calls _evict_expired_tokens first; skip eviction so we can
-        # simulate a stale cache row after JWT verification.
-        with patch("auth._evict_expired_tokens"):
-            _token_cache[key_hash] = (api_key, time.time() - 1)
-            with pytest.raises(TokenExpiredError):
-                decode_token(token)
+        f = _get_fernet()
+        enc = f.encrypt(api_key.encode("utf-8")).decode("utf-8")
+        payload = {
+            "sub": _hash_key(api_key),
+            "key": enc,
+            "iat": int(time.time()) - 7200,
+            "exp": int(time.time()) - 3600,
+            "iss": "asterwise-mcp",
+        }
+        expired_token = pyjwt.encode(
+            payload,
+            os.environ["JWT_SECRET"],
+            algorithm="HS256",
+        )
+        with pytest.raises(TokenExpiredError):
+            decode_token(expired_token)
 
     def test_tampered_token_raises_invalid(self) -> None:
         with pytest.raises(TokenInvalidError):
             decode_token("not.a.valid.jwt")
 
-    def test_unknown_hash_raises_invalid(self) -> None:
+    def test_missing_key_claim_raises_invalid(self) -> None:
         payload = {
-            "sub": "unknownhash123",
+            "sub": _hash_key("some-key"),
             "iat": int(time.time()),
             "exp": int(time.time()) + TOKEN_TTL,
             "iss": "asterwise-mcp",
@@ -110,9 +121,32 @@ class TestTokenDecoding:
             os.environ["JWT_SECRET"],
             algorithm="HS256",
         )
-        _token_cache.clear()
-        with pytest.raises(TokenInvalidError, match="not recognized"):
+        with pytest.raises(TokenInvalidError):
             decode_token(fake_token)
+
+    def test_invalid_encrypted_key_raises_invalid(self) -> None:
+        payload = {
+            "sub": _hash_key("some-key"),
+            "key": "not-valid-fernet-ciphertext",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + TOKEN_TTL,
+            "iss": "asterwise-mcp",
+        }
+        fake_token = pyjwt.encode(
+            payload,
+            os.environ["JWT_SECRET"],
+            algorithm="HS256",
+        )
+        with pytest.raises(TokenInvalidError, match="could not be decrypted"):
+            decode_token(fake_token)
+
+    def test_token_valid_after_cache_cleared(self) -> None:
+        """Token must work even if cache is cleared (stateless JWT)."""
+        api_key = "stateless-test-key-abc123"
+        token = create_token(api_key)
+        _token_cache.clear()
+        recovered = decode_token(token)
+        assert recovered == api_key
 
     def test_wrong_issuer_raises_invalid(self) -> None:
         payload = {
