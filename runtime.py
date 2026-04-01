@@ -12,8 +12,8 @@ from mcp.shared.exceptions import McpError
 from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import ValidationError
 
-from auth import validate_and_get_key
-from errors import AuthError
+from auth import extract_api_key
+from errors import TokenExpiredError, TokenInvalidError
 from models import ResponseFormat
 
 logger = logging.getLogger("asterwise_mcp.runtime")
@@ -67,39 +67,63 @@ def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
     )
 
 
-async def require_api_key(ctx: Context) -> str:
+async def require_api_key(ctx: Context | None = None) -> str:
     """
-    Extract and validate API key from MCP request context.
-    Tries Authorization: Bearer <token> then X-API-Key.
-    Raises McpError with INVALID_PARAMS if no key found.
-    """
-    headers: dict[str, str] = {}
-    try:
-        rc = ctx.request_context
-        if rc is not None and rc.request is not None:
-            headers = dict(rc.request.headers)
-    except Exception:
-        headers = {}
+    Return the Asterwise API key for this request.
 
-    hk = {str(k).lower(): v for k, v in headers.items()}
+    Primary source: ContextVar set by ``APIKeyMiddleware`` (streamable-HTTP).
+    Fallback: ``ctx.request_context.request`` headers when present (e.g. stdio / tests).
+    """
+    from context import get_request_api_key
+
+    api_key = get_request_api_key()
+    source = "contextvar"
+
+    if not api_key and ctx is not None:
+        try:
+            rc = ctx.request_context
+            if rc is not None and rc.request is not None:
+                headers = dict(rc.request.headers)
+                hk = {str(k).lower(): v for k, v in headers.items()}
+                logger.debug(
+                    "auth_headers_fallback",
+                    extra={
+                        "header_keys": list(headers.keys()),
+                        "has_authorization": "authorization" in hk,
+                        "has_x_api_key": "x-api-key" in hk,
+                    },
+                )
+                api_key = extract_api_key(headers)
+        except (TokenExpiredError, TokenInvalidError) as e:
+            raise McpError(
+                ErrorData(code=INVALID_PARAMS, message=str(e))
+            ) from e
+        except Exception:
+            pass
+        if api_key:
+            source = "fallback"
+
     logger.debug(
-        "auth_headers_received",
+        "require_api_key_result",
         extra={
-            "header_keys": list(headers.keys()),
-            "has_authorization": "authorization" in hk,
-            "has_x_api_key": "x-api-key" in hk,
+            "has_key": api_key is not None,
+            "source": source,
         },
     )
 
-    try:
-        return validate_and_get_key(headers)
-    except AuthError as e:
+    if not api_key:
         raise McpError(
             ErrorData(
                 code=INVALID_PARAMS,
-                message=str(e),
+                message=(
+                    "No API key provided. Pass X-API-Key "
+                    "header or Authorization: Bearer <token>. "
+                    "Get a free key at asterwise.com/dashboard"
+                ),
             )
-        ) from e
+        )
+
+    return api_key
 
 
 def format_tool_result(

@@ -12,8 +12,12 @@ from typing import Any, AsyncIterator
 import httpx
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+
+from context import set_request_api_key
 
 load_dotenv()
 
@@ -27,6 +31,51 @@ from errors import AsterwiseAPIError
 from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, reports, yoga_dosha
 
 logger = logging.getLogger("asterwise_mcp.server")
+
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    """Resolve Bearer / X-API-Key from HTTP headers into a ContextVar for tool handlers."""
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        logger.debug(
+            "middleware_auth_enter",
+            extra={
+                "path": request.url.path,
+                "method": request.method,
+            },
+        )
+        api_key: str | None = None
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header[7:].strip()
+            if token:
+                try:
+                    from auth import decode_token
+
+                    api_key = decode_token(token)
+                except Exception:
+                    pass
+
+        if not api_key:
+            api_key = request.headers.get("x-api-key", "").strip() or None
+
+        set_request_api_key(api_key)
+        logger.debug(
+            "middleware_auth",
+            extra={
+                "path": request.url.path,
+                "has_api_key": api_key is not None,
+                "method": request.method,
+            },
+        )
+        try:
+            response = await call_next(request)
+            return response
+        finally:
+            set_request_api_key(None)
+
+
+API_KEY_MIDDLEWARE: list[Middleware] = [Middleware(APIKeyMiddleware)]
 
 # OAuth token endpoint: max 10 requests per minute per IP (in-memory)
 _oauth_attempts: dict[str, list[float]] = {}
@@ -329,10 +378,15 @@ async def oauth_token(request: Request) -> Response:
 
 
 # Public ASGI app for tests and mounting
-app = mcp.http_app(transport="streamable-http")
+app = mcp.http_app(transport="streamable-http", middleware=API_KEY_MIDDLEWARE)
 
 
 if __name__ == "__main__":
     host = os.getenv("MCP_SERVER_HOST", "0.0.0.0")
     port = int(os.getenv("MCP_SERVER_PORT", "8000"))
-    mcp.run(transport="streamable-http", host=host, port=port)
+    mcp.run(
+        transport="streamable-http",
+        host=host,
+        port=port,
+        middleware=API_KEY_MIDDLEWARE,
+    )
