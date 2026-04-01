@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from client import get_client
 from errors import AsterwiseMCPError
-from models import BirthData, ResponseFormat, birth_dict
+from models import BirthData, ResponseFormat
 from runtime import (
     STANDARD_ANNOTATIONS,
     format_tool_result,
@@ -41,7 +41,7 @@ def register(mcp: FastMCP) -> None:
         """Chart yogas."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/yoga", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/yoga", api_key, birth.to_api_dict())
             return format_tool_result(
                 data,
                 response_format,
@@ -74,7 +74,7 @@ def register(mcp: FastMCP) -> None:
         """Dosha analysis."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/dosha", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/dosha", api_key, birth.to_api_dict())
             return format_tool_result(
                 data,
                 response_format,
@@ -107,7 +107,7 @@ def register(mcp: FastMCP) -> None:
         """Parashari-style remedies."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/remedies", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/remedies", api_key, birth.to_api_dict())
             return format_tool_result(
                 data,
                 response_format,
@@ -140,7 +140,7 @@ def register(mcp: FastMCP) -> None:
         """Gemstones."""
         try:
             api_key = await require_api_key(ctx)
-            data = await get_client().post("/v1/astro/gemstones", api_key, birth_dict(birth))
+            data = await get_client().post("/v1/astro/gemstones", api_key, birth.to_api_dict())
             return format_tool_result(
                 data,
                 response_format,
