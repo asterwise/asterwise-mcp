@@ -88,6 +88,7 @@ EXEMPT_PATHS = frozenset(
         "/oauth/register",
         "/oauth/token",
         "/oauth/revoke",
+        "/oauth/authorize",
     }
 )
 
@@ -364,7 +365,7 @@ async def oauth_metadata(request: Request) -> Response:
     return JSONResponse(
         {
             "issuer": "https://mcp.asterwise.com",
-            "authorization_endpoint": "https://asterwise.com/oauth/authorize",
+            "authorization_endpoint": "https://mcp.asterwise.com/oauth/authorize",
             "token_endpoint": "https://mcp.asterwise.com/oauth/token",
             "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
@@ -391,7 +392,7 @@ async def openid_metadata(request: Request) -> Response:
     return JSONResponse(
         {
             "issuer": "https://mcp.asterwise.com",
-            "authorization_endpoint": "https://asterwise.com/oauth/authorize",
+            "authorization_endpoint": "https://mcp.asterwise.com/oauth/authorize",
             "token_endpoint": "https://mcp.asterwise.com/oauth/token",
             "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
@@ -818,6 +819,27 @@ async def oauth_token(request: Request) -> Response:
         )
 
 
+async def oauth_authorize_proxy(request: Request) -> Response:
+    """
+    Proxy OAuth authorization to asterwise.com consent page.
+    Claude.ai requires authorization_endpoint on same domain
+    as the MCP server.
+    """
+    query_string = str(request.url.query)
+    frontend_url = os.getenv(
+        "FRONTEND_URL", "https://asterwise.com"
+    ).rstrip("/")
+    redirect_url = (
+        f"{frontend_url}/oauth/authorize"
+        f"?{query_string}" if query_string
+        else f"{frontend_url}/oauth/authorize"
+    )
+    return Response(
+        status_code=302,
+        headers={"Location": redirect_url}
+    )
+
+
 # Public ASGI app — explicit custom Router first; everything else to FastMCP (no greedy Mount("/")).
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route, Router
@@ -832,6 +854,7 @@ _custom_route_keys = frozenset(
         ("/.well-known/oauth-authorization-server", "GET"),
         ("/.well-known/openid-configuration", "GET"),
         ("/.well-known/oauth-protected-resource", "GET"),
+        ("/oauth/authorize", "GET"),
         ("/oauth/register", "POST"),
         ("/oauth/token", "POST"),
         ("/oauth/revoke", "POST"),
@@ -858,6 +881,11 @@ _custom_routes = [
     Route(
         "/.well-known/oauth-protected-resource",
         endpoint=oauth_protected_resource_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/oauth/authorize",
+        endpoint=oauth_authorize_proxy,
         methods=["GET"],
     ),
     Route(

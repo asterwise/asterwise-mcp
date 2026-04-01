@@ -188,7 +188,7 @@ async def test_openid_configuration_matches_as_metadata() -> None:
         r = await ac.get("/.well-known/openid-configuration")
     assert r.status_code == 200
     meta = r.json()
-    assert meta["authorization_endpoint"] == "https://asterwise.com/oauth/authorize"
+    assert meta["authorization_endpoint"] == "https://mcp.asterwise.com/oauth/authorize"
     assert meta["registration_endpoint"] == "https://mcp.asterwise.com/oauth/register"
     assert meta["code_challenge_methods_supported"] == ["S256"]
 
@@ -202,7 +202,35 @@ async def test_well_known_includes_authorization_endpoint() -> None:
         r = await ac.get("/.well-known/oauth-authorization-server")
     assert r.status_code == 200
     meta = r.json()
-    assert meta["authorization_endpoint"] == "https://asterwise.com/oauth/authorize"
+    assert meta["authorization_endpoint"] == "https://mcp.asterwise.com/oauth/authorize"
+
+
+@pytest.mark.asyncio
+async def test_oauth_authorize_proxy_redirects_to_frontend() -> None:
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test", follow_redirects=False
+    ) as ac:
+        r = await ac.get("/oauth/authorize")
+    assert r.status_code == 302
+    assert r.headers.get("location") == "https://asterwise.com/oauth/authorize"
+
+
+@pytest.mark.asyncio
+async def test_oauth_authorize_proxy_preserves_query_string() -> None:
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test", follow_redirects=False
+    ) as ac:
+        r = await ac.get("/oauth/authorize?client_id=cid&response_type=code")
+    assert r.status_code == 302
+    loc = r.headers.get("location") or ""
+    assert loc.startswith("https://asterwise.com/oauth/authorize?")
+    assert "client_id=cid" in loc
 
 
 @pytest.mark.asyncio
