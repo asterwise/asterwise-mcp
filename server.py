@@ -34,6 +34,50 @@ from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, r
 
 logger = logging.getLogger("asterwise_mcp.server")
 
+# Returned when Content-Type is JSON but the body is not valid JSON (OAuth invalid_request).
+_JSON_BODY_PARSE_FAILED = object()
+
+
+def _is_json_content_type(content_type: str) -> bool:
+    base = content_type.lower().split(";")[0].strip()
+    return base == "application/json" or base.endswith("+json")
+
+
+async def _parse_request_body(request: Request) -> Any:
+    """Parse request body as form-encoded or JSON (dict, or JSON list for caller to reject)."""
+    content_type = request.headers.get("content-type", "").lower().split(";")[0].strip()
+
+    if content_type == "application/x-www-form-urlencoded":
+        form = await request.form()
+        return {str(k): str(v) for k, v in form.items()}
+
+    if _is_json_content_type(content_type):
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                return body
+            return body
+        except Exception:
+            return _JSON_BODY_PARSE_FAILED
+
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            return body
+        return body
+    except Exception:
+        pass
+
+    try:
+        form = await request.form()
+        if form:
+            return {str(k): str(v) for k, v in form.items()}
+    except Exception:
+        pass
+
+    return {}
+
+
 # Public routes (no API key / Bearer required). OAuth discovery and token endpoints.
 EXEMPT_PATHS = frozenset(
     {
@@ -394,9 +438,9 @@ async def oauth_dynamic_client_register(request: Request) -> Response:
         )
 
     try:
-        try:
-            body = await request.json()
-        except Exception:
+        body = await _parse_request_body(request)
+
+        if body is _JSON_BODY_PARSE_FAILED:
             return JSONResponse(
                 {
                     "error": "invalid_request",
@@ -607,9 +651,9 @@ async def oauth_token(request: Request) -> Response:
         )
 
     try:
-        try:
-            body = await request.json()
-        except Exception:
+        body = await _parse_request_body(request)
+
+        if body is _JSON_BODY_PARSE_FAILED:
             return JSONResponse(
                 {
                     "error": "invalid_request",

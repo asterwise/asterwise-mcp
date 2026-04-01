@@ -63,6 +63,21 @@ async def test_register_empty_redirect_uris_returns_400(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
+async def test_register_malformed_json_returns_400() -> None:
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        r = await ac.post(
+            "/oauth/register",
+            content="not json",
+            headers={"Content-Type": "application/json"},
+        )
+    assert r.status_code == 400
+    assert r.json()["error"] == "invalid_request"
+
+
+@pytest.mark.asyncio
 async def test_register_missing_internal_token_returns_503(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("INTERNAL_API_TOKEN", raising=False)
     monkeypatch.setenv("ASTERWISE_API_BASE_URL", "https://api.example.com")
