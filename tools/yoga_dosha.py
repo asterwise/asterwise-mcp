@@ -26,10 +26,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_yogas",
         description=(
-            "Detect classical yogas (Raj, Dhana, Mahapurusha, Neecha Bhanga, Parivartana, Gajakesari, "
-            "etc.) with formation conditions. Source: BPHS / Phaladeepika / Saravali.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: List of yogas present in the chart."
+            "Detect classical yogas present in the natal chart — combinations of "
+            "planetary positions that produce specific life results. Detects: "
+            "Pancha Mahapurusha yogas (Ruchaka, Bhadra, Hamsa, Malavya, Shasha), "
+            "Raj yogas (lords of Kendras and Trikonas conjoined), Dhana yogas "
+            "(wealth combinations), Gajakesari (Jupiter-Moon), Neecha Bhanga (debility "
+            "cancellation), Parivartana (mutual exchange), Viparita Raja (malefics in "
+            "dusthanas), and others. Source: BPHS, Phaladeepika, Saravali. "
+            "Use after asterwise_get_natal_chart to identify what configurations exist "
+            "in the chart and what results they promise. "
+            "Yogas indicate promise — whether that promise manifests depends on Dasha "
+            "timing and transit activation. Always check asterwise_get_dasha alongside."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -59,10 +66,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_doshas",
         description=(
-            "Analyse classical doshas (Mangal, Kaal Sarpa, Guru Chandal, Kemdrum, etc.) with severity and "
-            "remedial context. Source: BPHS and related dosha chapters.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Dosha checklist with severity."
+            "Analyse classical doshas — afflictions and imbalances present in the "
+            "natal chart. Checks for: Mangal Dosha (Mars in 1st, 2nd, 4th, 7th, 8th, "
+            "or 12th house — relevant for marriage), Kaal Sarp Dosha (all planets "
+            "between Rahu-Ketu axis), Guru Chandal Dosha (Jupiter-Rahu conjunction), "
+            "Kemdrum Dosha (Moon without flanking planets), and others. Returns "
+            "severity, the specific formation, and whether cancellation conditions "
+            "(bhanga) apply. Source: BPHS and classical dosha chapters. "
+            "Use when assessing chart afflictions, delays, or when a user is facing "
+            "persistent obstacles and wants to know if a dosha is present. "
+            "Always check bhanga (cancellation) conditions before concluding a dosha "
+            "is active — many doshas are cancelled by counter-combinations."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -92,10 +106,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_remedies",
         description=(
-            "Classical Jyotish remedies — gemstones, mantras, charity, rituals. Source: remedial "
-            "sections of BPHS / tradition.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Remedies keyed by planet or theme."
+            "Get classical Jyotish remedies for a natal chart — mantras, gemstones, "
+            "charity, fasting, and ritual recommendations based on the chart's "
+            "planetary weaknesses and afflictions. Source: remedial sections of BPHS, "
+            "Ratna Shastra, and classical tradition. "
+            "Use when the user wants to know what they can do to strengthen weak "
+            "planets or reduce dosha effects. "
+            "Do not confuse with asterwise_get_lal_kitab_remedies — that provides "
+            "Lal Kitab-specific practical remedies (feeding birds, flowing items in "
+            "rivers); this provides BPHS/Parashari remedies (mantras, gemstones, rituals). "
+            "Do not confuse with asterwise_get_gemstone_recommendations — that focuses "
+            "exclusively on gemstone selection; this provides the full remedial picture."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -125,10 +146,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_gemstone_recommendations",
         description=(
-            "Gemstone recommendations from the natal chart — primary/secondary stones and wearing method. "
-            "Source: classical ratna shastra.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Stone recommendations with rationale."
+            "Get gemstone recommendations from the natal chart — the primary stone "
+            "(for the Lagna lord or most important planet), secondary/supporting stones, "
+            "and contraindicated stones to avoid. Includes metal, finger, and weight "
+            "guidance per classical Ratna Shastra. Source: classical gem therapy texts. "
+            "Use when the user specifically asks about which gemstone to wear. "
+            "Do not confuse with asterwise_get_remedies — that provides the complete "
+            "remedial picture including mantras, fasting, and charity alongside gems; "
+            "this focuses exclusively on gemstone selection and wearing guidance."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

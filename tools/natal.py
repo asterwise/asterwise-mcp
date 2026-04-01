@@ -70,12 +70,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_natal_chart",
         description=(
-            "Compute a complete Vedic natal chart (Kundli) for a person. Returns planet positions, "
-            "signs, houses, nakshatras, combustion flags, Vargottama markers, Dig Bala, and ascendant "
-            "details. Source: Brihat Parashara Hora Shastra (BPHS). Use this as the foundation for any "
-            "Jyotish analysis.\n"
-            "Inputs: BirthData (date, time, lat, lon, timezone, person name, ayanamsa) and response_format.\n"
-            "Returns: Markdown planet table or full JSON from the API."
+            "Compute the complete Vedic birth chart (Janam Kundali) for a person. "
+            "Returns all nine planets (Grahas) with their sign, house, nakshatra, "
+            "pada, combustion status, retrogression, Vargottama, and Dig Bala flags; "
+            "the ascendant (Lagna) with exact degree; all twelve house cusps; and the "
+            "Avakahada table (Varna, Vashya, Yoni, Gana, Nadi). Source: Swiss "
+            "Ephemeris with Lahiri ayanamsa (or as specified). "
+            "Use this as the mandatory first call for any personalised Jyotish "
+            "analysis — every other natal tool depends on data this returns. "
+            "Do not call strength, yogas, doshas, or dasha without calling this first."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -108,10 +111,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_divisional_chart",
         description=(
-            "Compute a specific divisional chart (Varga) for deeper analysis. D9 (Navamsa) for "
-            "marriage/dharma, D10 (Dasamsa) for career, D7 for children, etc. Source: BPHS varga chapters.\n"
-            "Inputs: BirthData, chart_type (D1–D60), response_format.\n"
-            "Returns: Planet positions in the chosen divisional chart."
+            "Compute a specific divisional (Varga) chart for a person. Each division "
+            "reveals a distinct life domain: D2 (Hora) wealth polarity, D3 (Drekkana) "
+            "siblings and courage, D4 (Chaturthamsa) property, D7 (Saptamsa) children, "
+            "D9 (Navamsa) spouse and dharma — the most important varga after D1, "
+            "D10 (Dasamsa) career and public standing, D12 (Dvadasamsa) parents, "
+            "D16 (Shodasamsa) vehicles and comforts, D20 (Vimshamsa) spiritual "
+            "practice, D24 (Chaturvimshamsa) education, D27 (Nakshatramsa) strengths, "
+            "D30 (Trimshamsa) misfortunes and health, D40 (Khavedamsa) auspiciousness, "
+            "D45 (Akshavedamsa) character, D60 (Shashtiamsa) past karma. "
+            "Source: BPHS varga chapters. "
+            "Use when you need to assess a specific domain rather than the whole chart."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -143,10 +153,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_chart_strength",
         description=(
-            "Calculate Shadbala (six-fold strength) and Bhavbala (house strength) for a natal chart. "
-            "Reveals which planets and houses are powerful vs weak. Source: BPHS strength chapters.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Strength scores per planet and house."
+            "Calculate Shadbala (six-fold planetary strength) and Bhavbala (house "
+            "strength) for the natal chart. Shadbala measures each planet across six "
+            "sources: Sthana (positional), Dig (directional), Kala (temporal), Chesta "
+            "(motional), Naisargika (natural), and Drik (aspectual). Bhavbala measures "
+            "each house. Source: BPHS strength chapters. "
+            "Use when you need to rank planets by power, identify the strongest and "
+            "weakest influences, or support a yoga/dasha assessment with quantitative "
+            "backing. Do not confuse with asterwise_get_yogas — yogas identify "
+            "configurations, strength measures raw planetary power."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -177,11 +192,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_special_ascendants",
         description=(
-            "Get Atmakaraka (soul significator planet) and Ishta Devata (personal deity) from the natal "
-            "chart. Used for spiritual guidance and deeper self-understanding. Source: Jaimini / BPHS "
-            "significator principles.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Combined atmakaraka and ishta devata sections."
+            "Get two key spiritual significators from the chart in a single call: "
+            "(1) Atmakaraka — the planet with the highest degree in any sign, "
+            "representing the soul's desire in this life (Jaimini system); "
+            "(2) Ishta Devata — the personal deity revealed by the 12th lord from "
+            "the Atmakaraka's Navamsa position (BPHS/Jaimini). "
+            "Use when the user asks about spiritual path, personal deity, soul purpose, "
+            "or life mission. This is a spiritual tool, not a predictive one. "
+            "Do not call this for timing, health, career, or matchmaking questions."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -221,11 +239,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_nakshatra_details",
         description=(
-            "Get detailed information about a specific nakshatra — deity, symbol, qualities, ruling "
-            "planet, pada meanings, and classical interpretations. Source: Vedanga Jyotisha / classical "
-            "nakshatra lists.\n"
-            "Inputs: nakshatra_name, response_format.\n"
-            "Returns: Nakshatra profile."
+            "Look up reference information for any of the 27 nakshatras by name: "
+            "ruling planet (Nakshatra lord), deity, symbol, Gana (Deva/Manushya/Rakshasa), "
+            "Varna, Yoni, Nadi, pada meanings, and classical qualities. "
+            "Source: Vedanga Jyotisha and classical nakshatra texts. "
+            "Use when explaining a person's Moon nakshatra or Lagna nakshatra, when "
+            "assessing nakshatra compatibility in matchmaking, or when a user asks "
+            "about nakshatra symbolism. This is a reference lookup — it does not "
+            "require birth data."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -256,11 +277,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_check_sade_sati",
         description=(
-            "Check if a person is currently in Sade Sati (Saturn's 7.5-year transit over natal Moon). "
-            "Returns phase (rising/peak/setting), intensity, and duration. Source: classical transit "
-            "texts.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Sade Sati status and details."
+            "Check whether a person is currently passing through Sade Sati — Saturn's "
+            "transit through the sign before, the sign of, and the sign after the natal "
+            "Moon — a 7.5-year period of pressure and transformation. Returns the "
+            "current phase (rising/peak/setting), intensity rating, start and end dates, "
+            "and whether a previous cycle was also active. Source: classical transit texts. "
+            "Use specifically when a user is experiencing unexplained difficulty, "
+            "delays, or setbacks and wants to know if Saturn is a factor. "
+            "Do not confuse with asterwise_get_gochar — Gochar shows all planet transits "
+            "simultaneously; Sade Sati focuses exclusively on Saturn's Moon transit."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -291,11 +316,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_prashna_chart",
         description=(
-            "Generate a Prashna (horary) chart for a question asked at a specific moment. Prashna Jyotish "
-            "answers questions from planetary positions at the moment of asking, without requiring a birth "
-            "chart. Source: Prashna classics.\n"
-            "Inputs: PrashnaInput (question, lat, lon, ayanamsa; date/time optional for context), response_format.\n"
-            "Returns: Prashna chart and interpretation payload."
+            "Generate a Prashna (horary) chart for a question asked at this moment. "
+            "Prashna Jyotish derives answers from the planetary positions at the time "
+            "and place the question is asked — no birth chart required. Valid question "
+            "categories: self (health/personality), wealth, siblings, property, "
+            "children, health, marriage, death, travel, career, gains, loss. "
+            "Source: Prashna Marga and classical horary texts. "
+            "Use when the person has no birth data, or when they want an answer to a "
+            "specific burning question independent of their natal chart. "
+            "Do not use for ongoing life analysis — use asterwise_get_natal_chart for that."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -328,11 +357,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_varshaphal",
         description=(
-            "Calculate Varshaphal (Solar Return chart) — the chart cast for the moment the Sun returns to "
-            "its natal degree each year. Reveals themes and events for that year of life. Source: "
-            "Varshaphal tradition.\n"
-            "Inputs: BirthData, target year (solar return year), response_format.\n"
-            "Returns: Solar return chart data."
+            "Calculate the Varshaphal (Solar Return) chart — the chart cast for the "
+            "exact moment the Sun returns to its natal degree each year. Reveals the "
+            "dominant themes, the Muntha lord, the year lord, and the planetary "
+            "configuration for that twelve-month period. Source: Varshaphal tradition "
+            "(Tajika system). "
+            "Use when the user asks what a particular year holds for them, or when "
+            "assessing the active influences for the current year of life. "
+            "Do not confuse with asterwise_get_dasha — Dasha shows the planetary timing "
+            "cycle from birth; Varshaphal shows the annual reset chart."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -364,10 +397,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_lal_kitab_chart",
         description=(
-            "Get Lal Kitab chart — a distinct North Indian astrological tradition with unique house "
-            "placement rules and debt (rin) analysis. Source: Lal Kitab tradition.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Lal Kitab chart with planet placements."
+            "Get the Lal Kitab chart — a North Indian astrological tradition with its "
+            "own distinct house placement rules, planet interpretation, and debt (Rin) "
+            "analysis system. Planets placed in houses take on meanings specific to "
+            "the Lal Kitab framework, which differs substantially from BPHS. "
+            "Source: Lal Kitab (1952 edition). "
+            "Use only when the user explicitly asks for Lal Kitab analysis or when "
+            "a Lal Kitab-based app is being built. "
+            "Do not mix Lal Kitab placements with BPHS interpretations — they use "
+            "different logic and combining them produces incorrect analysis."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -400,10 +438,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_lal_kitab_remedies",
         description=(
-            "Get Lal Kitab remedies — practical remedies specific to the Lal Kitab tradition. Source: "
-            "Lal Kitab texts.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Remedies per planet / house as returned by the API."
+            "Get Lal Kitab remedies — practical, low-cost remedial measures from the "
+            "Lal Kitab tradition: feeding birds, flowing items in water, burying items, "
+            "keeping or avoiding specific objects. These are distinct from BPHS remedies "
+            "(mantras, gemstones, rituals). Source: Lal Kitab texts. "
+            "Use after asterwise_get_lal_kitab_chart when the user asks for Lal Kitab "
+            "style remedies. Do not use this in place of asterwise_get_remedies — "
+            "that tool provides BPHS/Parashari remedies; this provides Lal Kitab remedies."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -436,10 +477,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_kp_chart",
         description=(
-            "Get KP (Krishnamurti Paddhati) chart — sub-lord based astrology for event timing. Source: KP "
-            "system.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: KP chart with sub-lords."
+            "Get the KP (Krishnamurti Paddhati) chart — a precision system for event "
+            "timing that divides each nakshatra into sub-lords using the Vimshottari "
+            "Dasha proportions. Returns planet positions with their star lord and "
+            "sub-lord chains. Source: K.S. Krishnamurti's KP system. "
+            "Use when the user needs precise timing of events (will the marriage happen "
+            "this year? when will the job come?) rather than general life reading. "
+            "KP is for event prediction with yes/no precision; BPHS is for character "
+            "and life theme analysis. Use asterwise_get_kp_significators after this "
+            "to get the house-wise event indicators."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -470,9 +516,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_kp_significators",
         description=(
-            "Get KP significators for each house — sub-lord chains signifying house matters. Source: KP.\n"
-            "Inputs: BirthData, optional house_number 1–12 (omit for all houses), response_format.\n"
-            "Returns: Significator chains."
+            "Get KP house significators — for each house (or a specific house 1–12), "
+            "the chain of planets that signify its matters through star-lord and "
+            "sub-lord relationships. Source: KP system. "
+            "Use after asterwise_get_kp_chart when you need to determine which planets "
+            "are activated for a specific house matter (e.g. house 7 for marriage, "
+            "house 10 for career, house 11 for gains). "
+            "Omit house_number to get all twelve houses at once; specify it to focus "
+            "on one house."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -506,10 +557,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_kp_ruling_planets",
         description=(
-            "Get KP ruling planets for the current moment — Moon sign/star/sub lords and ascendant lords. "
-            "Source: KP ruling planets method.\n"
-            "Inputs: lat, lon, response_format.\n"
-            "Returns: Current ruling planets."
+            "Get the KP ruling planets for the current moment at a given location — "
+            "the Moon's sign lord, star lord, and sub lord; the ascendant's sign lord, "
+            "star lord, and sub lord. These six planets govern the moment and are used "
+            "in KP to validate chart readings and timing. Source: KP ruling planets method. "
+            "Use when doing a Prashna in the KP system, or when a KP astrologer needs "
+            "the ruling planets for the moment. This tool takes only location (lat/lon), "
+            "not birth data — it is about the current moment, not a natal chart."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -545,10 +599,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_ashtakavarga",
         description=(
-            "Calculate Ashtakavarga — eightfold benefic points per sign for each planet and "
-            "Sarvashtakavarga totals. Source: BPHS Ashtakavarga chapters.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Ashtakavarga tables."
+            "Calculate Ashtakavarga — the system of benefic point scores (Bindus) "
+            "contributed by each of eight references (seven planets + Lagna) to each "
+            "of the twelve signs. Returns Bhinna Ashtakavarga (per planet) and "
+            "Sarvashtakavarga (combined totals per sign). Signs with 30+ points in "
+            "Sarvashtakavarga support transiting planets well; signs with fewer than "
+            "25 create difficulty during transits. Source: BPHS Ashtakavarga chapters. "
+            "Use when assessing transit quality (which signs are strong for Saturn "
+            "transit, Jupiter transit etc.), or when doing a detailed Dasha-transit "
+            "analysis. Do not confuse with asterwise_get_chart_strength — Shadbala "
+            "measures natal planetary strength; Ashtakavarga measures transit receptivity."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

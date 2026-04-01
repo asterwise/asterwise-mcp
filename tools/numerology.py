@@ -26,10 +26,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_numerology_profile",
         description=(
-            "Full numerology profile — Life Path, Destiny, Soul Urge, Personality, Birthday, Personal Year. "
-            "Source: Pythagorean numerology.\n"
-            "Inputs: name (full at birth), date (YYYY-MM-DD), response_format.\n"
-            "Returns: Core numbers with interpretations."
+            "Calculate the complete Pythagorean numerology profile for a person: "
+            "Life Path number (most important — derived from birth date by full "
+            "reduction), Destiny/Expression number (full birth name), Soul Urge "
+            "number (vowels only), Personality number (consonants only), Birthday "
+            "number (day of birth), Maturity number (Life Path + Destiny), and "
+            "Personal Year number for the current year. Source: Pythagorean system. "
+            "Use this as the primary numerology tool — call this first for any "
+            "comprehensive numerology reading. "
+            "Use asterwise_get_chaldean_numerology if the user specifically asks for "
+            "Chaldean analysis (different letter values, different results)."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -64,9 +70,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_numerology_compatibility",
         description=(
-            "Numerology compatibility from Life Path and Destiny numbers. Source: Pythagorean pairing rules.\n"
-            "Inputs: person1_name, person1_date, person2_name, person2_date, response_format.\n"
-            "Returns: Compatibility narrative."
+            "Calculate numerology compatibility between two people based on their "
+            "Life Path and Destiny numbers — which combinations are naturally "
+            "harmonious, which require work, and which are challenging. "
+            "Source: Pythagorean pairing compatibility tradition. "
+            "Use when a user asks how two people are numerologically matched, or "
+            "when building a numerology-based compatibility feature. "
+            "This does not require birth time or location — name and date only."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -105,9 +115,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_chaldean_numerology",
         description=(
-            "Chaldean numerology chart — distinct letter values from Pythagorean. Source: Chaldean system.\n"
-            "Inputs: name, date, response_format.\n"
-            "Returns: Chaldean analysis."
+            "Calculate Chaldean numerology — an older system originating in ancient "
+            "Babylon with different letter-number assignments than Pythagorean. "
+            "In Chaldean, letters 1–8 are used (9 is sacred and not assigned); "
+            "the name compound number and root number carry distinct meanings. "
+            "Source: Chaldean system. "
+            "Use when the user specifically asks for Chaldean numerology, or when "
+            "cross-checking a Pythagorean reading with the older system. "
+            "Do not use as a replacement for asterwise_get_numerology_profile — "
+            "the two systems give different results and serve different purposes."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -142,10 +158,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_lo_shu_grid",
         description=(
-            "Lo Shu magic square grid — missing/repeated digits and impact. Source: Chinese Lo Shu "
-            "numerology.\n"
-            "Inputs: date (YYYY-MM-DD), response_format.\n"
-            "Returns: Grid analysis."
+            "Calculate the Lo Shu magic square grid from a birth date — arranging "
+            "the digits of the date in a 3x3 grid. Missing numbers indicate absent "
+            "qualities; repeated numbers indicate overemphasis. Used in Chinese "
+            "numerology and also in some modern Jyotish systems. "
+            "Source: Chinese Lo Shu tradition. "
+            "Use when the user asks for Lo Shu analysis specifically. "
+            "This takes only a date — no name required."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -179,10 +198,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_name_correction",
         description=(
-            "Name correction suggestions for better harmony with birth date. Source: numerological name "
-            "balancing.\n"
-            "Inputs: name, date, response_format.\n"
-            "Returns: Analysis and suggested spellings."
+            "Analyse whether the current spelling of a name is numerologically "
+            "harmonious with the birth date, and suggest corrected or alternative "
+            "spellings that create better alignment. Based on Life Path compatibility "
+            "with the Expression number. Source: numerological name balancing tradition. "
+            "Use when the user wants to know if their name's numerology supports "
+            "their birth number, or when they want to try alternative spellings "
+            "for better energy alignment."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -217,9 +239,11 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_lucky_numbers",
         description=(
-            "Lucky numbers derived from the numerology profile. Source: standard reduction methods.\n"
-            "Inputs: name, date, response_format.\n"
-            "Returns: Numbers and explanations."
+            "Derive lucky numbers for a person from their numerology profile — "
+            "primary lucky number (Life Path), secondary numbers, and numbers to "
+            "avoid. Source: standard Pythagorean reduction methods. "
+            "Use when the user asks for their lucky numbers, or when building a "
+            "feature that incorporates personalised numerology guidance."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -254,9 +278,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_personal_year",
         description=(
-            "Personal Year number — annual cycle theme. Source: Pythagorean yearly cycle.\n"
-            "Inputs: name, date, response_format.\n"
-            "Returns: Personal year and interpretation."
+            "Calculate the Personal Year number for a specific year — derived from "
+            "the birth month, birth day, and the target year. Each number 1–9 "
+            "represents a distinct annual theme: 1 (new beginnings), 2 (cooperation), "
+            "3 (creativity), 4 (foundation), 5 (change), 6 (responsibility), "
+            "7 (reflection), 8 (power and material), 9 (completion). "
+            "Source: Pythagorean annual cycle. "
+            "Use when a user asks 'what kind of year is this for me?' or 'what "
+            "does my numerology say about 2026?' "
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -291,9 +320,12 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_number_meaning",
         description=(
-            "Meaning of numbers 1–9 and master numbers 11, 22, 33. Source: modern numerology synthesis.\n"
-            "Inputs: number (1–33), response_format.\n"
-            "Returns: Detailed meaning."
+            "Look up the classical meaning of a specific number (1–9) or master "
+            "number (11, 22, 33) — including its core qualities, strengths, "
+            "challenges, life themes, and archetypal character. "
+            "Source: modern numerology synthesis. "
+            "Use as a reference lookup when explaining what a Life Path 7 means, "
+            "or what master number 11 represents. This does not require name or date."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -330,9 +362,12 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_check_mobile_number",
         description=(
-            "Mobile number numerology vs owner profile. Source: digit-sum and Chaldean/Pythagorean checks.\n"
-            "Inputs: mobile_number, name, date, response_format.\n"
-            "Returns: Compatibility analysis."
+            "Analyse whether a mobile phone number is numerologically compatible "
+            "with its owner — by reducing the number to its root and checking "
+            "alignment with the owner's Life Path and Destiny numbers. "
+            "Source: Pythagorean and Chaldean digit analysis. "
+            "Use when a user wants to know if their mobile number is lucky for them, "
+            "or when helping someone choose between two phone numbers."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -368,9 +403,10 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_check_vehicle_number",
         description=(
-            "Vehicle registration number vs owner numerology. Source: digit analysis.\n"
-            "Inputs: vehicle_number, name, date, response_format.\n"
-            "Returns: Compatibility analysis."
+            "Analyse whether a vehicle registration number is numerologically "
+            "compatible with its owner. Source: digit-sum analysis. "
+            "Use when a user wants to know if their vehicle number suits them, "
+            "or when choosing between registration options."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -406,9 +442,12 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_business_name_analysis",
         description=(
-            "Business name numerology vs founder birth date. Source: expression and compatibility checks.\n"
-            "Inputs: business_name, date (founder), response_format.\n"
-            "Returns: Business name report."
+            "Analyse whether a business name is numerologically favourable for a "
+            "founder — checking the Expression number of the business name against "
+            "the founder's Life Path and Destiny numbers. Suggests adjustments if "
+            "the alignment is weak. Source: expression and compatibility numerology. "
+            "Use when a user is naming a new business or rebranding and wants "
+            "numerological validation of the name choice."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

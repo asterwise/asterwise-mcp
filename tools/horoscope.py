@@ -26,10 +26,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_horoscope",
         description=(
-            "Fresh horoscope for a Moon sign and period — computed from current planetary positions, not "
-            "static text. Source: classical sign-lord and transit synthesis.\n"
-            "Inputs: moon_sign (e.g. libra), period (daily/weekly/monthly/yearly), response_format.\n"
-            "Returns: Generated reading."
+            "Generate a fresh horoscope reading for a Moon sign and time period — "
+            "computed from live planetary positions at the time of the request, not "
+            "pre-written static text. Covers daily themes, guidance, and influences "
+            "across career, relationships, health, and timing. "
+            "Moon sign accepts Sanskrit names (Tula, Vrischika, Karka, etc.) or English "
+            "(Libra, Scorpio, Cancer, etc.). Period: daily, weekly, monthly, or yearly. "
+            "Source: classical sign-lord and transit synthesis with AI generation. "
+            "Use when a user wants a general reading for today/this week/month/year "
+            "without providing birth data. This is a sign-level reading, not a personal "
+            "natal analysis. For personal analysis, use asterwise_get_natal_chart instead."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -64,10 +70,22 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_gochar",
         description=(
-            "Current planetary transits (Gochar) vs natal chart — houses transited and interpretations. "
-            "Source: classical Gochar.\n"
-            "Inputs: BirthData, response_format.\n"
-            "Returns: Transit positions and effects."
+            "Calculate current planetary transits (Gochar) against a person's natal "
+            "chart — which houses each transiting planet occupies, the aspects being "
+            "formed, and the classical effects per transit. Computed for the current "
+            "date at the time of the API call. Source: classical Gochar rules (BPHS "
+            "and Phala Deepika). "
+            "Use when the user wants to know what is happening astrologically for them "
+            "right now — which planets are transiting their chart and what effects "
+            "to expect in the coming weeks. "
+            "Do not confuse with: "
+            "- asterwise_get_dasha_transits — that overlays transits WITH the running "
+            "  Dasha context to assess timing quality; use it when asking 'is this a "
+            "  good Dasha period for me right now?' "
+            "- asterwise_check_sade_sati — that focuses only on Saturn's Moon transit; "
+            "  use it when specifically checking Sade Sati. "
+            "- asterwise_get_transits — that covers a custom date range; use it for "
+            "  planning ahead."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -99,9 +117,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_transits",
         description=(
-            "Transit analysis over a date range vs natal chart. Source: Gochar with date range.\n"
-            "Inputs: BirthData, from_date, to_date (YYYY-MM-DD), response_format.\n"
-            "Returns: Transit events in range."
+            "Calculate planetary transits against a natal chart across a specific date "
+            "range — returning all significant transit events, ingresses, and station "
+            "points within the period. Maximum range: approximately 24 months. "
+            "Source: Swiss Ephemeris with Gochar interpretation rules. "
+            "Use when the user wants to plan ahead — 'what are the major transits for "
+            "me in the next six months?' or 'when is Jupiter transiting my 10th house?' "
+            "Do not confuse with: "
+            "- asterwise_get_gochar — that shows current transits only (no date range); "
+            "  use it for a snapshot of what is happening right now. "
+            "- asterwise_get_dasha_transits — that correlates transits with the running "
+            "  Dasha; use it when assessing the current period quality. "
+            "Parameters: from_date and to_date in YYYY-MM-DD format. Keep the range "
+            "under 24 months to avoid oversized responses."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
