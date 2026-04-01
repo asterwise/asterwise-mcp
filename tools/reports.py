@@ -28,18 +28,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_generate_kundli_report",
         description=(
-            "Generate a comprehensive Kundli PDF report for a person. The report "
-            "includes: natal chart with all nine planets and ascendant, key divisional "
-            "charts (Navamsa D9 and Dasamsa D10 at minimum), complete Vimshottari "
-            "Dasha timeline across the lifetime, yoga analysis with formation "
-            "conditions, dosha summary with severity ratings, and remedial suggestions "
-            "— all compiled into a formatted, printable document. "
-            "Source: compiled BPHS-style report. Returns a download URL for the PDF. "
-            "Use when the user wants a complete shareable birth chart document to "
-            "print, email, or present to their family or astrologer. "
-            "Do not use for on-screen analysis — use the individual tools "
-            "(asterwise_get_natal_chart, asterwise_get_dasha, asterwise_get_yogas) "
-            "for interactive conversation. This tool is for generating a document."
+            "Generate a comprehensive Kundli PDF — includes natal chart, all 16 "
+            "divisional charts (D1 through D60), full Vimshottari Dasha tree, "
+            "yoga analysis with formation conditions, dosha summary with severity, "
+            "Avakahada table, and remedial suggestions. Returns a download URL. "
+            "Use when the user wants a complete shareable birth chart document "
+            "to print, email, or present. "
+            "For interactive on-screen analysis use the individual tools "
+            "(asterwise_get_natal_chart, asterwise_get_dasha, asterwise_get_yogas). "
+            "Source: compiled BPHS-style report."
         ),
         annotations=REPORT_ANNOTATIONS,
     )
@@ -71,13 +68,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_generate_matchmaking_report",
         description=(
-            "Generate a matchmaking compatibility PDF report for two people — includes "
-            "Ashtakoota Guna Milan, Rajju and Vedha veto assessment, Mangal Dosha "
-            "check, and Papa Samyam balance, formatted as a shareable document. "
-            "Source: BPHS Ch.18 style summary. Returns a download URL. "
-            "Use when the user needs a formal matchmaking report to share with families. "
-            "For interactive compatibility analysis without a PDF, use "
-            "asterwise_get_compatibility instead."
+            "Generate a PDF matchmaking report for two charts — includes Ashtakoota "
+            "Guna Milan score (out of 36), Rajju veto analysis, Vedha veto analysis, "
+            "Papa Samyam malefic balance, and Nadi Dosha check — compiled into a "
+            "formatted shareable document. Returns a download URL. "
+            "Use when families need a formal compatibility document. "
+            "For interactive compatibility analysis without a PDF use "
+            "asterwise_get_compatibility instead. "
+            "Source: BPHS Chapter 18 compatibility framework."
         ),
         annotations=REPORT_ANNOTATIONS,
     )
@@ -111,12 +109,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_generate_dasha_report",
         description=(
-            "Generate a Vimshottari Dasha PDF timeline report — five levels of Dasha "
-            "periods mapped visually across the person's lifetime, showing which "
-            "planetary periods are active and when transitions occur. "
-            "Source: BPHS Dasha presentation. Returns a download URL. "
-            "Use when the user wants a visual timeline document to print or share. "
-            "For on-screen Dasha data, use asterwise_get_dasha instead."
+            "Generate a PDF Vimshottari Dasha timeline — all five levels (Maha "
+            "through Prana Dasha) mapped visually with period dates, planet "
+            "significations, and lifecycle markers. Returns a download URL. "
+            "Use when the user needs a printable Dasha reference document to "
+            "consult over time, not for on-screen analysis. "
+            "For on-screen Dasha data use asterwise_get_dasha instead. "
+            "Source: BPHS Dasha presentation."
         ),
         annotations=REPORT_ANNOTATIONS,
     )

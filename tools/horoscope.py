@@ -70,22 +70,14 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_gochar",
         description=(
-            "Calculate current planetary transits (Gochar) against a person's natal "
-            "chart — where each of the nine planets is transiting right now, which "
-            "natal house they occupy, and the classical effect per transit. Returns "
-            "raw house positions and per-planet interpretations for the current moment. "
-            "Source: classical Gochar rules (BPHS and Phaladeepika). "
-            "Transit tool selection guide: "
-            "- Use THIS tool when you want a full snapshot of all planets transiting "
-            "  the natal chart right now, with house positions and effects. "
-            "- Use asterwise_get_dasha_transits when you need to know how current "
-            "  transits are interacting specifically with the running Dasha lord — "
-            "  it returns correlation scores between Dasha planet and transiting "
-            "  planets, not raw house positions. "
-            "- Use asterwise_get_transits when you need transit events across a "
-            "  future date range (ingresses, station dates, custom window). "
-            "- Use asterwise_check_sade_sati when specifically checking Saturn's "
-            "  7.5-year Moon transit only."
+            "Current planetary transits (Gochar) vs natal chart — snapshot for "
+            "today. Returns house position, Ashtakavarga (AVK) score, Vedha status, "
+            "and interpretation per planet. "
+            "Transit tool selection: use THIS for a current transit picture of all "
+            "planets vs natal houses. Use asterwise_get_dasha_transits for Dasha-transit "
+            "correlation scores. Use asterwise_get_transits for ingress events over "
+            "a custom date range. Use asterwise_check_sade_sati for Saturn-Moon "
+            "transit specifically. Source: classical Gochar texts (BPHS, Phaladeepika)."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
@@ -117,20 +109,15 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_transits",
         description=(
-            "Calculate planetary transit events against a natal chart across a "
-            "specific date range — returning ingresses (planet entering a sign), "
-            "station points (retrograde/direct), and significant transit aspects "
-            "within the period. Maximum range: approximately 24 months. "
-            "Source: Swiss Ephemeris with Gochar interpretation rules. "
-            "Transit tool selection guide: "
-            "- Use THIS tool when you need to plan ahead — 'what are the major "
-            "  transits for me in the next six months?' or 'when does Jupiter "
-            "  enter my 10th house?' Requires from_date and to_date (YYYY-MM-DD). "
-            "  Keep the range under 24 months to avoid oversized responses. "
-            "- Use asterwise_get_gochar when you want the current transit snapshot "
-            "  without a date range — it is faster and focused on right now. "
-            "- Use asterwise_get_dasha_transits when you need Dasha-transit "
-            "  correlation scores for the current period."
+            "Planetary ingress events and station dates over a custom date range vs "
+            "natal chart — returns sign changes and retrograde/direct stations for "
+            "each planet within the window. "
+            "Parameters: from_date and to_date in YYYY-MM-DD format. Maximum range: "
+            "24 months per call. Requests beyond 24 months will be rejected. "
+            "Transit tool selection: use THIS for planning ahead — 'what transits "
+            "affect me in the next 6 months?' Use asterwise_get_gochar for the "
+            "current snapshot. Use asterwise_get_dasha_transits for Dasha correlation. "
+            "Source: Swiss Ephemeris Gochar with date range."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

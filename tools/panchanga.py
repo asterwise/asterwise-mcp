@@ -160,13 +160,13 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_rahu_kaal",
         description=(
-            "Get Rahu Kaal — the daily 90-minute inauspicious period associated with "
-            "Rahu, considered unfavourable for starting new ventures. Timing varies "
-            "by day of the week (Monday: morning, Tuesday: afternoon, etc.) and "
-            "precise sunrise/sunset for the location. Source: Muhurta texts. "
-            "Use when the user wants to avoid starting something during Rahu Kaal "
-            "today, or when checking if a planned activity falls in this window. "
-            "For a full day's auspicious slots, use asterwise_get_choghadiya instead."
+            "Rahu Kaal — the daily inauspicious 90-minute window for a date and "
+            "location. Takes LocationInput (date, lat, lon, timezone) — not birth "
+            "data. Returns start time, end time, and the day's vara (weekday) context. "
+            "Use before scheduling important actions to avoid this window. "
+            "For a full day's auspicious and inauspicious slots use "
+            "asterwise_get_choghadiya instead. "
+            "Source: classical Muhurta texts."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
