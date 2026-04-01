@@ -14,9 +14,7 @@ from typing import Any, AsyncIterator
 import httpx
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -128,26 +126,6 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             set_request_api_key(None)
             request.state.api_key = None
 
-
-CORS_MIDDLEWARE = Middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "X-API-Key",
-        "Accept",
-        "Mcp-Session-Id",
-    ],
-    expose_headers=["Mcp-Session-Id", "WWW-Authenticate"],
-    allow_credentials=False,
-)
-
-API_KEY_MIDDLEWARE: list[Middleware] = [
-    CORS_MIDDLEWARE,
-    Middleware(APIKeyMiddleware),
-]
 
 # OAuth token endpoint: max 10 requests per minute per IP (in-memory)
 _oauth_attempts: dict[str, list[float]] = {}
@@ -303,7 +281,6 @@ def _register_tools() -> None:
 _register_tools()
 
 
-@mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request) -> Response:
     """Health with upstream probe and token cache size."""
     _ = request
@@ -333,7 +310,6 @@ async def health_check(request: Request) -> Response:
     return JSONResponse(body, status_code=200 if upstream_ok else 503)
 
 
-@mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])
 async def oauth_metadata(request: Request) -> Response:
     """OAuth 2.0 Authorization Server Metadata (RFC 8414)."""
     _ = request
@@ -361,7 +337,6 @@ async def oauth_metadata(request: Request) -> Response:
     )
 
 
-@mcp.custom_route("/.well-known/openid-configuration", methods=["GET"])
 async def openid_metadata(request: Request) -> Response:
     """OpenID Connect Discovery (for broad compatibility)."""
     _ = request
@@ -389,7 +364,6 @@ async def openid_metadata(request: Request) -> Response:
     )
 
 
-@mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])
 async def oauth_protected_resource_metadata(request: Request) -> Response:
     """OAuth 2.0 Protected Resource Metadata (MCP authorization, 2025-06-18)."""
     _ = request
@@ -403,7 +377,6 @@ async def oauth_protected_resource_metadata(request: Request) -> Response:
     )
 
 
-@mcp.custom_route("/oauth/register", methods=["POST"])
 async def oauth_dynamic_client_register(request: Request) -> Response:
     """RFC 7591-style dynamic client registration (proxied to asterwise-api)."""
     client_ip = request.client.host if request.client else "unknown"
@@ -593,7 +566,6 @@ async def oauth_dynamic_client_register(request: Request) -> Response:
         )
 
 
-@mcp.custom_route("/oauth/revoke", methods=["POST"])
 async def oauth_revoke(request: Request) -> Response:
     """RFC 7009 token revocation (proxied); always 200 for the client."""
     body: dict[str, Any] = {}
@@ -618,7 +590,6 @@ async def oauth_revoke(request: Request) -> Response:
     return Response(status_code=200)
 
 
-@mcp.custom_route("/oauth/token", methods=["POST"])
 async def oauth_token(request: Request) -> Response:
     """OAuth token: client_credentials (local JWT) or proxy auth_code / refresh to API."""
     client_ip = request.client.host if request.client else "unknown"
@@ -799,8 +770,78 @@ async def oauth_token(request: Request) -> Response:
         )
 
 
-# Public ASGI app for tests and mounting
-app = mcp.http_app(transport="streamable-http", middleware=API_KEY_MIDDLEWARE)
+# Public ASGI app for tests and mounting — custom routes first, then FastMCP.
+from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
+from starlette.routing import Mount, Route
+
+# FastMCP ASGI app — MCP protocol (e.g. POST /mcp); must run its lifespan for sessions.
+_mcp_asgi = mcp.http_app(transport="streamable-http")
+
+
+@asynccontextmanager
+async def _composite_lifespan(_app: Starlette) -> AsyncIterator[None]:
+    async with _mcp_asgi.router.lifespan_context(_mcp_asgi):
+        yield
+
+
+_custom_routes = [
+    Route(
+        "/health",
+        endpoint=health_check,
+        methods=["GET", "HEAD"],
+    ),
+    Route(
+        "/.well-known/oauth-authorization-server",
+        endpoint=oauth_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/.well-known/openid-configuration",
+        endpoint=openid_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/.well-known/oauth-protected-resource",
+        endpoint=oauth_protected_resource_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/oauth/register",
+        endpoint=oauth_dynamic_client_register,
+        methods=["POST"],
+    ),
+    Route(
+        "/oauth/token",
+        endpoint=oauth_token,
+        methods=["POST"],
+    ),
+    Route(
+        "/oauth/revoke",
+        endpoint=oauth_revoke,
+        methods=["POST"],
+    ),
+    Mount("/", app=_mcp_asgi),
+]
+
+app = Starlette(routes=_custom_routes, lifespan=_composite_lifespan)
+
+# add_middleware: APIKey then CORS so CORS wraps outermost (runs first on the request).
+app.add_middleware(APIKeyMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+        "Accept",
+        "Mcp-Session-Id",
+    ],
+    expose_headers=["Mcp-Session-Id", "WWW-Authenticate"],
+    allow_credentials=False,
+)
 
 
 if __name__ == "__main__":
@@ -810,5 +851,4 @@ if __name__ == "__main__":
         transport="streamable-http",
         host=host,
         port=port,
-        middleware=API_KEY_MIDDLEWARE,
     )
