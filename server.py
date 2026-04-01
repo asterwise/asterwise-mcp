@@ -59,7 +59,11 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if not api_key:
             api_key = request.headers.get("x-api-key", "").strip() or None
 
+        # ContextVar: tools read via get_request_api_key() (same async context as MCP handler).
         set_request_api_key(api_key)
+        # request.state: available to any code with access to the Starlette Request.
+        request.state.api_key = api_key
+
         logger.debug(
             "middleware_auth",
             extra={
@@ -73,6 +77,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             return response
         finally:
             set_request_api_key(None)
+            request.state.api_key = None
 
 
 API_KEY_MIDDLEWARE: list[Middleware] = [Middleware(APIKeyMiddleware)]
