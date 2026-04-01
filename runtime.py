@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import Any, NoReturn
 
 from fastmcp import Context
+from fastmcp.server.dependencies import get_http_headers
 from mcp.shared.exceptions import McpError
 from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import ValidationError
@@ -71,54 +72,80 @@ async def require_api_key(ctx: Context | None = None) -> str:
     """
     Return the Asterwise API key for this request.
 
-    Primary source: ContextVar set by ``APIKeyMiddleware`` (streamable-HTTP).
-    Fallback: ``ctx.request_context.request`` headers when present (e.g. stdio / tests).
+    Primary: ``get_http_headers()`` (FastMCP streamable HTTP).
+    Secondary: ContextVar from ``APIKeyMiddleware``.
+    Tertiary: ``ctx.request_context.request`` headers (stdio / tests).
     """
     from context import get_request_api_key
 
-    api_key = get_request_api_key()
-    source = "contextvar"
+    api_key = None
+    source: str | None = None
+
+    try:
+        headers = dict(
+            get_http_headers(
+                include={"authorization", "x-api-key"},
+            )
+        )
+        headers_lower = {k.lower(): v for k, v in headers.items()}
+        logger.debug(
+            "auth_headers_received",
+            extra={
+                "header_keys": list(headers_lower.keys()),
+                "has_authorization": "authorization" in headers_lower,
+                "has_x_api_key": "x-api-key" in headers_lower,
+            },
+        )
+        api_key = extract_api_key(headers_lower)
+        if api_key:
+            source = "http_headers"
+    except (TokenExpiredError, TokenInvalidError) as e:
+        raise McpError(
+            ErrorData(code=INVALID_PARAMS, message=str(e))
+        ) from e
+    except Exception as e:
+        logger.debug(
+            "get_http_headers_failed",
+            extra={"error": str(e)},
+        )
+
+    if not api_key:
+        api_key = get_request_api_key()
+        if api_key:
+            source = "contextvar"
 
     if not api_key and ctx is not None:
         try:
             rc = ctx.request_context
-            if rc is not None and rc.request is not None:
+            if rc and rc.request:
                 headers = dict(rc.request.headers)
-                hk = {str(k).lower(): v for k, v in headers.items()}
-                logger.debug(
-                    "auth_headers_fallback",
-                    extra={
-                        "header_keys": list(headers.keys()),
-                        "has_authorization": "authorization" in hk,
-                        "has_x_api_key": "x-api-key" in hk,
-                    },
-                )
-                api_key = extract_api_key(headers)
+                headers_lower = {k.lower(): v for k, v in headers.items()}
+                api_key = extract_api_key(headers_lower)
+                if api_key:
+                    source = "ctx_request"
         except (TokenExpiredError, TokenInvalidError) as e:
             raise McpError(
                 ErrorData(code=INVALID_PARAMS, message=str(e))
             ) from e
         except Exception:
             pass
-        if api_key:
-            source = "fallback"
 
-    logger.debug(
-        "require_api_key_result",
-        extra={
-            "has_key": api_key is not None,
-            "source": source,
-        },
-    )
+    if api_key:
+        logger.debug(
+            "require_api_key_result",
+            extra={"has_key": True, "source": source},
+        )
 
     if not api_key:
         raise McpError(
             ErrorData(
                 code=INVALID_PARAMS,
                 message=(
-                    "No API key provided. Pass X-API-Key "
-                    "header or Authorization: Bearer <token>. "
-                    "Get a free key at asterwise.com/dashboard"
+                    "No API key provided. "
+                    "Pass X-API-Key header or "
+                    "Authorization: Bearer <token>. "
+                    "Get a free key at "
+                    "asterwise.com/dashboard"
                 ),
             )
         )

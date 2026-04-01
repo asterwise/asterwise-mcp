@@ -99,59 +99,87 @@ def create_token(api_key: str) -> str:
     return token
 
 
+def _fernet_from_secret(secret: str) -> Fernet:
+    """Derive Fernet key from an arbitrary signing secret (same scheme as _get_fernet)."""
+    key_bytes = hashlib.sha256(secret.encode("utf-8")).digest()
+    fernet_key = base64.urlsafe_b64encode(key_bytes)
+    return Fernet(fernet_key)
+
+
 def decode_token(token: str) -> str:
-    """Validate JWT signature and expiry, decrypt API key from payload (stateless)."""
+    """
+    Validate JWT signature and expiry, decrypt API key from payload (stateless).
+
+    Accepts tokens signed with JWT_SECRET (client_credentials) or MCP_OAUTH_SECRET
+    (authorization_code tokens from asterwise-api).
+    """
     _evict_expired_tokens()
-    try:
-        payload = jwt.decode(
-            token,
-            _get_jwt_secret(),
-            algorithms=[JWT_ALGORITHM],
-            options={"require": ["sub", "exp", "iat", "iss", "key"]},
-            issuer=ISSUER,
+
+    jwt_secret = os.getenv("JWT_SECRET")
+    oauth_secret = os.getenv("MCP_OAUTH_SECRET")
+    secrets_to_try: list[str] = []
+    if jwt_secret:
+        secrets_to_try.append(jwt_secret)
+    if oauth_secret and oauth_secret not in secrets_to_try:
+        secrets_to_try.append(oauth_secret)
+
+    if not secrets_to_try:
+        raise TokenInvalidError(
+            "Invalid token. Request a new one via POST /oauth/token"
         )
-    except jwt.ExpiredSignatureError as exc:
+
+    last_error: BaseException | None = None
+
+    for secret in secrets_to_try:
+        try:
+            payload = jwt.decode(
+                token,
+                secret,
+                algorithms=[JWT_ALGORITHM],
+                options={"require": ["sub", "exp", "iat", "iss", "key"]},
+            )
+        except jwt.ExpiredSignatureError as exc:
+            last_error = exc
+            continue
+        except jwt.InvalidTokenError as exc:
+            last_error = exc
+            continue
+
+        if payload.get("iss") != ISSUER:
+            last_error = jwt.InvalidTokenError("issuer mismatch")
+            continue
+
+        encrypted_key = payload.get("key")
+        if not encrypted_key or not isinstance(encrypted_key, str):
+            last_error = jwt.InvalidTokenError("missing key claim")
+            continue
+
+        key_hash = payload.get("sub")
+        if not isinstance(key_hash, str) or not key_hash.strip():
+            last_error = jwt.InvalidTokenError("invalid sub")
+            continue
+
+        try:
+            f = _fernet_from_secret(secret)
+            api_key = f.decrypt(encrypted_key.encode("utf-8")).decode("utf-8")
+        except Exception as exc:
+            last_error = exc
+            continue
+
+        if _hash_key(api_key) != key_hash:
+            last_error = jwt.InvalidTokenError("sub mismatch")
+            continue
+
+        _token_cache[key_hash] = (api_key, float(payload["exp"]))
+        return api_key
+
+    if isinstance(last_error, jwt.ExpiredSignatureError):
         raise TokenExpiredError(
             "Token has expired. Request a new one via POST /oauth/token"
-        ) from exc
-    except jwt.InvalidTokenError as exc:
-        raise TokenInvalidError(
-            f"Invalid token: {exc}. Request a new one via POST /oauth/token"
-        ) from exc
-
-    key_hash = payload.get("sub")
-    issuer = payload.get("iss")
-    if issuer != ISSUER:
-        raise TokenInvalidError("Token was not issued by this server")
-
-    if not isinstance(key_hash, str) or not key_hash.strip():
-        raise TokenInvalidError(
-            "Invalid token structure. Request a new one via POST /oauth/token"
-        )
-
-    encrypted_key = payload.get("key")
-    if not encrypted_key or not isinstance(encrypted_key, str):
-        raise TokenInvalidError("Token missing key claim")
-
-    try:
-        f = _get_fernet()
-        api_key = f.decrypt(encrypted_key.encode("utf-8")).decode("utf-8")
-    except Exception as exc:
-        raise TokenInvalidError(
-            "Token key claim could not be decrypted. "
-            "Request a new token via POST /oauth/token"
-        ) from exc
-
-    if _hash_key(api_key) != key_hash:
-        raise TokenInvalidError(
-            "Token subject does not match encrypted key. "
-            "Request a new token via POST /oauth/token"
-        )
-
-    # Cache for fast path on next call (optional optimization)
-    _token_cache[key_hash] = (api_key, float(payload["exp"]))
-
-    return api_key
+        ) from last_error
+    raise TokenInvalidError(
+        "Invalid token. Request a new one via POST /oauth/token"
+    )
 
 
 def _lower_headers(headers: Mapping[str, str] | dict[str, str]) -> dict[str, str]:
