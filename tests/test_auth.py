@@ -137,7 +137,7 @@ class TestTokenDecoding:
             os.environ["JWT_SECRET"],
             algorithm="HS256",
         )
-        with pytest.raises(TokenInvalidError, match="could not be decrypted"):
+        with pytest.raises(TokenInvalidError, match="Invalid token"):
             decode_token(fake_token)
 
     def test_token_valid_after_cache_cleared(self) -> None:

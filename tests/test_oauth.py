@@ -47,7 +47,26 @@ class TestOAuthEndpoint:
             r = await ac.post("/oauth/token", json=["not", "an", "object"])
         assert r.status_code == 400
 
-    async def test_wrong_grant_type_returns_400(
+    async def test_unsupported_grant_type_returns_400(
+        self,
+        mock_upstream_get: MagicMock,
+    ) -> None:
+        from server import app
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            r = await ac.post(
+                "/oauth/token",
+                json={
+                    "grant_type": "implicit",
+                    "client_id": "key",
+                    "client_secret": "key",
+                },
+            )
+        assert r.status_code == 400
+        assert "unsupported_grant_type" in r.json()["error"]
+
+    async def test_authorization_code_missing_fields_returns_400(
         self,
         mock_upstream_get: MagicMock,
     ) -> None:
@@ -64,7 +83,7 @@ class TestOAuthEndpoint:
                 },
             )
         assert r.status_code == 400
-        assert "unsupported_grant_type" in r.json()["error"]
+        assert r.json()["error"] == "invalid_request"
 
     async def test_mismatched_credentials_returns_401(
         self,
@@ -98,3 +117,27 @@ class TestOAuthEndpoint:
                 json={"grant_type": "client_credentials"},
             )
         assert r.status_code == 401
+
+    async def test_client_credentials_success_returns_token(
+        self,
+        mock_upstream_get: MagicMock,
+    ) -> None:
+        from server import app
+
+        api_key = "valid-asterwise-api-key-for-oauth-test-12345"
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            r = await ac.post(
+                "/oauth/token",
+                json={
+                    "grant_type": "client_credentials",
+                    "client_id": api_key,
+                    "client_secret": api_key,
+                },
+            )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["token_type"] == "bearer"
+        assert body["scope"] == "asterwise:read"
+        assert len(body["access_token"].split(".")) == 3
+        mock_upstream_get.get.assert_called()
