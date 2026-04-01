@@ -1,7 +1,8 @@
-"""JWT + server-side cache: Bearer tokens never embed the raw API key."""
+"""JWT + optional cache: Bearer tokens use Fernet-encrypted API key in the payload (stateless)."""
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import logging
 import os
@@ -10,6 +11,7 @@ from collections.abc import Mapping
 from typing import Any, Optional
 
 import jwt
+from cryptography.fernet import Fernet
 
 from errors import AuthError, TokenExpiredError, TokenInvalidError
 
@@ -19,7 +21,7 @@ JWT_ALGORITHM = "HS256"
 TOKEN_TTL = 3600
 ISSUER = "asterwise-mcp"
 
-# Server-side token cache: {key_hash: (api_key, expires_at)}
+# Server-side token cache: {key_hash: (api_key, expires_at)} — performance only
 _token_cache: dict[str, tuple[str, float]] = {}
 
 
@@ -37,8 +39,20 @@ def _get_jwt_secret() -> str:
     return secret
 
 
+def _get_fernet() -> Fernet:
+    """
+    Derive a Fernet key from JWT_SECRET.
+    Fernet requires a 32-byte URL-safe base64 key.
+    We derive it deterministically from JWT_SECRET using SHA-256 so no new env var is needed.
+    """
+    secret = _get_jwt_secret()
+    key_bytes = hashlib.sha256(secret.encode("utf-8")).digest()
+    fernet_key = base64.urlsafe_b64encode(key_bytes)
+    return Fernet(fernet_key)
+
+
 def _hash_key(api_key: str) -> str:
-    """One-way hash of API key. Never reversible."""
+    """One-way hash of API key for identification (sub claim)."""
     return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
 
@@ -57,16 +71,19 @@ def _evict_expired_tokens() -> None:
 
 def create_token(api_key: str) -> str:
     """
-    Create a signed JWT. Payload contains only a hash of the API key.
-    The real key lives in _token_cache only.
+    Create a signed JWT. The API key is Fernet-encrypted in the payload; validation is stateless.
+    Cache is warmed for fast subsequent lookups.
     """
     _evict_expired_tokens()
+    f = _get_fernet()
+    encrypted_key = f.encrypt(api_key.encode("utf-8")).decode("utf-8")
     key_hash = _hash_key(api_key)
     now = time.time()
     expires_at = now + TOKEN_TTL
     _token_cache[key_hash] = (api_key, expires_at)
     payload: dict[str, Any] = {
         "sub": key_hash,
+        "key": encrypted_key,
         "iat": int(now),
         "exp": int(expires_at),
         "iss": ISSUER,
@@ -83,14 +100,14 @@ def create_token(api_key: str) -> str:
 
 
 def decode_token(token: str) -> str:
-    """Validate JWT and return the API key from the server cache."""
+    """Validate JWT signature and expiry, decrypt API key from payload (stateless)."""
     _evict_expired_tokens()
     try:
         payload = jwt.decode(
             token,
             _get_jwt_secret(),
             algorithms=[JWT_ALGORITHM],
-            options={"require": ["sub", "exp", "iat", "iss"]},
+            options={"require": ["sub", "exp", "iat", "iss", "key"]},
             issuer=ISSUER,
         )
     except jwt.ExpiredSignatureError as exc:
@@ -112,16 +129,27 @@ def decode_token(token: str) -> str:
             "Invalid token structure. Request a new one via POST /oauth/token"
         )
 
-    cached = _token_cache.get(key_hash)
-    if not cached:
+    encrypted_key = payload.get("key")
+    if not encrypted_key or not isinstance(encrypted_key, str):
+        raise TokenInvalidError("Token missing key claim")
+
+    try:
+        f = _get_fernet()
+        api_key = f.decrypt(encrypted_key.encode("utf-8")).decode("utf-8")
+    except Exception as exc:
         raise TokenInvalidError(
-            "Token not recognized or was revoked. Request a new one via POST /oauth/token"
+            "Token key claim could not be decrypted. "
+            "Request a new token via POST /oauth/token"
+        ) from exc
+
+    if _hash_key(api_key) != key_hash:
+        raise TokenInvalidError(
+            "Token subject does not match encrypted key. "
+            "Request a new token via POST /oauth/token"
         )
 
-    api_key, expires_at = cached
-    if time.time() > expires_at:
-        _token_cache.pop(key_hash, None)
-        raise TokenExpiredError("Token has expired. Request a new one via POST /oauth/token")
+    # Cache for fast path on next call (optional optimization)
+    _token_cache[key_hash] = (api_key, float(payload["exp"]))
 
     return api_key
 
