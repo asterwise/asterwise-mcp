@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -34,13 +34,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_numerology_profile(
+        ctx: Context,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Pythagorean profile."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/profile",
                 api_key,
@@ -70,15 +71,16 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_numerology_compatibility(
+        ctx: Context,
         person1_name: str,
         person1_date: str,
         person2_name: str,
         person2_date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Two-person numerology compatibility."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {
                 "person1_name": person1_name,
                 "person1_date": person1_date,
@@ -110,13 +112,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_chaldean_numerology(
+        ctx: Context,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Chaldean chart."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/chaldean",
                 api_key,
@@ -147,12 +150,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_lo_shu_grid(
+        ctx: Context,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Lo Shu grid."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/lo-shu",
                 api_key,
@@ -183,13 +187,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_name_correction(
+        ctx: Context,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Name correction."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/name-correction",
                 api_key,
@@ -219,13 +224,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_lucky_numbers(
+        ctx: Context,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Lucky numbers."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/lucky-numbers",
                 api_key,
@@ -255,13 +261,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_personal_year(
+        ctx: Context,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Personal year."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/personal-year",
                 api_key,
@@ -291,8 +298,9 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_number_meaning(
+        ctx: Context,
         number: int,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Number dictionary entry."""
         try:
@@ -300,7 +308,7 @@ def register(mcp: FastMCP) -> None:
                 invalid_params(
                     "number must be between 1 and 33 (including master numbers 11, 22, 33)."
                 )
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().get(
                 f"/v1/numerology/meaning/{safe_segment(str(number))}",
                 api_key,
@@ -329,14 +337,15 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_check_mobile_number(
+        ctx: Context,
         mobile_number: str,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Mobile number check."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/mobile-number",
                 api_key,
@@ -366,14 +375,15 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_check_vehicle_number(
+        ctx: Context,
         vehicle_number: str,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Vehicle number check."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/vehicle-number",
                 api_key,
@@ -403,13 +413,14 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_business_name_analysis(
+        ctx: Context,
         business_name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Business name."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/business-name",
                 api_key,

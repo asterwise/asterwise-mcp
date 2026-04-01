@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -36,11 +36,12 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_panchanga(
-        location: LocationInput,
+        ctx: Context,
+        location: LocationInput
     ) -> str:
         """Daily Panchanga."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga", api_key, body, timeout=10.0)
@@ -68,11 +69,12 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_choghadiya(
-        location: LocationInput,
+        ctx: Context,
+        location: LocationInput
     ) -> str:
         """Choghadiya."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga/choghadiya", api_key, body, timeout=10.0)
@@ -100,11 +102,12 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_hora(
-        location: LocationInput,
+        ctx: Context,
+        location: LocationInput
     ) -> str:
         """Hora table."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga/hora", api_key, body, timeout=10.0)
@@ -132,11 +135,12 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_rahu_kaal(
-        location: LocationInput,
+        ctx: Context,
+        location: LocationInput
     ) -> str:
         """Rahu Kaal."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {"date": location.date, "lat": location.lat, "lon": location.lon}
             rf = location.response_format
             data = await get_client().post("/v1/astro/panchanga/rahu-kaal", api_key, body, timeout=10.0)
@@ -165,12 +169,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_muhurta(
+        ctx: Context,
         location: LocationInput,
-        activity: str,
+        activity: str
     ) -> str:
         """Activity-specific muhurta."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {
                 "date": location.date,
                 "lat": location.lat,
@@ -203,11 +208,12 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_panchanga_calendar(
-        calendar: PanchangaCalendarInput,
+        ctx: Context,
+        calendar: PanchangaCalendarInput
     ) -> str:
         """Panchanga calendar month."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             params: dict[str, Any] = {
                 "year": calendar.year,
                 "month": calendar.month,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -65,15 +65,16 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_dasha(
+        ctx: Context,
         birth: BirthData,
         response_format: ResponseFormat,
-        levels: int = 3,
+        levels: int = 3
     ) -> str:
         """Vimshottari Dasha up to five levels."""
         try:
             if levels < 1 or levels > 5:
                 invalid_params("levels must be between 1 and 5 inclusive.")
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             body = {**birth_dict(birth), "levels": levels}
             data = await get_client().post("/v1/astro/dasha", api_key, body, timeout=20.0)
             return format_tool_result(data, response_format, _dasha_tree_md)
@@ -97,12 +98,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_dasha_transits(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Dasha-period transits."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/dasha-transits", api_key, birth_dict(birth),
                 timeout=20.0,
@@ -131,12 +133,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_char_dasha(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Char Dasha."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/char-dasha", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(
@@ -163,12 +166,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_yogini_dasha(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Yogini Dasha."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/yogini", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(
@@ -195,12 +199,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_ashtottari_dasha(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Ashtottari Dasha."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/ashtottari", api_key, birth_dict(birth),
                 timeout=20.0)
             return format_tool_result(

@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from typing import Any, NoReturn
 
-from fastmcp.server.dependencies import get_http_request
+from fastmcp import Context
 from mcp.shared.exceptions import McpError
 from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import ValidationError
 
 from auth import validate_and_get_key
+from errors import AuthError
 from models import ResponseFormat
+
+logger = logging.getLogger("asterwise_mcp.runtime")
 
 STANDARD_ANNOTATIONS = ToolAnnotations(
     readOnlyHint=True,
@@ -63,10 +67,39 @@ def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
     )
 
 
-async def require_api_key() -> str:
-    """Validate HTTP auth and return the Asterwise API key."""
-    req = get_http_request()
-    return validate_and_get_key(dict(req.headers))
+async def require_api_key(ctx: Context) -> str:
+    """
+    Extract and validate API key from MCP request context.
+    Tries Authorization: Bearer <token> then X-API-Key.
+    Raises McpError with INVALID_PARAMS if no key found.
+    """
+    headers: dict[str, str] = {}
+    try:
+        rc = ctx.request_context
+        if rc is not None and rc.request is not None:
+            headers = dict(rc.request.headers)
+    except Exception:
+        headers = {}
+
+    hk = {str(k).lower(): v for k, v in headers.items()}
+    logger.debug(
+        "auth_headers_received",
+        extra={
+            "header_keys": list(headers.keys()),
+            "has_authorization": "authorization" in hk,
+            "has_x_api_key": "x-api-key" in hk,
+        },
+    )
+
+    try:
+        return validate_and_get_key(headers)
+    except AuthError as e:
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message=str(e),
+            )
+        ) from e
 
 
 def format_tool_result(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
@@ -34,12 +34,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_yogas(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Chart yogas."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/yoga", api_key, birth_dict(birth))
             return format_tool_result(
                 data,
@@ -66,12 +67,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_doshas(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Dosha analysis."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/dosha", api_key, birth_dict(birth))
             return format_tool_result(
                 data,
@@ -98,12 +100,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_remedies(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Parashari-style remedies."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/remedies", api_key, birth_dict(birth))
             return format_tool_result(
                 data,
@@ -130,12 +133,13 @@ def register(mcp: FastMCP) -> None:
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_gemstone_recommendations(
+        ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat
     ) -> str:
         """Gemstones."""
         try:
-            api_key = await require_api_key()
+            api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/gemstones", api_key, birth_dict(birth))
             return format_tool_result(
                 data,
