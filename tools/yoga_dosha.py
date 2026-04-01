@@ -26,17 +26,21 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_yogas",
         description=(
-            "Detect classical yogas present in the natal chart — combinations of "
-            "planetary positions that produce specific life results. Detects: "
-            "Pancha Mahapurusha yogas (Ruchaka, Bhadra, Hamsa, Malavya, Shasha), "
-            "Raj yogas (lords of Kendras and Trikonas conjoined), Dhana yogas "
-            "(wealth combinations), Gajakesari (Jupiter-Moon), Neecha Bhanga (debility "
-            "cancellation), Parivartana (mutual exchange), Viparita Raja (malefics in "
-            "dusthanas), and others. Source: BPHS, Phaladeepika, Saravali. "
-            "Use after asterwise_get_natal_chart to identify what configurations exist "
-            "in the chart and what results they promise. "
-            "Yogas indicate promise — whether that promise manifests depends on Dasha "
-            "timing and transit activation. Always check asterwise_get_dasha alongside."
+            "Detect classical yogas present in the natal chart — planetary "
+            "combinations that produce specific life results. Currently detects: "
+            "Raj yogas (lords of Kendras and Trikonas conjoined or in mutual kendras), "
+            "Dhana yogas (wealth combinations from 2nd, 5th, 9th, 11th lord interactions), "
+            "Gajakesari yoga (Jupiter in Kendra from Moon), "
+            "Neecha Bhanga Raja yoga (debility cancellation conditions), "
+            "Parivartana yoga (mutual sign exchange between two planets), "
+            "Viparita Raja yoga (malefics in 6th, 8th, 12th lords in dusthanas), "
+            "Pancha Mahapurusha yogas (Ruchaka, Bhadra, Hamsa, Malavya — "
+            "note: Shasha yoga detection is in development). "
+            "Source: BPHS, Phaladeepika, Saravali. "
+            "Use after asterwise_get_natal_chart to identify configurations and their "
+            "promised results. Yogas indicate promise — whether that promise manifests "
+            "depends on Dasha timing. Always check asterwise_get_dasha alongside "
+            "to determine when yoga results are likely to activate."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )

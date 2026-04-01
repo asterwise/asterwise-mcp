@@ -98,17 +98,20 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dasha_transits",
         description=(
-            "Get the correlation between the current running Dasha periods and active "
+            "Get the correlation between current running Dasha periods and active "
             "planetary transits — showing which transiting planets are supporting or "
-            "challenging the Dasha lord and sub-lord at this moment. Source: classical "
-            "Gochar overlaid on Dasha. "
-            "Use this when you need to assess the quality of the current period — "
-            "whether the Dasha promise is being activated or blocked by transits right now. "
-            "Do not confuse with asterwise_get_gochar (which shows all transits vs "
-            "the natal chart without Dasha context) or asterwise_get_transits (which "
-            "shows transits across a custom date range). "
-            "Use this tool when the user asks: 'Is this a good time for me?' or "
-            "'Why is my Mars Dasha not delivering results?' "
+            "challenging the Dasha lord and sub-lord at this moment. Returns "
+            "correlation scores and quality assessments between the Dasha planets "
+            "and current transiting planets, not raw house positions. "
+            "Source: classical Gochar overlaid on Dasha. "
+            "Transit tool selection guide: "
+            "- Use THIS tool when you need to assess the quality of the current "
+            "  Dasha period — whether the Dasha promise is being activated or blocked "
+            "  by transits right now. Best answer for: 'Is this a good time for me?' "
+            "  or 'Why is my Jupiter Dasha not delivering results?' "
+            "- Use asterwise_get_gochar when you want all transit house positions "
+            "  and per-planet interpretations without Dasha context. "
+            "- Use asterwise_get_transits when you need a custom date range window."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
