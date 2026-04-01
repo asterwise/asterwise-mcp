@@ -42,8 +42,8 @@ def _hash_key(api_key: str) -> str:
     return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
 
-def _evict_expired() -> None:
-    """Remove expired entries to prevent memory leak."""
+def _evict_expired_tokens() -> None:
+    """Remove expired entries to prevent unbounded cache growth."""
     now = time.time()
     expired = [h for h, (_, exp) in _token_cache.items() if now > exp]
     for h in expired:
@@ -60,7 +60,7 @@ def create_token(api_key: str) -> str:
     Create a signed JWT. Payload contains only a hash of the API key.
     The real key lives in _token_cache only.
     """
-    _evict_expired()
+    _evict_expired_tokens()
     key_hash = _hash_key(api_key)
     now = time.time()
     expires_at = now + TOKEN_TTL
@@ -84,7 +84,7 @@ def create_token(api_key: str) -> str:
 
 def decode_token(token: str) -> str:
     """Validate JWT and return the API key from the server cache."""
-    _evict_expired()
+    _evict_expired_tokens()
     try:
         payload = jwt.decode(
             token,
