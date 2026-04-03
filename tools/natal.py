@@ -153,11 +153,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_chart_strength",
         description=(
-            "Calculate Shadbala (six-fold planetary strength) and Bhavbala (house "
-            "strength) for the natal chart. Shadbala measures each planet across six "
-            "sources: Sthana (positional), Dig (directional), Kala (temporal), Chesta "
-            "(motional), Naisargika (natural), and Drik (aspectual). Bhavbala measures "
-            "each house. Source: BPHS strength chapters. "
+            "Calculate Shadbala (six-fold planetary strength), Bhavbala (house "
+            "strength), and Vimshopaka Bala (20-point cross-Varga dignity score) "
+            "for the natal chart. Shadbala measures each planet across six sources: "
+            "Sthana (positional), Dig (directional), Kala (temporal), Chesta "
+            "(motional), Naisargika (natural), and Drik (aspectual). Bhavbala "
+            "measures each of the 12 houses. Vimshopaka Bala scores each planet "
+            "across all 16 divisional charts (D1 through D60) weighted by BPHS "
+            "Ch.45 — maximum 20 points; thresholds: 15+ extremely auspicious, "
+            "10-15 good, 5-10 moderate, below 5 zero capacity. "
+            "Source: BPHS strength chapters, BPHS Ch.45. "
             "Use when you need to rank planets by power, identify the strongest and "
             "weakest influences, or support a yoga/dasha assessment with quantitative "
             "backing. Do not confuse with asterwise_get_yogas — yogas identify "
@@ -359,16 +364,19 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_varshaphal",
         description=(
             "Calculate the Varshaphal (Solar Return) chart — cast for the exact "
-            "moment the Sun returns to its natal degree each year. Reveals the year "
-            "lord (Varsha Pati), Muntha position, and dominant planetary configuration "
-            "for that twelve-month period. "
+            "moment the Sun returns to its natal degree each year. Returns: year "
+            "lord (Varsha Pati) with Pancha Vargeeya Bala scores; Muntha sign and "
+            "Muntha Lord (sign lord of Muntha); all 5 Pancha Adhikari candidates "
+            "with election scores; full Tajika planet-pair aspect matrix for all "
+            "36 planet combinations (Mitra/Labha/Shatru/Vikrama aspect types with "
+            "Ithsala applying-aspect and Musaripha separating-aspect detection). "
             "year parameter: pass the calendar year as a 4-digit integer (e.g. 2026), "
             "NOT the person's age. Passing age instead of year will produce incorrect "
             "results. "
             "Use when the user asks what a particular year holds. "
             "Do not confuse with asterwise_get_dasha (lifetime timing cycles) or "
             "asterwise_get_transits (transit events over a date range). "
-            "Source: Varshaphal tradition (Tajika system)."
+            "Source: Varshaphal tradition — Tajika Neelakanthi."
         ),
         annotations=STANDARD_ANNOTATIONS,
     )
