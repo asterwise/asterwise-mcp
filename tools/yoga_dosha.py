@@ -25,28 +25,7 @@ from runtime import (
 def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_yogas",
-        description=(
-            "Detect classical yogas present in the natal chart with formation "
-            "conditions and classical results. Fully audited against BPHS and "
-            "Phaladeepika. Detects 80+ yogas across all major categories: "
-            "all five Pancha Mahapurusha (Ruchaka/Bhadra/Hamsa/Malavya/Sasa) "
-            "from Lagna and Moon; Gajakesari from Lagna and Moon; Neecha Bhanga "
-            "Raja Yoga with all six classical cancellation conditions; full Raj "
-            "Yoga suite including Dharma-Karma Adhipati and Dharma-Mantra Adhipati; "
-            "Yogakaraka and Yoganashaka per Ascendant; Viparita Raja Yoga "
-            "(Harsha/Sarala/Vimala) with Full Viparita flag; Parivartana "
-            "(Maha/Khala/Dainya classification); Dhana Yogas with BPHS Ch.43 "
-            "specific combinations; Adhi Yoga with Chandradhi/Lagnadhi tiers "
-            "(commander/minister/ruler); Lakshmi Yoga; Maharaja Yoga (6-condition "
-            "BPHS Ch.41); Budhaditya with combustion exception; Chandra-Mangal; "
-            "Papa Kartari and Shubha Kartari; Sunapha/Anapha/Durudhara; all 6 "
-            "Surya Yogas (Subhavesi/Subhavasi/Subhobhayachari and malefic variants); "
-            "complete Nabhasha system (3 Aashraya + 2 Dala + all 20 Aakriti + "
-            "7 Sankhya = 32 Nabhasha Yogas); Graha Drishti aspect matrix. "
-            "Each yoga returns formation conditions, cancellation status, classical "
-            "results, and interpretation text. "
-            "Source: BPHS Chapters 36–41, 77 — Phaladeepika Chapters 6, 7, 9."
-        ),
+        description="Detect classical yogas in the natal chart with formation conditions,\nclassical results, and modern interpretation. Call asterwise_get_natal_chart\nfirst — this tool requires the same birth data to compute the chart.\n\nCurrently detects: Gajakesari, Chandra-Mangal, Dhana yogas\n(house-based and planetary), Papa Kartari (malefic scissors on Lagna\nand Moon), Parivartana (mutual exchange), Raja yogas (Kendra-Kona\ncombinations), Viparita Raja yoga, Pancha Mahapurusha yogas,\nNeecha Bhanga Raja yoga, and others. Detection coverage is expanding —\nnew yogas are added without versioning. Source: BPHS Chapters 36, 38,\n41; Phaladeepika Chapters 6, 7.\n\nOUTPUT CONTRACT (response_format=json):\ndata.yogas[] — array of yoga objects, each:\n  yoga_name (string, descriptive label)\n  category (string: 'raja_yogas', 'dhana_yogas', 'pancha_mahapurusha',\n    or 'unknown' when interpretation data is pending)\n  formation (string, describes the planetary combination that formed it)\n  classical_results (string, traditional text results)\n  modern_summary (string, contemporary interpretation)\n  keywords[] (string array)\n  Note: when category='unknown', formation and classical_results may be\n  empty strings — interpretation data is being added iteratively.\ndata.birth_time_unknown (bool)\n\nGraha Drishti (aspect matrix) is returned separately in\nasterwise_get_natal_chart under data.graha_drishti — it is a\ndifferent data structure from yogas and is not included here.\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.\n\nDo not confuse with asterwise_get_chart_strength — that tool measures\nraw planetary power via Shadbala; this tool identifies specific\nclassical configurations regardless of strength.",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_yogas(
@@ -74,26 +53,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_doshas",
-        description=(
-            "Analyse classical doshas — afflictions and imbalances present in the "
-            "natal chart. Fully audited against BPHS and Phaladeepika. Detects "
-            "14 doshas: Mangal Dosha (Mars in houses 1/2/4/7/8/12 from Lagna, "
-            "Moon, and Venus with D9 secondary check — severity tiers, all 5 "
-            "cancellation conditions including Yogakaraka and house-sign exceptions); "
-            "Kala Sarpa and Kala Amrita (sign-based nodal containment); Guru Chandal "
-            "(Jupiter-Rahu conjunction with secondary 7th-aspect form and mitigation "
-            "flag); Kemadruma (Moon isolation per Phaladeepika Adhyaya 6 Sloka 5 — "
-            "Sun/Rahu/Ketu excluded from prevention, 3 cancellation conditions); "
-            "Grahan (Sun/Moon conjunct Rahu or Ketu — 4 sub-types); Shrapit "
-            "(Saturn-Rahu conjunction); Pitru Dosha (Sun or 9th lord in Dusthana "
-            "or afflicted by Rahu/Saturn/Mars — either alone is sufficient); "
-            "Gandmool with deep Gandanta pada flags for all 6 junction Nakshatras; "
-            "Shani (natal Saturn affliction assessment + Sade Sati reference); "
-            "Paap Kartari for all 12 houses with per-house flags; Gulika position "
-            "with dosha-sensitive house flag. Returns severity, formation details, "
-            "and bhanga (cancellation) conditions for each. "
-            "Source: BPHS dosha chapters — Phaladeepika Adhyaya 6, 12."
-        ),
+        description="Analyse all classical doshas — natal afflictions — present in the\nchart. Call asterwise_get_natal_chart first. Source: BPHS and\nclassical dosha chapters.\n\nChecks 12 doshas: mangal_dosha, shani_dosha, shrapit_dosha,\ngrahan_dosha, kala_sarpa (key: 'kala_sarpa'), guru_chandal\n(key: 'guru_chandal'), kemadruma_dosha (key: 'kemadruma_dosha'),\npaap_kartari, pitru_dosha, gandmool_dosha, nadi_dosha, gulika.\n\nOUTPUT CONTRACT (response_format=json):\ndata.doshas — fixed object with the 12 keys above. Each dosha:\n  present (bool)\n  types[] (string array, sub-types when applicable)\n  details{} (type-specific dict — varies per dosha; mangal_dosha\n    includes mars_house, from_moon, from_venus, d9_present,\n    severity, cancellations[]; gulika includes longitude, sign_index,\n    sign_name, house, dosha_sensitive)\n  interpretation_summary (string or null — null when pending)\n  keywords (array or null)\n  remedies[] (string array or null)\ndata.birth_time_unknown (bool)\n\nAlways check cancellation (bhanga) conditions in details.cancellations[]\nbefore concluding a dosha is active. Many doshas are cancelled by\ncounter-combinations.\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.\n\nDo not confuse with asterwise_get_chart_strength — doshas measure\nafflictions; Shadbala measures raw power.",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_doshas(
@@ -121,19 +81,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_remedies",
-        description=(
-            "Get classical Jyotish remedies for a natal chart — mantras, gemstones, "
-            "charity, fasting, and ritual recommendations based on the chart's "
-            "planetary weaknesses and afflictions. Source: remedial sections of BPHS, "
-            "Ratna Shastra, and classical tradition. "
-            "Use when the user wants to know what they can do to strengthen weak "
-            "planets or reduce dosha effects. "
-            "Do not confuse with asterwise_get_lal_kitab_remedies — that provides "
-            "Lal Kitab-specific practical remedies (feeding birds, flowing items in "
-            "rivers); this provides BPHS/Parashari remedies (mantras, gemstones, rituals). "
-            "Do not confuse with asterwise_get_gemstone_recommendations — that focuses "
-            "exclusively on gemstone selection; this provides the full remedial picture."
-        ),
+        description="Get classical Jyotish remedies for the natal chart — mantras,\ngemstones, charity, fasting, and ritual recommendations based on\nplanetary weaknesses and afflictions. Call asterwise_get_natal_chart\nfirst — remedies are computed from the chart's planetary dignities.\nSource: remedial sections of BPHS, Ratna Shastra.\n\nOUTPUT CONTRACT (response_format=json):\ndata.recommended_remedies[] — one object per weak/afflicted planet:\n  planet, dignity (string: 'debilitated', 'enemy', 'neutral', etc.),\n  rashi, house, is_dusthana_lord (bool), reason (string),\n  mantra (string), repetitions (int, typically 108), deity,\n  gemstone, colour, metal, fast_day, charity, action_daily,\n  action_weekly\ndata.planet_dignities[] — all 9 planets: planet, dignity, rashi, house\n\nIf the chart has no weak planets, data.recommended_remedies[] is an\nempty array — not an error.\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.\n\nDo not confuse with asterwise_get_lal_kitab_remedies — that provides\nLal Kitab practical remedies (household actions, feeding birds). This\nprovides BPHS/Parashari remedies (mantras, gemstones, rituals).\nDo not confuse with asterwise_get_gemstone_recommendations — that\nfocuses exclusively on gemstone selection.",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_remedies(
@@ -161,16 +109,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_gemstone_recommendations",
-        description=(
-            "Get gemstone recommendations from the natal chart — the primary stone "
-            "(for the Lagna lord or most important planet), secondary/supporting stones, "
-            "and contraindicated stones to avoid. Includes metal, finger, and weight "
-            "guidance per classical Ratna Shastra. Source: classical gem therapy texts. "
-            "Use when the user specifically asks about which gemstone to wear. "
-            "Do not confuse with asterwise_get_remedies — that provides the complete "
-            "remedial picture including mantras, fasting, and charity alongside gems; "
-            "this focuses exclusively on gemstone selection and wearing guidance."
-        ),
+        description='Get gemstone recommendations from the natal chart — primary stone,\nsecondary stone, Yogakaraka gem, 5th lord gem, 9th lord gem,\nAtmakaraka gem, and contraindicated stones to avoid. Call\nasterwise_get_natal_chart first.\nSource: classical Ratna Shastra gem therapy texts.\n\nOUTPUT CONTRACT (response_format=json):\ndata.primary — { planet, reason, gemstone (may be empty string if\n  withheld due to dual lordship), substitute_gemstone, metal,\n  colour, note, caution }\ndata.yogakaraka_gem — { planet, gemstone }\ndata.fifth_lord_gem — { planet, gemstone }\ndata.ninth_lord_gem — { planet, gemstone }\ndata.atmakaraka_gem — { planet, gemstone }\ndata.secondary — { planet, gemstone }\ndata.contraindicated[] — { planet, gemstone, reason }\ndata.note (string, safety disclaimer)\n\nNote: a gemstone may appear in both secondary and contraindicated when\nit serves different roles — always read the reason field.\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.\n\nFor the full remedial picture (mantras, fasting, charity) use\nasterwise_get_remedies. This focuses exclusively on gemstone selection.',
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_gemstone_recommendations(

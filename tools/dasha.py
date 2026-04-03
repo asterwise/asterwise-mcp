@@ -55,21 +55,7 @@ def _dasha_tree_md(data: dict[str, Any]) -> str:
 def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dasha",
-        description=(
-            "Calculate Vimshottari Dasha periods — the primary timing system of Parashari "
-            "Jyotish, based on the Moon's nakshatra at birth and a 120-year planetary "
-            "cycle. Returns a hierarchical tree of Mahadasha (major period), Antardasha "
-            "(sub-period), Pratyantar, Sookshma, and Prana levels. Source: BPHS Dasha "
-            "chapters. "
-            "Use this as the core timing tool for predicting when events unfold. "
-            "levels=1 returns Mahadasha only (fast, lightweight); levels=2 adds "
-            "Antardasha (recommended for most readings); levels=3 gives Pratyantar "
-            "(detailed timing); levels=4–5 are highly granular and return large responses. "
-            "Do not confuse with asterwise_get_char_dasha (Jaimini sign-based system), "
-            "asterwise_get_yogini_dasha (36-year Yogini cycle), or "
-            "asterwise_get_ashtottari_dasha (108-year alternative). "
-            "Use Vimshottari (this tool) for all standard Parashari timing analysis."
-        ),
+        description="Calculate Vimshottari Dasha — the primary timing system of Parashari\nJyotish, a 120-year planetary cycle based on the Moon's nakshatra at\nbirth. Returns a hierarchical period tree.\n\nlevels parameter: 1 = Mahadasha only (fast, ~100ms); 2 = adds\nAntardasha (recommended, ~200ms); 3 = Pratyantar (~400ms); 4 = Sookshma\n(~800ms); 5 = Prana (very large response, ~1500ms). Maximum: 5.\nRequests with levels=6 or above are rejected with 422.\n\nOUTPUT CONTRACT (response_format=json):\ndata.periods[] — array of Mahadasha objects:\n  planet, start_jd, end_jd, start_date (DD/MM/YYYY), end_date\n  (DD/MM/YYYY), modern_summary (string or null), sub[] (array of\n  Antardasha objects with same shape, sub=null at lowest level)\ndata.interpretation.current_mahadasha — { planet, start_date,\n  end_date, duration_years, modern_summary, favorable_conditions[],\n  favorable_results[], unfavorable_conditions[], unfavorable_results[],\n  timing_note }\ndata.interpretation.current_antardasha — same shape plus\n  mahadasha_planet\ndata.birth_time_unknown (bool)\n\nDate format in periods is DD/MM/YYYY — not ISO. Parse accordingly.\n\nERROR CONTRACT: levels > 5 → 422 with message 'levels must be\nbetween 1 and 5 inclusive'. Other errors follow standard shape.\n\nDo not confuse with asterwise_get_char_dasha (Jaimini sign-based),\nasterwise_get_yogini_dasha (36-year Yogini cycle), or\nasterwise_get_ashtottari_dasha (108-year alternative).",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_dasha(
@@ -97,16 +83,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_dasha_transits",
-        description=(
-            "Dasha-transit correlation for today — returns the active Mahadasha, "
-            "Antardasha, and Pratyantar lords alongside scores showing how current "
-            "transiting planets interact with each Dasha lord. Answers: is this Dasha "
-            "period being supported or blocked by current transits right now? "
-            "Transit tool selection: use THIS for timing quality of the running period. "
-            "Use asterwise_get_gochar for raw transit house positions without Dasha "
-            "context. Use asterwise_get_transits for ingress events over a date range. "
-            "Source: classical Gochar with Dasha overlay."
-        ),
+        description="Dasha-transit correlation for today — returns the active Mahadasha,\nAntardasha, and Pratyantar lords alongside scores showing how current\ntransiting planets interact with each Dasha lord. Always computed for\ntoday's date — not configurable for past or future.\n\nOUTPUT CONTRACT (response_format=json):\ndata.target_date (YYYY-MM-DD, today)\ndata.active_dasha — { start_date, end_date, maha{ planet, start_date,\n  end_date }, antar{ planet, start_date, end_date }, pratyantar{\n  planet, start_date, end_date } }\ndata.transit_positions{} — keyed by planet: { rashi_index, rashi,\n  is_retrograde, house_from_moon, house_from_lagna }\ndata.correlations[] — scored transit-dasha interactions: dasha_level,\n  dasha_lord, transit_planet, aspect_type, score (int 1–3: 1=mild,\n  2=moderate, 3=high), natal_rashi, transit_rashi, is_retrograde,\n  significance\ndata.periods_of_significance[] — same shape as correlations[],\n  filtered to score ≥ 2\n\nTransit tool selection: use THIS for timing quality of the running\nDasha period. Use asterwise_get_gochar for raw transit house positions\nwithout Dasha context. Use asterwise_get_transits for ingress events\nover a date range. Use asterwise_check_sade_sati for Saturn-Moon\ntransit specifically.\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_dasha_transits(
@@ -137,17 +114,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_char_dasha",
-        description=(
-            "Calculate Char Dasha — the Jaimini sign-based timing system in which "
-            "zodiac signs (not planets) take turns as the major period lord, each sign "
-            "ruling for a number of years determined by its lord's position. Gives "
-            "a different timing perspective from Vimshottari, particularly for "
-            "relationship and dharma events. Source: Jaimini Sutras. "
-            "Use when the user follows Jaimini astrology, or when Vimshottari Dasha "
-            "does not clearly explain events and a cross-system check is needed. "
-            "Do not use as a replacement for Vimshottari — use both together for "
-            "corroboration of timing."
-        ),
+        description="Calculate Char Dasha — the Jaimini sign-based timing system where\nzodiac signs (not planets) serve as period lords. Each sign rules for\nyears determined by its lord's position. Particularly useful for\ndharma, relationship, and major life-event timing.\nSource: Jaimini Sutras.\n\nOUTPUT CONTRACT (response_format=json):\ndata.atmakaraka (planet name)\ndata.start_rashi, data.start_rashi_index\ndata.karakas{} — 8 Jaimini karakas mapped to planets\ndata.current_mahadasha (Sanskrit rashi name, e.g. 'Mithuna')\ndata.current_antardasha (Sanskrit rashi name)\ndata.periods[] — array of Mahadasha objects:\n  rashi, rashi_index, years (int), start_date (YYYY-MM-DD),\n  end_date (YYYY-MM-DD), antardashas[] (same shape minus antardashas)\n\nDate format is YYYY-MM-DD (ISO) — unlike Vimshottari which uses\nDD/MM/YYYY.\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.\n\nDo not use as a replacement for Vimshottari — use both together\nfor corroboration.",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_char_dasha(
@@ -176,17 +143,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_yogini_dasha",
-        description=(
-            "Calculate Yogini Dasha — an alternative timing system based on an "
-            "8-Yogini cycle totalling 36 years: Mangala (1yr), Pingala (2yr), "
-            "Dhanya (3yr), Bhramari (4yr), Bhadrika (5yr), Ulka (6yr), Siddha (7yr), "
-            "Sankata (8yr), then repeating. Particularly valued for timing events "
-            "in the near term. Source: Yogini Dasha tradition, referenced in "
-            "Muhurta Chintamani and other texts. "
-            "Use when the user wants a second timing perspective alongside Vimshottari, "
-            "or when their life events match Yogini cycles better than Vimshottari. "
-            "This is a secondary system — always check Vimshottari first."
-        ),
+        description="Calculate Yogini Dasha — an 8-Yogini, 36-year repeating cycle:\nMangala (Moon, 1yr), Pingala (Sun, 2yr), Dhanya (Jupiter, 3yr),\nBhramari (Mars, 4yr), Bhadrika (Mercury, 5yr), Ulka (Saturn, 6yr),\nSiddha (Venus, 7yr), Sankata (Rahu, 8yr). Particularly valued for\nnear-term timing. Source: Yogini Dasha tradition.\n\nOUTPUT CONTRACT (response_format=json):\ndata.periods.root[] — array of Mahadasha objects:\n  yogini (Yogini name, e.g. 'Pingala'), planet (ruling planet),\n  start_jd, end_jd, start_date (DD/MM/YYYY), end_date (DD/MM/YYYY),\n  sub[] — array of Antardasha objects with same fields (no further\n  sub nesting beyond two levels)\ndata.birth_time_unknown (bool)\n\nNote: the response root key is data.periods.root (not data.periods[]).\n\nERROR CONTRACT: Same as asterwise_get_natal_chart.\n\nAlways check Vimshottari first. This is a secondary timing system.",
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_yogini_dasha(
@@ -215,16 +172,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_ashtottari_dasha",
-        description=(
-            "Calculate Ashtottari Dasha — a 108-year alternative timing cycle using "
-            "eight planets (excluding Ketu) with different period lengths than "
-            "Vimshottari. Applicable when Rahu is in a Kendra or Trikona from Lagna "
-            "or Moon (the classical condition), though some astrologers apply it broadly. "
-            "Source: classical Ashtottari rules. "
-            "Use as a secondary timing system for cross-checking Vimshottari results, "
-            "or specifically when the chart meets the Rahu-in-Kendra/Trikona condition. "
-            "Do not replace Vimshottari with this — use them together."
-        ),
+        description='Calculate Ashtottari Dasha — a 108-year alternative timing cycle\nusing 8 planets (Sun, Moon, Mars, Mercury, Saturn, Jupiter, Rahu,\nVenus — Ketu excluded) with different period lengths than Vimshottari.\nSource: BPHS Ashtottari chapters.\n\nClassical applicability: BPHS prescribes this system when Rahu is in\na Kendra or Trikona from the Lagna lord, but not in the Ascendant\nitself. This tool always returns a full timeline regardless of whether\nthe classical condition is met — there is no niyama_met flag and no\nrefusal. Apply classical applicability judgement externally.\n\nlevels parameter: works the same as in asterwise_get_dasha (1–5).\nRequests with levels > 5 are rejected with 422.\n\nOUTPUT CONTRACT (response_format=json):\ndata.periods.root[] — array of Mahadasha objects:\n  planet, start_jd, end_jd, start_date (DD/MM/YYYY),\n  end_date (DD/MM/YYYY), sub[] (Antardasha objects, same shape)\ndata.birth_time_unknown (bool)\n\nNote: response root key is data.periods.root (not data.periods[]).\n\nERROR CONTRACT: Same as asterwise_get_dasha.\n\nDo not replace Vimshottari with this — use together for\ncorroboration when the classical condition applies.',
         annotations=STANDARD_ANNOTATIONS,
     )
     async def asterwise_get_ashtottari_dasha(
