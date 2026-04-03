@@ -30,13 +30,17 @@ def register(mcp: FastMCP) -> None:
         description=(
             "Generate a comprehensive Kundli PDF — includes natal chart, all 16 "
             "divisional charts (D1 through D60), full Vimshottari Dasha tree, "
-            "yoga analysis with formation conditions, dosha summary with severity, "
-            "Avakahada table, and remedial suggestions. Returns a download URL. "
+            "complete yoga analysis (80+ yogas including all Pancha Mahapurusha, "
+            "Neecha Bhanga, Raja Yogas, Nabhasha, Chandra and Surya Yogas), "
+            "full dosha summary with severity and cancellation conditions for all "
+            "14 classical doshas, Avakahada table, Ashtakavarga, and remedial "
+            "suggestions. Returns a download URL. "
             "Use when the user wants a complete shareable birth chart document "
             "to print, email, or present. "
             "For interactive on-screen analysis use the individual tools "
             "(asterwise_get_natal_chart, asterwise_get_dasha, asterwise_get_yogas). "
-            "Source: compiled BPHS-style report."
+            "Source: compiled BPHS-style report — all calculations audited against "
+            "BPHS and Phaladeepika."
         ),
         annotations=REPORT_ANNOTATIONS,
     )
@@ -148,12 +152,13 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_generate_varshaphal_report",
         description=(
             "Generate a Varshaphal (Solar Return) PDF report for a specific year — "
-            "includes the annual chart, year lord, Muntha position, and year-ahead "
-            "analysis. This tool makes two sequential API calls: first computing the "
-            "Varshaphal chart, then generating the report. "
-            "Source: Varshaphal tradition. Returns a download URL. "
+            "includes the annual chart, year lord (Varsha Pati) with election scores, "
+            "Muntha sign and Muntha Lord, Tajika planet-pair aspect matrix with "
+            "Ithsala detection, Pancha Adhikari analysis, and year-ahead predictions. "
+            "Returns a download URL. "
             "Use when the user wants a formal annual forecast document. "
-            "For on-screen Varshaphal data, use asterwise_get_varshaphal instead."
+            "For on-screen Varshaphal data, use asterwise_get_varshaphal instead. "
+            "Source: Varshaphal tradition — Tajika Neelakanthi."
         ),
         annotations=REPORT_ANNOTATIONS,
     )
