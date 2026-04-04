@@ -7,13 +7,14 @@ from typing import Any
 from fastmcp import Context, FastMCP
 
 from mcp.shared.exceptions import McpError
+
+import mcp.types as mcp_types
 from pydantic import ValidationError
 
 from client import get_client
 from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat
 from runtime import (
-    REPORT_ANNOTATIONS,
     format_tool_result,
     invalid_params,
     require_api_key,
@@ -27,8 +28,13 @@ from runtime import (
 def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_generate_kundli_report",
-        description='Generate a comprehensive Kundli PDF — includes natal chart, all 16\ndivisional charts, full Vimshottari Dasha tree, yoga analysis,\ndosha summary, Avakahada table, and remedial suggestions. Returns a\ndownload URL. Compute class: heavy (~3–8 seconds). Treat as async.\nSource: compiled BPHS-style report.\n\nOUTPUT CONTRACT (response_format=json):\ndata.url (string — full URL:\n  http://api.asterwise.com/v1/report/download/{token})\ndata.expires_at (ISO datetime string, UTC, 24 hours from generation)\n\nThe download URL requires a valid API key (Authorization: Bearer).\nURL is valid for 24 hours. In multi-worker Railway deployments,\nset REDIS_URL so PDF tokens are shared across instances — without it,\ndownload will fail if a different worker receives the GET request.\n\nIf PDF generation fails server-side → 500 with standard error envelope.\nNo retry token is issued — call again to generate a new one.\n\nFor interactive on-screen analysis use asterwise_get_natal_chart,\nasterwise_get_dasha, and asterwise_get_yogas.',
-        annotations=REPORT_ANNOTATIONS,
+        description="Requests a compiled Kundli PDF from birth data and returns a time-limited HTTPS URL plus expiry metadata for download.\n\nSECTION: WHAT THIS TOOL COVERS\nTriggers a synchronous upstream job that assembles a full BPHS-style PDF package (natal, vargas, dasha, yogas, doshas, avakhada, remedial sections as implemented server-side) and responds with a bearer-protected download link. It does not return structured chart JSON — use asterwise_get_natal_chart and related tools for programmatic slices. Multi-step PDF orchestration beyond this single POST is out of scope.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — preview chart logic before paying PDF latency.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nBirthData follows the global contract. The call blocks up to the client timeout (45s) while the upstream generates the file. No partial token is returned on failure — callers must invoke again.\n\nSECTION: OUTPUT CONTRACT\ndata.url (string — full URL to the PDF download endpoint)\ndata.expires_at (string — ISO UTC, 24 hours TTL from generation)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nHEAVY_ASYNC (~3–8 seconds, synchronous call with 45-second timeout — do not call inline in a synchronous pipeline)\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — REDIS_URL must be set on multi-worker Railway hosts or download tokens may not be shared across instances.\n  — No retry token on failure; call the tool again.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — returns JSON chart rows, not a PDF URL.\nasterwise_generate_dasha_report — PDF focused on Vimshottari presentation only.",
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
     )
     async def asterwise_generate_kundli_report(
         ctx: Context,
@@ -57,8 +63,13 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_generate_matchmaking_report",
-        description='Generate a PDF matchmaking report compiling Ashtakoota Guna Milan\nscore (out of 36), Rajju veto analysis, Vedha veto analysis, Papa\nSamyam malefic balance, and Nadi Dosha check. Returns a download URL\nvalid for 24 hours. Source: BPHS Chapter 18 compatibility framework.\n\nOUTPUT CONTRACT (response_format=json):\ndata.url (string — full URL to PDF download endpoint:\n  http://api.asterwise.com/v1/report/download/{token})\ndata.expires_at (ISO datetime string, UTC, 24h from generation)\n\nThe download URL requires a valid API key in the Authorization header.\nURL is valid for 24 hours from expires_at timestamp. In multi-worker\nRailway deployments, REDIS_URL must be set or download tokens will not\nbe shared across instances.\n\nERROR CONTRACT: If PDF generation fails server-side, returns 500\nwith standard error envelope. No retry token is issued on failure —\ncall again to generate a new token.\n\nFor interactive compatibility analysis without a PDF, use\nasterwise_get_compatibility instead.\n\nCompute class: heavy (~3–8 seconds). Treat as async.',
-        annotations=REPORT_ANNOTATIONS,
+        description="Builds a matchmaking PDF from two birth profiles and returns a bearer-protected download URL with a 24-hour expiry timestamp.\n\nSECTION: WHAT THIS TOOL COVERS\nRuns the upstream PDF pipeline for paired BirthData (Ashtakoota, vetoes, Papa Samyam, Nadi, and related sections as implemented) and returns only url + expires_at. It does not return the numeric breakdown JSON — use asterwise_get_compatibility or regional porutham tools for interactive scoring.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_compatibility — sanity-check scores before PDF latency.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nTwo full BirthData objects are required. Synchronous POST with 45s client timeout; failures produce no download token.\n\nSECTION: OUTPUT CONTRACT\ndata.url (string — full URL to PDF download endpoint)\ndata.expires_at (string — ISO UTC, 24h TTL)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nHEAVY_ASYNC (~3–8 seconds, synchronous call with 45-second timeout — do not call inline in a synchronous pipeline)\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — REDIS_URL must be set on multi-worker Railway hosts or download tokens may not be shared across instances.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_compatibility — live JSON Guna Milan breakdown, not a PDF.\nasterwise_generate_kundli_report — single-native Kundli PDF, not paired matchmaking.",
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
     )
     async def asterwise_generate_matchmaking_report(
         ctx: Context,
@@ -89,8 +100,13 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_generate_dasha_report",
-        description='Generate a PDF Vimshottari Dasha timeline — all five levels (Maha\nthrough Prana Dasha) with period dates, planet significations, and\nlifecycle markers. Returns a download URL. Compute class: heavy.\nSource: BPHS Dasha presentation.\n\nOUTPUT CONTRACT (response_format=json):\ndata.url (string — http://api.asterwise.com/v1/report/download/{token})\ndata.expires_at (ISO UTC, 24 hours from generation)\n\nSame URL/token/Redis behaviour as asterwise_generate_kundli_report.\nIf generation fails → 500. Call again for a new token.\n\nFor on-screen Dasha data use asterwise_get_dasha instead.',
-        annotations=REPORT_ANNOTATIONS,
+        description="Generates a multi-level Vimshottari Dasha PDF from birth data and returns a download URL plus expiry time.\n\nSECTION: WHAT THIS TOOL COVERS\nProduces a PDF presentation of the full Vimshottari tree depth offered by the report service (Maha through Prana as implemented upstream). It does not return JSON period rows — use asterwise_get_dasha for programmatic dasha trees.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_dasha — validate period structure before PDF latency.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nBirthData follows the global contract. Synchronous 45s-timeout POST; on failure there is no URL.\n\nSECTION: OUTPUT CONTRACT\ndata.url (string — full URL to PDF download endpoint)\ndata.expires_at (string — ISO UTC, 24h TTL)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nHEAVY_ASYNC (~3–8 seconds, synchronous call with 45-second timeout — do not call inline in a synchronous pipeline)\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — REDIS_URL must be set on multi-worker Railway hosts or download tokens may not be shared across instances.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_dasha — JSON dasha tree with levels parameter, not a PDF.\nasterwise_generate_kundli_report — full Kundli PDF bundle, not dasha-only.",
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
     )
     async def asterwise_generate_dasha_report(
         ctx: Context,
@@ -119,8 +135,13 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_generate_varshaphal_report",
-        description="Generate a Varshaphal (Solar Return) PDF report for a specific year —\nincludes the annual chart, year lord, Muntha position, Pancha Adhikari,\nTajika aspects, and year-ahead analysis. Returns a download URL.\nCompute class: heavy. Source: Varshaphal tradition.\n\nCRITICAL PARAMETER: year = 4-digit calendar year (e.g. 2026),\nNOT the person's age. Passing age instead of year produces incorrect\nresults. Same warning as asterwise_get_varshaphal.\n\nOUTPUT CONTRACT (response_format=json):\ndata.url (string — http://api.asterwise.com/v1/report/download/{token})\ndata.expires_at (ISO UTC, 24 hours from generation)\n\nSame URL/token/Redis behaviour as asterwise_generate_kundli_report.\nIf generation fails → 500. Call again for a new token.\n\nFor on-screen Varshaphal data use asterwise_get_varshaphal instead.",
-        annotations=REPORT_ANNOTATIONS,
+        description="Runs Varshaphal chart computation then report generation and returns a PDF download URL with expiry — two upstream calls in one tool.\n\nSECTION: WHAT THIS TOOL COVERS\nSequentially calls solar-return computation and the Varshaphal PDF builder; either step failing aborts the tool with MCP INTERNAL_ERROR. The output is only url and expires_at like other report tools. It does not return the full Tajika JSON — use asterwise_get_varshaphal for structured annual chart data.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_varshaphal — confirm the annual chart JSON before PDF latency.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nyear must be a four-digit calendar year (e.g. 2026), not biological age; this is not enforced locally and wrong values yield wrong years. BirthData follows the global contract. Two POSTs each honor the 45s client timeout budget in aggregate risk.\n\nSECTION: OUTPUT CONTRACT\ndata.url (string — full URL to PDF download endpoint)\ndata.expires_at (string — ISO UTC, 24h TTL)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nHEAVY_ASYNC (~3–8 seconds, synchronous call with 45-second timeout — do not call inline in a synchronous pipeline)\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout on either the chart or report call → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Failure in either upstream step fails the whole tool; no partial PDF token.\n  — REDIS_URL must be set on multi-worker Railway hosts or download tokens may not be shared across instances.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_varshaphal — returns JSON solar return and Tajika structures, not a PDF link.\nasterwise_generate_kundli_report — natal-focused PDF, not annual varshaphal.",
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
     )
     async def asterwise_generate_varshaphal_report(
         ctx: Context,
