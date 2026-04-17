@@ -80,13 +80,15 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_natal_chart(
         ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat
+        response_format: ResponseFormat,
+        include_interpretation: bool = False,
     ) -> str:
         """Compute full natal chart from BPHS-style calculations."""
         try:
             api_key = await require_api_key(ctx)
+            body = {**birth.to_api_dict(), "include_interpretation": include_interpretation}
             data = await get_client().post(
-                "/v1/astro/natal", api_key, birth.to_api_dict(),
+                "/v1/astro/natal", api_key, body,
                 timeout=20.0,
             )
             return format_tool_result(
