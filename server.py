@@ -30,7 +30,7 @@ configure_logging()
 from auth import TOKEN_TTL, _token_cache, create_token
 from client import get_client
 from errors import AsterwiseAPIError
-from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, reports, yoga_dosha
+from tools import dasha, horoscope, matchmaking, natal, numerology, panchanga, yoga_dosha
 
 logger = logging.getLogger("asterwise_mcp.server")
 
@@ -330,7 +330,6 @@ def _register_tools() -> None:
     yoga_dosha.register(mcp)
     numerology.register(mcp)
     horoscope.register(mcp)
-    reports.register(mcp)
 
 
 _register_tools()
