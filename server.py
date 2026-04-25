@@ -303,7 +303,7 @@ verse citations in every response.
 Key capabilities:
 - Natal charts with planet positions, nakshatras, flags
 - 5-level Vimshottari Dasha (most APIs return only 2)
-- Classical matchmaking with hard vetoes (not scores)
+- Classical matchmaking with Rajju/Vedha checked independently of scores
 - Fresh horoscopes computed from live planetary positions
 - 12 dosha analysis, 25+ yoga detection
 - Numerology (Pythagorean, Chaldean, Lo Shu)
