@@ -209,7 +209,15 @@ def _internal_bearer_headers() -> dict[str, str] | None:
     return {"Authorization": f"Bearer {token}"}
 
 
+# Cursor's fixed MCP OAuth callback URI uses a custom scheme.
+ALLOWED_CUSTOM_SCHEME_URIS = frozenset([
+    "cursor://anysphere.cursor-mcp/oauth/callback",
+])
+
+
 def _redirect_uri_allowed(uri: str) -> bool:
+    if uri.strip() in ALLOWED_CUSTOM_SCHEME_URIS:
+        return True
     p = urlparse(uri.strip())
     if not p.scheme or not p.netloc:
         return False
