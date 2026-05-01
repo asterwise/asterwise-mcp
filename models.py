@@ -16,6 +16,13 @@ class AyanamsaType(str, Enum):
     TROPICAL = "tropical"
 
 
+class HouseSystem(str, Enum):
+    PLACIDUS = "placidus"
+    KOCH = "koch"
+    EQUAL = "equal"
+    WHOLE_SIGN = "whole_sign"
+
+
 class ResponseFormat(str, Enum):
     MARKDOWN = "markdown"
     JSON = "json"
@@ -137,6 +144,91 @@ class BirthData(BaseModel):
             "timezone": self.timezone,
             "ayanamsa": self.ayanamsa.value,
         }
+
+
+class WesternBirthData(BaseModel):
+    """Birth data for Western astrology tools (tropical zodiac)."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+    )
+
+    date: str = Field(
+        ...,
+        description="Birth date in YYYY-MM-DD format. Example: '1985-11-12'",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
+    time: str = Field(
+        ...,
+        description="Birth time in HH:MM format (24-hour). Example: '06:45'",
+        pattern=r"^\d{2}:\d{2}$",
+    )
+    lat: float = Field(..., ge=-90.0, le=90.0,
+        description="Birth latitude in decimal degrees. North positive.")
+    lon: float = Field(..., ge=-180.0, le=180.0,
+        description="Birth longitude in decimal degrees. East positive.")
+    person_name: str = Field(
+        default="Chart",
+        description="Name of the person. Example: 'Arjun Mehta'",
+    )
+    timezone: str = Field(
+        default="UTC",
+        description=(
+            "IANA timezone. Examples: 'Asia/Kolkata', 'America/New_York', "
+            "'Europe/Rome', 'UTC'. Default: UTC"
+        ),
+    )
+    house_system: HouseSystem = Field(
+        default=HouseSystem.PLACIDUS,
+        description=(
+            "House system for Western chart. "
+            "'placidus' (default, most common), "
+            "'koch', 'equal', 'whole_sign'"
+        ),
+    )
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, v: str) -> str:
+        try:
+            parsed = datetime.strptime(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(
+                f"date must be YYYY-MM-DD. Got: {v!r}"
+            ) from None
+        if parsed.year < 1800:
+            raise ValueError(f"date year must be 1800 or later.")
+        return v
+
+    @field_validator("time")
+    @classmethod
+    def validate_time(cls, v: str) -> str:
+        try:
+            datetime.strptime(v, "%H:%M")
+        except ValueError:
+            raise ValueError(
+                f"time must be HH:MM in 24-hour format. Got: {v!r}"
+            ) from None
+        return v
+
+    def to_api_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.person_name,
+            "date": self.date,
+            "time": self.time,
+            "latitude": self.lat,
+            "longitude": self.lon,
+            "timezone": self.timezone,
+            "house_system": self.house_system.value,
+        }
+
+    def to_api_dict_no_house(self) -> dict[str, Any]:
+        """For endpoints that don't take house_system."""
+        d = self.to_api_dict()
+        d.pop("house_system", None)
+        return d
 
 
 class LocationInput(BaseModel):
