@@ -297,38 +297,118 @@ async def lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 mcp = FastMCP(
     "asterwise_mcp",
     instructions="""
-You are connected to the Asterwise Vedic Astrology API.
+  You are connected to the Asterwise Astrology and Divination API — the most
+  comprehensive structured astrology MCP available.
 
-This MCP server gives you access to classical Jyotish (Vedic astrology) calculations
-derived from the source texts — BPHS, Phaladeepika, and Saravali — with chapter and
-verse citations in every response.
+  This server exposes 80 tools across six domains. All tools require an API key
+  obtained from asterwise.com.
 
-Key capabilities:
-- Natal charts with planet positions, nakshatras, flags
-- 5-level Vimshottari Dasha (most APIs return only 2)
-- Classical matchmaking with Rajju/Vedha checked independently of scores
-- Fresh horoscopes computed from live planetary positions
-- 12 dosha analysis, 25+ yoga detection
-- Numerology (Pythagorean, Chaldean, Lo Shu)
-- Panchanga, Muhurta, Choghadiya timing
-- KP, Lal Kitab, Char Dasha, Yogini systems
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DOMAIN 1 — VEDIC ASTROLOGY (sidereal)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  asterwise_get_natal_chart — full sidereal natal chart (planets, houses, drishti, arudhas, bhava cusps)
+  asterwise_get_divisional_chart — all 16 divisional charts D1–D60
+  asterwise_get_chart_strength — Shadbala, Bhavbala, Vimshopaka scores
+  asterwise_get_yogas — classical yoga detection (raja, dhana, mahapurusha, etc.)
+  asterwise_get_doshas — 12 dosha analysis
+  asterwise_get_dasha — 5-level Vimshottari Dasha tree
+  asterwise_get_ashtottari_dasha — Ashtottari 108-year dasha
+  asterwise_get_yogini_dasha — 8-Yogini 36-year dasha
+  asterwise_get_char_dasha — Jaimini Char Dasha
+  asterwise_get_dasha_transits — dasha-lord transit correlation
+  asterwise_get_gochar — 9-planet Gochar with AVK scores and vedha
+  asterwise_get_transits — ingress and station event tables
+  asterwise_get_ashtakavarga — bindu matrices, trikona/ekadhipatya reductions
+  asterwise_get_varshaphal — Tajika annual solar return
+  asterwise_get_special_ascendants — Atmakaraka + Ishta Devata
+  asterwise_get_nakshatra_details — 27-nakshatra encyclopaedia
+  asterwise_get_gemstone_recommendations — classical Ratna prescriptions
+  asterwise_get_remedies — BPHS mantra/gem/charity remedies
+  asterwise_get_panchanga — daily Panchanga (tithi, vara, nakshatra, yoga, karana)
+  asterwise_get_panchanga_calendar — monthly Panchanga calendar
+  asterwise_get_muhurta — auspicious timing search
+  asterwise_get_choghadiya — 16-segment day Choghadiya
+  asterwise_get_hora — 24-planetary Hora table
+  asterwise_get_rahu_kaal — Rahu Kaal, Gulika Kaal, Yamaganda
+  asterwise_get_kp_chart — KP natal chart with sub-lords
+  asterwise_get_kp_significators — KP house significator chains
+  asterwise_get_kp_ruling_planets — instantaneous KP ruling planets
+  asterwise_get_lal_kitab_chart — Lal Kitab chart and Rin analysis
+  asterwise_get_lal_kitab_remedies — Lal Kitab totkas
+  asterwise_get_prashna_chart — Prashna (horary) chart
+  asterwise_check_sade_sati — Saturn Sade Sati phases and intensity
+  asterwise_get_compatibility — Ashtakoota Guna Milan matchmaking
+  asterwise_get_dashakoot — 10-koota Dashakoot scoring
+  asterwise_get_porutham — Tamil 10-porutham with Rajju/Vedha vetoes
+  asterwise_get_thirumana_porutham — Tamil 12-porutham
+  asterwise_get_papasamyam — Papasamyam malefic balance
+  asterwise_get_horoscope — AI moon-sign horoscope (daily/weekly/monthly/yearly)
 
-Always use lahiri ayanamsa unless the user specifies KP (use kp ayanamsa) or explicitly
-requests Western/tropical.
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DOMAIN 2 — WESTERN ASTROLOGY (tropical)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  asterwise_get_western_natal — tropical natal chart (10 planets, dignities, aspects, elements)
+  asterwise_get_western_aspects — aspect grid from raw longitudes
+  asterwise_get_western_moon_phase — lunar phase for any date
+  asterwise_get_western_moon_calendar — monthly lunar phase calendar
+  asterwise_get_western_transits_daily — daily transits vs natal
+  asterwise_get_western_transits_weekly — 7-day transit window
+  asterwise_get_western_transits_monthly — 30-day transit window
+  asterwise_get_western_synastry — inter-chart aspect grid (two people)
+  asterwise_get_western_composite — midpoint composite chart (Robert Hand method)
+  asterwise_get_western_compatibility — compatibility score 0-100
+  asterwise_get_western_zodiac_compatibility — sign-to-sign affinity (no birth data needed)
+  asterwise_get_western_solar_return — solar return chart for a given year
+  asterwise_get_western_lunar_return — next lunar return chart
+  asterwise_get_western_planetary_return — next return chart for any planet
+  asterwise_get_western_secondary_progressions — day-for-a-year progressed chart
+  asterwise_get_western_solar_arc — Solar Arc Directions
 
-For matchmaking: always check Rajju and Vedha as vetoes first. A failed veto means the
-match should not proceed regardless of Guna score — this is Parashara's explicit
-instruction, not a soft recommendation.
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DOMAIN 3 — NUMEROLOGY
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  asterwise_get_numerology_profile — full Pythagorean profile (LP, Expression, Soul Urge, etc.)
+  asterwise_get_expression_number — Expression number from name
+  asterwise_get_soul_urge_number — Soul Urge from vowels
+  asterwise_get_personality_number — Personality from consonants
+  asterwise_get_maturity_number — Maturity (LP + Expression)
+  asterwise_get_balance_number — Balance from initials
+  asterwise_get_karmic_lessons — missing digit analysis
+  asterwise_get_personal_cycles — Personal Year, Month, Day
+  asterwise_get_personal_year — Personal Year theme
+  asterwise_get_numerology_compatibility — two-person Life Path comparison
+  asterwise_get_chaldean_numerology — Chaldean letter-value system
+  asterwise_get_lo_shu_grid — Lo Shu magic square from birth digits
+  asterwise_get_name_correction — spelling harmony scoring
+  asterwise_get_lucky_numbers — numerology lucky number set
+  asterwise_get_number_meaning — dictionary entry for any number 1-33
+  asterwise_check_mobile_number — phone number harmony analysis
+  asterwise_check_vehicle_number — vehicle plate digit analysis
+  asterwise_get_business_name_analysis — business name Expression scoring
 
-Birth data required for most tools:
-- date: YYYY-MM-DD
-- time: HH:MM (24-hour, local time at birth location)
-- lat: latitude (decimal degrees)
-- lon: longitude (decimal degrees)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DOMAIN 4 — TAROT (Rider-Waite-Smith, 78 cards)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  asterwise_get_tarot_cards — complete 78-card catalogue
+  asterwise_get_tarot_card — single card by slug ID
+  asterwise_get_tarot_major_arcana — 22 Major Arcana
+  asterwise_get_tarot_suit — 14 cards by suit (wands/cups/swords/pentacles)
+  asterwise_get_tarot_card_of_the_day — deterministic daily card (SHA-256 seeded)
+  asterwise_draw_tarot_cards — random draw of N cards (cryptographic randomness)
+  asterwise_get_tarot_three_card_spread — Past/Present/Future spread
+  asterwise_get_tarot_celtic_cross — 10-card Celtic Cross spread
+  asterwise_get_tarot_yes_no — single-card yes/no answer with confidence
 
-If the user provides a city name instead of coordinates, ask for the coordinates or
-use a geocoding service to look them up. The API requires decimal degree coordinates.
-""",
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  RULES
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Vedic tools: always use lahiri ayanamsa unless user specifies kp, raman, or tropical.
+  Western tools: always tropical zodiac. house_system defaults to placidus.
+  Matchmaking: check Rajju and Vedha vetoes first. A failed veto overrides Guna score regardless of total.
+  Birth data format: date=YYYY-MM-DD, time=HH:MM (24h local), lat/lon decimal degrees, timezone=IANA string.
+  If user gives a city name only: ask for coordinates. The API requires decimal degrees.
+  All tools support response_format=json (structured) or response_format=markdown (human-readable).
+  """,
     lifespan=lifespan,
 )
 
