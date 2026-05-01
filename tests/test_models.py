@@ -5,7 +5,13 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from models import AyanamsaType, BirthData, LocationInput
+from models import (
+    AyanamsaType,
+    BirthData,
+    HouseSystem,
+    LocationInput,
+    WesternBirthData,
+)
 
 
 class TestBirthData:
@@ -111,6 +117,85 @@ class TestBirthData:
         b = BirthData(date="1985-11-12 ", time=" 06:45", lat=0.0, lon=0.0)
         assert b.date == "1985-11-12"
         assert b.time == "06:45"
+
+
+class TestWesternBirthData:
+    def test_valid_defaults(self) -> None:
+        b = WesternBirthData(
+            date="1985-11-12",
+            time="06:45",
+            lat=40.7128,
+            lon=-74.0060,
+        )
+        assert b.house_system == HouseSystem.PLACIDUS
+        assert b.timezone == "UTC"
+        assert b.person_name == "Chart"
+
+    def test_to_api_dict(self) -> None:
+        b = WesternBirthData(
+            date="1985-11-12",
+            time="06:45",
+            lat=40.0,
+            lon=-74.0,
+            person_name="Alex",
+            timezone="America/New_York",
+            house_system=HouseSystem.WHOLE_SIGN,
+        )
+        d = b.to_api_dict()
+        assert d == {
+            "name": "Alex",
+            "date": "1985-11-12",
+            "time": "06:45",
+            "latitude": 40.0,
+            "longitude": -74.0,
+            "timezone": "America/New_York",
+            "house_system": "whole_sign",
+        }
+
+    def test_to_api_dict_no_house(self) -> None:
+        b = WesternBirthData(date="1985-11-12", time="06:45", lat=0.0, lon=0.0)
+        d = b.to_api_dict_no_house()
+        assert "house_system" not in d
+        assert d["name"] == "Chart"
+
+    def test_invalid_date_validator(self) -> None:
+        with pytest.raises(ValidationError, match="YYYY-MM-DD"):
+            WesternBirthData(date="1985-13-40", time="06:45", lat=0.0, lon=0.0)
+
+    def test_year_before_1800_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="1800 or later"):
+            WesternBirthData(date="1799-01-01", time="06:45", lat=0.0, lon=0.0)
+
+    def test_invalid_time_validator(self) -> None:
+        with pytest.raises(ValidationError, match="HH:MM"):
+            WesternBirthData(date="1985-11-12", time="25:70", lat=0.0, lon=0.0)
+
+    def test_coord_bounds(self) -> None:
+        with pytest.raises(ValidationError):
+            WesternBirthData(date="1985-11-12", time="06:45", lat=91.0, lon=0.0)
+        with pytest.raises(ValidationError):
+            WesternBirthData(date="1985-11-12", time="06:45", lat=0.0, lon=181.0)
+
+    def test_extra_fields_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            WesternBirthData(
+                date="1985-11-12",
+                time="06:45",
+                lat=0.0,
+                lon=0.0,
+                ayanamsa="lahiri",
+            )
+
+    def test_all_house_systems(self) -> None:
+        for hs in HouseSystem:
+            b = WesternBirthData(
+                date="1985-11-12",
+                time="06:45",
+                lat=0.0,
+                lon=0.0,
+                house_system=hs,
+            )
+            assert b.to_api_dict()["house_system"] == hs.value
 
 
 class TestLocationInput:
