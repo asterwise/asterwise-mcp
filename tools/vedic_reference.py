@@ -457,3 +457,80 @@ def register(mcp: FastMCP) -> None:
             raise_validation_error(exc)
         except Exception as exc:
             unexpected_tool_error("asterwise_get_nakshatra_prediction", exc)
+
+    @mcp.tool(
+        name="asterwise_get_pitra_dosha",
+        description=(
+            "Detects and analyses Pitru Dosha (Pitru Shapa — Ancestral Curse) using "
+            "all five classical combinations from BPHS Chapter 83.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\n"
+            "Standalone Pitru Dosha endpoint with deeper analysis than the pitru_dosha "
+            "field inside asterwise_get_doshas. Returns: presence flag, severity "
+            "(mild/moderate/severe), which of the 5 BPHS Ch.83 combinations triggered, "
+            "Sun analysis (house, sign, debilitation, afflictions), 9th lord analysis "
+            "(identity, house, debilitation, afflictions), all contributing factors, "
+            "cancellation conditions (Jupiter protective), classical symptoms, and remedies.\n"
+            "Primary classical symptom per BPHS Ch.83: denial of progeny or difficulties "
+            "with children. Afflicting planets: Saturn, Rahu, Mars, Ketu.\n"
+            "Source: Brihat Parashara Hora Shastra Ch.83 (Purvajanma Shapa Adhyaya).\n\n"
+            "SECTION: WORKFLOW\n"
+            "BEFORE: None — birth data computes everything needed.\n"
+            "AFTER: asterwise_get_puja_suggestions — recommend remedial pujas for Sun/Mars.\n\n"
+            "SECTION: INPUT CONTRACT\n"
+            "birth — BirthData (date, time, lat, lon, timezone).\n\n"
+            "SECTION: OUTPUT CONTRACT\n"
+            "data.present (bool)\n"
+            "data.severity (string — 'mild', 'moderate', 'severe', or null)\n"
+            "data.severity_note (string or null)\n"
+            "data.bphs_combinations_triggered[] — each: combination (string), "
+            "description (string), factors[] (string array), weight (int)\n"
+            "data.bphs_combinations_count (int)\n"
+            "data.sun_analysis{}: house (int), sign_index (int), debilitated (bool), "
+            "afflictions[] (string array)\n"
+            "data.ninth_lord_analysis{}: planet (string), house (int), sign_index (int), "
+            "debilitated (bool), afflictions[] (string array)\n"
+            "data.all_factors[] (string array — deduplicated list of all triggers)\n"
+            "data.cancellations[] (string array — Jupiter protective conditions)\n"
+            "data.interpretation (string)\n"
+            "data.classical_symptoms[] (string array)\n"
+            "data.remedies[] (string array)\n"
+            "data.classical_source (string)\n\n"
+            "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE — natal chart computation.\n\n"
+            "SECTION: ERROR CONTRACT\n"
+            "INVALID_PARAMS (local): BirthData Pydantic violations → MCP INVALID_PARAMS\n"
+            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
+            "SECTION: DO NOT CONFUSE WITH\n"
+            "asterwise_get_doshas — returns pitru_dosha as one of twelve doshas with "
+            "less detail. Use this tool when dedicated Pitru Dosha analysis is needed."
+        ),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=False,
+        ),
+    )
+    async def asterwise_get_pitra_dosha(
+        ctx: Context,
+        birth: BirthData,
+        response_format: ResponseFormat,
+    ) -> str:
+        """Standalone Pitru Dosha analysis — all 5 BPHS Ch.83 combinations."""
+        try:
+            api_key = await require_api_key(ctx)
+            body = birth.to_api_dict()
+            data = await get_client().post(
+                "/v1/astro/pitra-dosha", api_key, body, timeout=20.0
+            )
+            return format_tool_result(
+                data, response_format,
+                lambda d: structured_markdown("Pitru Dosha Analysis", d),
+            )
+        except McpError:
+            raise
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            raise_validation_error(exc)
+        except Exception as exc:
+            unexpected_tool_error("asterwise_get_pitra_dosha", exc)
