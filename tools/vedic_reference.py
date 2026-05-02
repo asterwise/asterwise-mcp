@@ -355,7 +355,7 @@ def register(mcp: FastMCP) -> None:
             if days != 1:
                 body["days"] = days
             data = await get_client().post(
-                "/v1/astro/biorhythm", api_key, body, timeout=10.0
+                "/v1/western/biorhythm", api_key, body, timeout=10.0
             )
             title = f"Biorhythm — {target_date or 'Today'}"
             return format_tool_result(
