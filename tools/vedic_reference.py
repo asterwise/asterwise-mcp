@@ -534,3 +534,81 @@ def register(mcp: FastMCP) -> None:
             raise_validation_error(exc)
         except Exception as exc:
             unexpected_tool_error("asterwise_get_pitra_dosha", exc)
+
+    @mcp.tool(
+        name="asterwise_get_ghat_chakra",
+        description=(
+            "Returns the four Ghatak (inauspicious) timing parameters for a native "
+            "based on their Janma Rasi (natal Moon sign).\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\n"
+            "Ghat Chakra identifies the four parameters that are persistently "
+            "inauspicious for a native based on their Janma Rasi:\n"
+            "1. Ghatak Masa — the lunar month to avoid for major events\n"
+            "2. Ghatak Tithi — the lunar day group (Nanda/Bhadra/Jaya/Rikta/Purna)\n"
+            "3. Ghatak Vara — the weekday to avoid for major events\n"
+            "4. Ghatak Nakshatra — the transit Moon nakshatra to avoid\n"
+            "When transit periods align with these parameters, the native should avoid "
+            "starting new ventures, surgery, travel, or auspicious ceremonies. "
+            "When multiple Ghatak parameters coincide simultaneously, the period "
+            "is considered extremely inauspicious.\n"
+            "Source: Muhurta Chintamani Ch.1 (Shubhashubha Prakarana); "
+            "Phaladeepika Ch.26 (Gocharaphala).\n\n"
+            "SECTION: WORKFLOW\n"
+            "BEFORE: None — birth data computes everything needed.\n"
+            "AFTER: asterwise_get_nakshatra_prediction — for today's personalized "
+            "daily auspiciousness score.\n\n"
+            "SECTION: INPUT CONTRACT\n"
+            "birth — BirthData (date, time, lat, lon, timezone). "
+            "Moon sign is computed from birth data.\n\n"
+            "SECTION: OUTPUT CONTRACT\n"
+            "data.janma_rasi (string — Sanskrit Moon sign name)\n"
+            "data.janma_rasi_index (int 0-11)\n"
+            "data.ghatak_parameters{}:\n"
+            "  masa{}: name (string), description (string)\n"
+            "  tithi{}: group (string), tithi_numbers[] (int array), "
+            "description (string)\n"
+            "  vara{}: day (string), description (string)\n"
+            "  nakshatra{}: name (string), description (string)\n"
+            "data.guidance (string)\n"
+            "data.avoidance_guidance[] (string array)\n"
+            "data.classical_source (string)\n\n"
+            "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE — natal chart for Moon sign.\n\n"
+            "SECTION: ERROR CONTRACT\n"
+            "INVALID_PARAMS (local): BirthData Pydantic violations → MCP INVALID_PARAMS\n"
+            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
+            "SECTION: DO NOT CONFUSE WITH\n"
+            "asterwise_get_nakshatra_prediction — personalised daily Tarabala score, "
+            "not static Ghatak parameters.\n"
+            "asterwise_get_panchanga — daily panchanga elements, not Ghat Chakra lookup."
+        ),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )
+    async def asterwise_get_ghat_chakra(
+        ctx: Context,
+        birth: BirthData,
+        response_format: ResponseFormat,
+    ) -> str:
+        """Ghat Chakra — four Ghatak timing parameters from Janma Rasi."""
+        try:
+            api_key = await require_api_key(ctx)
+            body = birth.to_api_dict()
+            data = await get_client().post(
+                "/v1/astro/ghat-chakra", api_key, body, timeout=15.0
+            )
+            return format_tool_result(
+                data, response_format,
+                lambda d: structured_markdown("Ghat Chakra", d),
+            )
+        except McpError:
+            raise
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            raise_validation_error(exc)
+        except Exception as exc:
+            unexpected_tool_error("asterwise_get_ghat_chakra", exc)
