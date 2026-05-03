@@ -33,7 +33,7 @@ from errors import AsterwiseAPIError
 from tools import (
     angel_numbers, crystals, dasha, dreams, horoscope, matchmaking, natal,
     numerology, numerology_gaps, panchanga, panchanga_ext, tarot, vedic_reference,
-    western, yoga_dosha,
+    varshaphal, western, yoga_dosha,
 )
 
 logger = logging.getLogger("asterwise_mcp.server")
@@ -301,7 +301,7 @@ mcp = FastMCP(
   You are connected to the Asterwise Astrology and Divination API — the most
   comprehensive structured astrology MCP available.
 
-  This server exposes 91 tools. All tools require an API key
+  This server exposes 103 tools. All tools require an API key
   obtained from asterwise.com.
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -321,6 +321,8 @@ mcp = FastMCP(
   asterwise_get_transits — ingress and station event tables
   asterwise_get_ashtakavarga — bindu matrices, trikona/ekadhipatya reductions
   asterwise_get_varshaphal — Tajika annual solar return
+  asterwise_get_varshaphal_saham — 10 Tajika Saham sensitive points (Arabic Parts equivalent) for a solar return: Punya/Fortune, Vidya/Education, Yashas/Fame, Mitra/Friends, Mahatmya/Status, Asha/Desires, Karmakarya/Career, Vyapara/Business, Vivaha/Marriage, Santapa/Sorrow
+  asterwise_get_varshaphal_harsha_bala — Harsha Bala positional happiness score (0–20) for all 7 classical planets in the Varsha chart: 4 components × 5 points (Sthana, Swakshetra/Uccha, Pum-Stri, Dina-Ratri)
   asterwise_get_special_ascendants — Atmakaraka + Ishta Devata
   asterwise_get_nakshatra_details — 27-nakshatra encyclopaedia
   asterwise_get_gemstone_recommendations — classical Ratna prescriptions
@@ -399,6 +401,7 @@ mcp = FastMCP(
   asterwise_get_crystal — single crystal lookup by slug or name
   asterwise_get_crystal_by_planet — crystals filtered by Vedic planet (Navaratna first)
   asterwise_get_crystal_recommendations — crystal recommendations by zodiac sign, chakra, or intention
+  asterwise_get_crystal_recommendations_natal — classical Ratna Shastra crystal recommendations from a computed Vedic natal chart using BPHS house lordship rules; Lagna lord (Life Stone), 9th lord (Fortune Stone), 5th lord (Lucky Stone), Yogakaraka (supreme benefic); only navaratna and uparatna crystals returned; dangerous combinations flagged in warnings[]
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DREAMS
@@ -435,6 +438,7 @@ mcp = FastMCP(
 
 def _register_tools() -> None:
     natal.register(mcp)
+    varshaphal.register(mcp)
     dasha.register(mcp)
     matchmaking.register(mcp)
     panchanga.register(mcp)

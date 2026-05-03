@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from client import get_client, safe_segment
 from errors import AsterwiseMCPError
-from models import ResponseFormat
+from models import BirthData, ResponseFormat
 from runtime import (
     format_tool_result,
     require_api_key,
@@ -174,3 +174,39 @@ def register(mcp: FastMCP) -> None:
             raise_validation_error(exc)
         except Exception as exc:
             unexpected_tool_error("asterwise_get_crystal_recommendations", exc)
+
+    @mcp.tool(
+        name="asterwise_get_crystal_recommendations_natal",
+        description="Recommends crystals from a Vedic natal chart using classical Ratna Shastra house lordship rules per BPHS and Mani Mala. This is the only API that derives crystal recommendations from a computed natal chart — not from zodiac sign or chakra preference.\n\nSECTION: WHAT THIS TOOL COVERS\nClassical rules applied (BPHS + Mani Mala, cross-verified against two sources):\n\n1. INCLUSION RULE — A planet is recommended only if it lords at least one Trikona house (1st, 5th, or 9th). If a planet lords both a Trikona and a Dusthana (6th, 8th, or 12th), the Trikona lordship prevails and the planet is still recommended. This is the BPHS dual-lordship rule — violating it produces wrong exclusions.\n\n2. EXCLUSION RULE — A planet that does not lord any Trikona house is contraindicated. This includes pure Dusthana lords, pure Kendra lords (4th, 7th, 10th), and pure neutral lords.\n\n3. SCORING — Crystals are scored by which Trikona lordship their planet holds:\n   Lagna lord (1st) Navaratna +5, Uparatna +4 — primary Life Stone\n   Yogakaraka Navaratna +5, Uparatna +4 — lords both a non-1st Kendra AND a non-1st Trikona simultaneously\n   9th lord Navaratna +4, Uparatna +3 — Fortune Stone (Bhagyesh)\n   5th lord Navaratna +3, Uparatna +2 — Lucky Stone (Panchamesh)\n\n4. YOGAKARAKA — A planet that lords both a non-1st Kendra (4th, 7th, or 10th) AND a non-1st Trikona (5th or 9th) is the supreme benefic for that Lagna. Example: Mars for Cancer Lagna (lords 5th and 10th).\n\n5. DANGEROUS COMBINATIONS — Pairs of recommended crystals from enemy planet camps are flagged in warnings[] per Mani Mala: Saturn+Sun, Saturn+Mars, Jupiter+Venus, Moon+Rahu, Moon+Ketu.\n\n6. CLASSICAL VEDIC ONLY — Crystals with vedic_correspondence='none_classical' (Labradorite, Amazonite, Black Obsidian, etc.) are never returned. No classical text assigns these stones to planets.\n\nSECTION: WORKFLOW\nBEFORE: None — this tool internally computes the natal chart. No separate natal chart call required.\nAFTER: asterwise_get_crystal — get full detail (hardness, origins, affirmation, full caution text) on any recommended crystal by slug.\nAFTER: asterwise_get_remedies — broader Parashari remedial programme alongside gem recommendations.\n\nSECTION: INPUT CONTRACT\nStandard BirthData (date, time, lat, lon, timezone, ayanamsa). Defaults to Lahiri ayanamsa.\ntime (required): Ascendant (Lagna) is time-sensitive. Inaccurate birth time changes the Lagna → changes all house lords → changes recommendations entirely.\n\nSECTION: OUTPUT CONTRACT\ndata.natal_context{} — chart factors used for recommendations:\n  lagna_sign (string — Ascendant sign in English, e.g. 'Libra')\n  lagna_lord (string — classical lord of the 1st house per BPHS)\n  fifth_sign (string — 5th house sign in English)\n  fifth_lord (string — lord of the 5th house, Panchamesh)\n  ninth_sign (string — 9th house sign in English)\n  ninth_lord (string — lord of the 9th house, Bhagyesh)\n  yogakaraka (string or null — Yogakaraka planet name if one exists for this Lagna; null if none)\n  contraindicated_lords (string array — planets that do not lord any Trikona; their gems are contraindicated)\n  ayanamsa (string — ayanamsa used, e.g. 'lahiri')\ndata.total (int — number of crystals returned, up to 5)\ndata.crystals[] — recommended crystals sorted by match_score descending:\n  slug, name, colors[], hardness_mohs (float), chakras[], element, zodiac_signs[]\n  vedic_planet (string — the planet this crystal corresponds to)\n  vedic_correspondence (string — always 'navaratna' or 'uparatna'; none_classical never appears)\n  western_planet (string or null)\n  keywords[], healing_physical, healing_emotional, healing_spiritual, description\n  origins[], affirmation, caution (string or null — always surface this to end users)\n  match_score (int — classical Ratna Shastra score; higher = stronger classical basis)\n  match_reasons (string array — which house lordship triggered this recommendation)\n  warnings (string array — dangerous combination warnings per Mani Mala; may be empty)\ndata.classical_note (string — methodology and classical source note)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE — full natal chart computation + crystal scoring pass.\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call): BirthData Pydantic violations → MCP INVALID_PARAMS\nINVALID_PARAMS (upstream): Dates before 1800 or after 2100 → MCP INTERNAL_ERROR\nINTERNAL_ERROR: Any upstream API failure or timeout → MCP INTERNAL_ERROR\nEdge cases:\n  — An empty crystals[] is valid when no classically verified Vedic gem corresponds to the Trikona lords of this specific chart.\n  — Blue Sapphire (Saturn) and Hessonite (Rahu) carry CRITICAL cautions in their caution field — always surface this to end users before advising wear.\n  — Rahu and Ketu do not own signs in the Parashari system — they never appear as lagna_lord, fifth_lord, or ninth_lord.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_gemstone_recommendations — also a chart-based gem endpoint but uses a different engine (Atmakaraka + role-based prescription vs house lordship scoring); returns gem names not crystal database entries; does not include match_score or match_reasons.\nasterwise_get_crystal_recommendations — recommends crystals by zodiac sign, chakra, or intention keyword (no natal chart computation; Western metaphysical matching, not classical Jyotish).\nasterwise_get_crystal_by_planet — lists all crystals for a Vedic planet without house context — use this for reference, not prescription.",
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
+    )
+    async def asterwise_get_crystal_recommendations_natal(
+        ctx: Context,
+        birth: BirthData,
+        response_format: ResponseFormat,
+    ) -> str:
+        """Get classical Ratna Shastra crystal recommendations from a Vedic natal chart."""
+        try:
+            api_key = await require_api_key(ctx)
+            body = birth.to_api_dict()
+            data = await get_client().post(
+                "/v1/crystals/recommend/natal", api_key, body, timeout=15.0
+            )
+            return format_tool_result(
+                data,
+                response_format,
+                lambda d: structured_markdown("Crystal Recommendations (Natal)", d),
+            )
+        except McpError:
+            raise
+        except AsterwiseMCPError as exc:
+            tool_error(str(exc))
+        except ValidationError as exc:
+            raise_validation_error(exc)
+        except Exception as exc:
+            unexpected_tool_error("asterwise_get_crystal_recommendations_natal", exc)

@@ -330,41 +330,6 @@ def register(mcp: FastMCP) -> None:
             unexpected_tool_error("asterwise_get_prashna_chart", exc)
 
     @mcp.tool(
-        name="asterwise_get_varshaphal",
-        description="Computes the annual Tajika-style solar return for a four-digit civil year and returns Muntha, Pancha Adhikari metrics, Tajika aspects, and varshaphal positions.\n\nSECTION: WHAT THIS TOOL COVERS\nVarshaphal engine: solar return instant, year lord, muntha block, varsha pati election, five pancha adhikaris with bala components, tajika aspect arrays, and pairwise Tajika geometry including ithsala/musaripha flags. year must mean calendar year (e.g. 2026), not biological age — not enforced locally; wrong integers chart the wrong annual return. Not lifetime Vimshottari (asterwise_get_dasha) nor generic transit ingress lists (asterwise_get_transits).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — baseline radix before annual overlay.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nyear is a plain int sent as target_year upstream; callers must supply the true Gregorian return year, not age.\n\nSECTION: OUTPUT CONTRACT\ndata.target_year (int)\ndata.ayanamsa (string)\ndata.solar_return_utc (string — ISO)\ndata.solar_return_jd (float)\ndata.natal_sun_longitude (float)\ndata.natal_lagna (string)\ndata.natal_lagna_index (int)\ndata.year_lord (string — planet name)\ndata.muntha:\n  rashi_index (int)\n  rashi (string)\n  age_years (float)\n  muntha_lord (string)\ndata.planets{} — keys Sun..Ketu:\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  degree (float)\n  is_retrograde (bool)\n  speed (float)\ndata.varshaphal_ascendant_longitude (float)\ndata.varshaphal_ascendant_sign (string — Sanskrit sign name derived from the ascendant longitude)\ndata.varshaphal_ascendant_sign_index (int — sign index 0-11, where 0=Mesha and 11=Meena)\ndata.varsha_pati:\n  planet (string)\n  role (string)\n  pancha_vargeeya_bala (float)\n  kshetra_bala (float)\n  uchcha_bala (float)\n  election_used_strongest_without_aspect (bool)\ndata.pancha_adhikaris[] — five objects:\n  role (string)\n  planet (string)\n  pancha_vargeeya_bala, kshetra_bala, uchcha_bala, hadda_bala, dreshkana_bala, navamsa_bala (floats)\n  pending_components_note (string)\n  aspects_ascendant (bool)\n  tajika_aspect_angles_matched[] (array)\n  separation_from_asc_deg (float)\ndata.pancha_vargeeya_bala{} — keyed by role (float values)\ndata.tajika_aspects[] — per Pancha Adhikari (structure per upstream)\ndata.tajika_planet_pairs[] — each:\n  planet_a, planet_b (strings)\n  house_a, house_b (int)\n  diff_ab, diff_ba (float)\n  aspect_ab, aspect_ba (strings or floats per upstream)\n  is_ithsala (bool)\n  is_musaripha (bool)\n  faster_planet (string)\n  orb_degrees (float)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — year not range-checked here.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Feeding age instead of civil year silently mis-orients the return — caller responsibility.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_dasha — multi-decade Vimshottari, not one solar return.\nasterwise_get_transits — ingress/station timeline, not annual Tajika chart.",
-        annotations=mcp_types.ToolAnnotations(
-            readOnlyHint=True,
-            destructiveHint=False,
-            idempotentHint=True,
-            openWorldHint=True,
-        ),
-    )
-    async def asterwise_get_varshaphal(
-        ctx: Context,
-        birth: BirthData,
-        year: int,
-        response_format: ResponseFormat,
-    ) -> str:
-        """Varshaphal solar return."""
-        try:
-            api_key = await require_api_key(ctx)
-            body = {**birth.to_api_dict(), "target_year": year}
-            data = await get_client().post("/v1/astro/varshaphal", api_key, body, timeout=20.0)
-            return format_tool_result(
-                data,
-                response_format,
-                lambda d: structured_markdown(f"Varshaphal ({year})", d),
-            )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_varshaphal", exc)
-
-    @mcp.tool(
         name="asterwise_get_lal_kitab_chart",
         description="Produces the Lal Kitab house and planet schema plus Rin (debt) flags from BirthData using Lal Kitab placement rules distinct from Parashari BPHS.\n\nSECTION: WHAT THIS TOOL COVERS\nReturns data.system 'lal_kitab', ayanamsa, planets{} with lk_house and pucca/kachcha flags, twelve houses{} with occupants and significations, and rin_analysis with boolean debts, active_rins[], and rin_remedies[] rows. Do not merge these houses with asterwise_get_natal_chart Bhava Chalit without explicit user intent — frameworks differ.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone for Lal Kitab queries.\nAFTER: asterwise_get_lal_kitab_remedies — practical totkas aligned to this chart.\n\nSECTION: INPUT CONTRACT\nBirthData global contract; mixing interpretive systems in prose is a caller concern, not validated here.\n\nSECTION: OUTPUT CONTRACT\ndata.system (string — 'lal_kitab')\ndata.ayanamsa (string)\ndata.planets{} — Sun..Ketu:\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  lk_house (int — 1–12)\n  house_lord (string)\n  is_retrograde (bool)\n  pucca_ghar (bool)\n  kachcha_ghar (bool)\n  uchcha (bool)\n  neecha (bool)\n  pucca_house (int)\n  kachcha_house (int)\ndata.houses{} — keys '1'..'12':\n  house (int)\n  rashi_index (int)\n  rashi (string)\n  lord (string)\n  occupants[] (string array)\n  signification (string)\n  has_benefic (bool)\n  has_malefic (bool)\ndata.rin_analysis:\n  pitru_rin, matru_rin, bhai_rin, stri_rin, dev_rin (bool)\n  active_rins[] (string array)\n  rin_remedies[] — { rin (string), planet (string), totka (string) }\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — BirthData Pydantic only.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Lal Kitab houses are not interchangeable with BPHS cusps.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — Parashari radix, not Lal Kitab lk_house logic.\nasterwise_get_lal_kitab_remedies — remedy list without full chart geometry.",
         annotations=mcp_types.ToolAnnotations(
