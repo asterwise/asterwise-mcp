@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
 
@@ -107,7 +107,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_divisional_chart",
-        description="Computes all sixteen divisional charts from BirthData while accepting a chart_type hint, returning every D1–D60 block keyed by planet.\n\nSECTION: WHAT THIS TOOL COVERS\nDespite chart_type selecting the analytical focus, upstream returns the complete varga set: each key 'D1'..'D60' maps planet names to { sign, sign_num, degree }. D30 omits Sun and Moon per convention. Wrong ayanamsa for a varga may be rejected upstream. It does not return Shadbala (asterwise_get_chart_strength) or radix-only graha drishti (asterwise_get_natal_chart).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — anchor D1 before reading higher vargas.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nchart_type enum is enforced locally (Pydantic). BirthData follows the global contract.\n\nSECTION: OUTPUT CONTRACT\ndata — object with keys 'D1', 'D2', ... 'D60' each:\n  planet_name (Sun..Ketu) → { sign (string), sign_num (int), degree (float) }\n(D30 excludes Sun and Moon entries.)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — Invalid chart_type enum → MCP INVALID_PARAMS (via Pydantic)\n\nINVALID_PARAMS (upstream):\n  — None — unknown ayanamsa for a varga surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — All sixteen charts appear even when only one chart_type is requested.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — radix chart with houses and drishti, not the full varga dictionary.\nasterwise_get_chart_strength — embeds vargas inside strength metrics, different primary payload.",
+        description="Computes divisional (varga) chart positions from BirthData; pass chart_type for one varga, or omit chart_type for all sixteen.\n\nSECTION: WHAT THIS TOOL COVERS\nWhen chart_type is provided, returns only that one divisional chart.\nWhen chart_type is omitted, returns all sixteen standard Parashari divisional charts\n(D1, D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45, D60).\nD30 omits Sun and Moon per convention. Does not return Shadbala\n(asterwise_get_chart_strength) or radix-only graha drishti (asterwise_get_natal_chart).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — anchor D1 before reading higher vargas.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nchart_type enum is enforced locally (Pydantic). BirthData follows the global contract.\n\nSECTION: OUTPUT CONTRACT\nWhen chart_type is provided:\n  data — object with a single key (the requested chart, e.g. 'D9'):\n    planet_name (Sun..Ketu) → { sign (string), sign_num (int), degree (float) }\nWhen chart_type is omitted:\n  data — object with keys D1, D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27,\n    D30, D40, D45, D60 — each: planet_name → { sign, sign_num, degree }\n  (D30 excludes Sun and Moon entries.)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — Invalid chart_type enum → MCP INVALID_PARAMS (via Pydantic)\n\nINVALID_PARAMS (upstream):\n  — None — unknown ayanamsa for a varga surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — radix chart with houses and drishti, not the full varga dictionary.\nasterwise_get_chart_strength — embeds vargas inside strength metrics, different primary payload.",
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -118,18 +118,26 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_divisional_chart(
         ctx: Context,
         birth: BirthData,
-        chart_type: DivisionalChartType,
-        response_format: ResponseFormat
+        response_format: ResponseFormat,
+        chart_type: Optional[DivisionalChartType] = None,
     ) -> str:
         """Compute divisional (varga) chart."""
         try:
             api_key = await require_api_key(ctx)
-            body = {**birth.to_api_dict(), "chart_type": chart_type.value}
+            body = {
+                **birth.to_api_dict(),
+                **({"chart_type": chart_type.value} if chart_type else {}),
+            }
             data = await get_client().post("/v1/astro/divisional", api_key, body, timeout=20.0)
+            title = (
+                f"Divisional chart {chart_type.value}"
+                if chart_type
+                else "Divisional charts (all vargas)"
+            )
             return format_tool_result(
                 data,
                 response_format,
-                lambda d: structured_markdown(f"Divisional chart {chart_type.value}", d),
+                lambda d: structured_markdown(title, d),
             )
         except McpError:
             raise

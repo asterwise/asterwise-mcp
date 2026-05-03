@@ -307,7 +307,7 @@ mcp = FastMCP(
   DOMAIN 1 — VEDIC ASTROLOGY (sidereal)
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   asterwise_get_natal_chart — full sidereal natal chart (planets, houses, drishti, arudhas, bhava cusps)
-  asterwise_get_divisional_chart — all 16 divisional charts D1–D60
+  asterwise_get_divisional_chart — one or all 16 divisional charts (D1–D60); omit chart_type for all 16
   asterwise_get_chart_strength — Shadbala, Bhavbala, Vimshopaka scores
   asterwise_get_yogas — classical yoga detection (raja, dhana, mahapurusha, etc.)
   asterwise_get_doshas — 12 dosha analysis
