@@ -31,8 +31,9 @@ from auth import TOKEN_TTL, _token_cache, create_token
 from client import get_client
 from errors import AsterwiseAPIError
 from tools import (
-    dasha, horoscope, matchmaking, natal, numerology, panchanga, yoga_dosha,
-    western, tarot, numerology_gaps, vedic_reference,
+    angel_numbers, crystals, dasha, dreams, horoscope, matchmaking, natal,
+    numerology, numerology_gaps, panchanga, panchanga_ext, tarot, vedic_reference,
+    western, yoga_dosha,
 )
 
 logger = logging.getLogger("asterwise_mcp.server")
@@ -300,7 +301,7 @@ mcp = FastMCP(
   You are connected to the Asterwise Astrology and Divination API — the most
   comprehensive structured astrology MCP available.
 
-  This server exposes 80 tools across six domains. All tools require an API key
+  This server exposes 91 tools. All tools require an API key
   obtained from asterwise.com.
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -330,6 +331,8 @@ mcp = FastMCP(
   asterwise_get_choghadiya — 16-segment day Choghadiya
   asterwise_get_hora — 24-planetary Hora table
   asterwise_get_rahu_kaal — Rahu Kaal, Gulika Kaal, Yamaganda
+  asterwise_get_tamil_panchanga — Tamil panchanga: Rahu Kalam, Yamagandam, Kuligai, Emagandam, Nalla Neram, Tamil solar month
+  asterwise_get_festival_calendar — Hindu festival calendar for a year: 20 festivals computed astronomically (no hardcoded dates)
   asterwise_get_kp_chart — KP natal chart with sub-lords
   asterwise_get_kp_significators — KP house significator chains
   asterwise_get_kp_ruling_planets — instantaneous KP ruling planets
@@ -385,6 +388,23 @@ mcp = FastMCP(
   asterwise_check_mobile_number — phone number harmony analysis
   asterwise_check_vehicle_number — vehicle plate digit analysis
   asterwise_get_business_name_analysis — business name Expression scoring
+  asterwise_get_angel_number_today — today's collective angel number from the current date
+  asterwise_get_angel_number — lookup a specific angel number sequence (111, 444, 999, 1111, etc.)
+  asterwise_get_angel_number_personal — personal angel number from birth date Life Path
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CRYSTALS
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  asterwise_get_crystals — complete crystal database: 50 crystals with Vedic and Western planetary assignments
+  asterwise_get_crystal — single crystal lookup by slug or name
+  asterwise_get_crystal_by_planet — crystals filtered by Vedic planet (Navaratna first)
+  asterwise_get_crystal_recommendations — crystal recommendations by zodiac sign, chakra, or intention
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DREAMS
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  asterwise_get_dream_symbols — 500 dream symbols with dual Jungian + Vedic Swapna Shastra interpretation
+  asterwise_get_dream_symbol — single dream symbol lookup with context variants and traditions_agree flag
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DOMAIN 4 — TAROT (Rider-Waite-Smith, 78 cards)
@@ -418,10 +438,14 @@ def _register_tools() -> None:
     dasha.register(mcp)
     matchmaking.register(mcp)
     panchanga.register(mcp)
+    panchanga_ext.register(mcp)
     vedic_reference.register(mcp)
     yoga_dosha.register(mcp)
     numerology.register(mcp)
     numerology_gaps.register(mcp)
+    angel_numbers.register(mcp)
+    crystals.register(mcp)
+    dreams.register(mcp)
     horoscope.register(mcp)
     western.register(mcp)
     tarot.register(mcp)
