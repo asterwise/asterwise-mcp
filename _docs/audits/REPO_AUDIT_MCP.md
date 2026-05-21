@@ -503,4 +503,59 @@ Unauthenticated `/mcp` returning 401 with MCP WWW-Authenticate matches protected
 
 ---
 
-*Next pass: Pass 2 — tool description completeness, category coverage gaps, auth surface verification.*
+## Pass 2 — quality scoring, coverage gaps, auth verification
+
+**Pass 2 audit date:** 2026-05-21
+**Commit at audit time:** 1cc25f8 (Pass 1 baseline)
+**Findings raised:** F-49 through F-53 in asterwise-api/_docs/audits/REPO_AUDIT_FINDINGS.md
+**Finding superseded:** F-34 closed as invalid (see explanation below)
+
+### F-34 correction
+Pass 1 reported that ~51% of MCP tools had only partial SECTION marker coverage, based on counting 264 SECTION markers across tool files and dividing by 5 (the five-section standard). This was a methodology error — per-file counting mixed multiple tools sharing the same file. Pass 2 scored per @mcp.tool block:
+- Tools analyzed: 103 / 103
+- Tools with all 5 markers: 103 / 103
+- Tools with 0-4 markers: 0
+- Tools with DO NOT CONFUSE WITH: 103 / 103
+F-34 has been closed as an invalid finding.
+
+### API endpoint vs MCP tool coverage
+Live OpenAPI paths: 114
+MCP tool names: 103
+Coverage gap is not 114 - 103 = 11 missing tools. After template normalization (parameter substitution, trailing slash, kebab-case), the actual gap is 4 substantive missing wrappers (recorded as F-49):
+- POST /v1/astro/chart
+- GET /v1/numerology/life-path
+- GET /v1/utils/geocode
+- GET /v1/utils/timezone
+The remaining apparent gaps are false positives from static analysis — horoscope handlers use a different URL shape than the grep predicted. asterwise_get_special_ascendants is the only tool that intentionally combines two API paths (atmakaraka + ishta-devta).
+
+### Description length distribution
+- Shortest: asterwise_get_ayanamsha at 863 chars
+- Median: ~2,292 chars
+- Longest: asterwise_get_crystal_recommendations_natal at 8,413 chars
+- 30 tools (~29%) fall below 2,000 chars
+- All 30 still have full SECTION structure — quality concern is content depth, not structural completeness
+Bottom 10 tools by length are documented in finding F-50.
+
+### Description authoring formats
+Two formats coexist in the codebase:
+- 63 tools use inline string: description="..."
+- 40 tools use tuple concatenation: description=( "..." "..." )
+Concentrated in western.py, tarot.py, vedic_reference.py, numerology_gaps.py for the tuple form. Same runtime result. Maintenance hazard for automated audits and future linters. Recorded as F-51.
+
+### Production auth surface
+Verified live on 2026-05-21:
+- /.well-known/oauth-authorization-server returns 200 JSON with issuer, registration_endpoint, token_endpoint, revoke endpoint, code_challenge_methods_supported: ["S256"], scopes including asterwise:read
+- /.well-known/oauth-protected-resource returns 200 JSON
+- HEAD /mcp returns 401 with WWW-Authenticate: Bearer including resource_metadata URL pointing to /.well-known/oauth-protected-resource
+- HEAD /oauth/register returns 404 (POST-only DCR endpoint; recorded as F-52)
+- PKCE S256, Dynamic Client Registration, OAuth proxy for Claude.ai web — all present and matching source
+
+### Tool input schema observations
+BirthData models (Vedic and Western) use Pydantic extra="forbid" with field patterns for date and time and explicit lat/lon bounds. response_format is consistently typed as Literal['markdown', 'json']. The exception: horoscope tools accept moon_sign / sun_sign as plain str rather than Literal or enum — recorded as F-53. The period parameter does use HoroscopePeriod enum, so the pattern is inconsistent within a single tool.
+
+### Conclusions
+Per-tool documentation discipline is the strongest signal from this audit: every tool has the full structure, including the competitive disambiguation feature (DO NOT CONFUSE WITH). Remaining quality work is content depth on the short tools and schema tightening on the few str-typed inputs. The moat (Bhavesh Phala, 5-level Vimshottari, Rajju/Vedha vetoes) is present as tools and properly described.
+
+---
+
+*Next pass: Pass 3 — content depth expansion for short tools (F-50), coverage matrix publication (F-49 recommendation), prompt-injection resistance probes.*
