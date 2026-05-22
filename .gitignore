@@ -7,3 +7,45 @@ tools/__pycache__/
 .coverage
 .venv/
 htmlcov/
+
+# === Asterwise canonical baseline (from asterwise-api/_docs/templates/gitignore.base) ===
+# Last applied: 2026-05-22 (Session 1 of REFINE_PLAN_2026_05.md)
+# Update procedure: edit gitignore.base in asterwise-api, then
+# re-apply this block across all 6 repos in a coordinated commit.
+
+# --- Environment files ---
+# All .env variants ignored. Templates (.env.example, .env.example.*)
+# are deliberately tracked.
+.env
+.env.*
+!.env.example
+!.env.example.*
+
+# --- Private keys and certificates ---
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.cer
+*.der
+
+# --- SSH keys ---
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# --- Cloud provider credential directories ---
+.aws/
+.azure/
+.gcp/
+.kube/config
+
+# --- Common credential files ---
+credentials.json
+service-account*.json
+gcp-key*.json
+firebase-adminsdk*.json
+auth_token*
+.netrc
