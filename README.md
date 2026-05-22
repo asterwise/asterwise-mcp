@@ -1,6 +1,6 @@
 # Asterwise MCP Server
 
-Classical Vedic astrology calculations as MCP tools. **52 tools** covering natal charts, Dasha, matchmaking, Panchanga, numerology, and interpretations — derived from BPHS, Phaladeepika, and Saravali with citations.
+Classical Vedic astrology calculations as MCP tools. **103 tools** covering natal charts, Dasha, matchmaking, Panchanga, numerology, Western astrology, tarot, crystals, dreams, and interpretations — derived from BPHS, Phaladeepika, and Saravali with citations.
 
 ## Quick Start (2 minutes)
 
@@ -89,83 +89,28 @@ Copy `.env.example` to `.env` and set at least:
 | `MCP_SERVER_HOST` / `MCP_SERVER_PORT` | No | Bind address and port for the MCP HTTP server. |
 | `LOG_LEVEL` | No | Default `INFO`. |
 
-## Tools Reference (52 tools)
+## Tools (103 total)
 
-### Natal & charts (14)
+The MCP server exposes **103 tools** organized by Python module. The categorization reflects code organization; tools may serve multiple traditions (e.g. matchmaking includes both Sanskrit Dashakoot and Tamil Porutham methods).
 
-- `asterwise_get_natal_chart` — Full natal chart (BPHS-style).
-- `asterwise_get_divisional_chart` — Varga / divisional charts (D1–D60).
-- `asterwise_get_chart_strength` — Shadbala / Bhavbala.
-- `asterwise_get_special_ascendants` — Atmakaraka and Ishta Devata.
-- `asterwise_get_nakshatra_details` — Nakshatra reference profile.
-- `asterwise_check_sade_sati` — Sade Sati status.
-- `asterwise_get_prashna_chart` — Prashna (horary) chart.
-- `asterwise_get_varshaphal` — Varshaphal (solar return).
-- `asterwise_get_lal_kitab_chart` — Lal Kitab chart.
-- `asterwise_get_lal_kitab_remedies` — Lal Kitab remedies.
-- `asterwise_get_kp_chart` — KP chart.
-- `asterwise_get_kp_significators` — KP significators.
-- `asterwise_get_kp_ruling_planets` — KP ruling planets.
-- `asterwise_get_ashtakavarga` — Ashtakavarga tables.
+- **western** — 16 tools (chart, transits, returns, progressions)
+- **natal** — 13 tools (chart, dasha trees, ascendant systems)
+- **numerology** — 11 tools (profile, compatibility, life path)
+- **tarot** — 9 tools (draws, spreads, suit references)
+- **vedic_reference** — 8 tools (nakshatra, planet nature, ayanamsha, classical reference)
+- **numerology_gaps** — 7 tools (expression, soul urge, personality, maturity, balance, karmic, personal cycles)
+- **panchanga** — 6 tools (panchanga, choghadiya, rahu kaal, hora)
+- **crystals** — 5 tools (list, by planet, recommendations, individual)
+- **dasha** — 5 tools (vimshottari, ashtottari, yogini, char, transits)
+- **matchmaking** — 5 tools (dashakoot, porutham, thirumana, papasamyam, compatibility)
+- **horoscope** — 4 tools (daily/weekly/monthly/yearly)
+- **yoga_dosha** — 4 tools (yogas, doshas, sade sati, pitra dosha)
+- **angel_numbers** — 3 tools (today, personal, lookup)
+- **varshaphal** — 3 tools (annual chart, saham, harsha bala)
+- **dreams** — 2 tools (symbols, individual)
+- **panchanga_ext** — 2 tools (calendar, festivals, tamil)
 
-### Dasha (5)
-
-- `asterwise_get_dasha` — Vimshottari Dasha (multi-level).
-- `asterwise_get_dasha_transits` — Transits within Dasha periods.
-- `asterwise_get_char_dasha` — Char (Jaimini) Dasha.
-- `asterwise_get_yogini_dasha` — Yogini Dasha.
-- `asterwise_get_ashtottari_dasha` — Ashtottari Dasha.
-
-### Matchmaking (5)
-
-- `asterwise_get_compatibility` — Ashtakoota with Rajju / Vedha vetoes.
-- `asterwise_get_dashakoot` — Dashakoot compatibility.
-- `asterwise_get_papasamyam` — Papa Samyam.
-- `asterwise_get_porutham` — Tamil Porutham.
-- `asterwise_get_thirumana_porutham` — Thirumana Porutham.
-
-### Yogas & doshas (4)
-
-- `asterwise_get_yogas` — Yoga detection.
-- `asterwise_get_doshas` — Dosha analysis.
-- `asterwise_get_remedies` — Remedial guidance.
-- `asterwise_get_gemstone_recommendations` — Gemstone suggestions.
-
-### Panchanga & timing (6)
-
-- `asterwise_get_panchanga` — Daily Panchanga.
-- `asterwise_get_choghadiya` — Choghadiya periods.
-- `asterwise_get_hora` — Planetary hora.
-- `asterwise_get_rahu_kaal` — Rahu Kaal.
-- `asterwise_get_muhurta` — Muhurta windows.
-- `asterwise_get_panchanga_calendar` — Monthly Panchanga calendar.
-
-### Horoscope & transits (3)
-
-- `asterwise_get_horoscope` — Sign-based horoscope (daily/weekly/monthly/yearly).
-- `asterwise_get_gochar` — Gochar (transit) snapshot.
-- `asterwise_get_transits` — Current transits detail.
-
-### Numerology (11)
-
-- `asterwise_get_numerology_profile` — Full numerology profile.
-- `asterwise_get_numerology_compatibility` — Relationship compatibility.
-- `asterwise_get_chaldean_numerology` — Chaldean analysis.
-- `asterwise_get_lo_shu_grid` — Lo Shu grid.
-- `asterwise_get_name_correction` — Name correction suggestions.
-- `asterwise_get_lucky_numbers` — Lucky numbers.
-- `asterwise_get_personal_year` — Personal year cycle.
-- `asterwise_get_number_meaning` — Single number meaning.
-- `asterwise_check_mobile_number` — Mobile number analysis.
-- `asterwise_check_vehicle_number` — Vehicle number analysis.
-- `asterwise_get_business_name_analysis` — Business name analysis.
-
-### Reports (4)
-
-- `asterwise_generate_kundli_report` — Kundli PDF report.
-- `asterwise_generate_matchmaking_report` — Matchmaking report.
-- `asterwise_generate_dasha_report` — Dasha report.
-- `asterwise_generate_varshaphal_report` — Varshaphal report.
+For the full tool list see [docs.asterwise.com](https://docs.asterwise.com) or the MCP server's tool listing endpoint.
 
 ## Run locally
 
