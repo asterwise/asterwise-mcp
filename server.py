@@ -20,6 +20,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from context import set_request_api_key
+from middleware.security_headers import SecurityHeadersASGIWrapper
 
 load_dotenv()
 
@@ -1104,9 +1105,9 @@ async def _dispatch_app(scope: Scope, receive: Receive, send: Send) -> None:
     await _mcp_asgi(scope, receive, send)
 
 
-# CORS outermost (added last in chain below = first to run), then API key auth, then dispatch.
+# CORS outermost, then security headers, then API key auth, then dispatch.
 app = CORSMiddleware(
-    APIKeyASGIWrapper(_dispatch_app),
+    SecurityHeadersASGIWrapper(APIKeyASGIWrapper(_dispatch_app)),
     allow_origins=["*"],
     allow_methods=["GET", "HEAD", "POST", "OPTIONS", "DELETE"],
     allow_headers=[
