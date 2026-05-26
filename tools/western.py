@@ -144,7 +144,7 @@ def register(mcp: FastMCP) -> None:
         description=(
             "Calculates the tropical lunar phase for any date using Swiss Ephemeris. "
             "Returns the phase name, phase angle, illumination percentage, Moon age in days, "
-            "and the next major phase transition. Verified against moongiant.com.\n\n"
+            "and the next major phase transition.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Eight-phase tropical lunar cycle: New Moon (0°), Waxing Crescent, First Quarter (90°), "
             "Waxing Gibbous, Full Moon (180°), Waning Gibbous, Last Quarter (270°), Waning Crescent. "
