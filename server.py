@@ -316,7 +316,7 @@ mcp = FastMCP(
   asterwise_get_dasha — 5-level Vimshottari Dasha tree
   asterwise_get_ashtottari_dasha — Ashtottari 108-year dasha
   asterwise_get_yogini_dasha — 8-Yogini 36-year dasha
-  asterwise_get_char_dasha — Jaimini Char Dasha
+  asterwise_get_char_dasha — Char Dasha
   asterwise_get_dasha_transits — dasha-lord transit correlation
   asterwise_get_gochar — 9-planet Gochar with AVK scores and vedha
   asterwise_get_transits — ingress and station event tables
@@ -327,7 +327,7 @@ mcp = FastMCP(
   asterwise_get_special_ascendants — Atmakaraka + Ishta Devata
   asterwise_get_nakshatra_details — 27-nakshatra encyclopaedia
   asterwise_get_gemstone_recommendations — classical Ratna prescriptions
-  asterwise_get_remedies — BPHS mantra/gem/charity remedies
+  asterwise_get_remedies — mantra, gem, and charity remedies
   asterwise_get_panchanga — daily Panchanga (tithi, vara, nakshatra, yoga, karana)
   asterwise_get_panchanga_calendar — monthly Panchanga calendar
   asterwise_get_muhurta — auspicious timing search
@@ -361,7 +361,7 @@ mcp = FastMCP(
   asterwise_get_western_transits_weekly — 7-day transit window
   asterwise_get_western_transits_monthly — 30-day transit window
   asterwise_get_western_synastry — inter-chart aspect grid (two people)
-  asterwise_get_western_composite — midpoint composite chart (Robert Hand method)
+  asterwise_get_western_composite — midpoint composite chart (method)
   asterwise_get_western_compatibility — compatibility score 0-100
   asterwise_get_western_zodiac_compatibility — sign-to-sign affinity (no birth data needed)
   asterwise_get_western_solar_return — solar return chart for a given year
@@ -402,7 +402,7 @@ mcp = FastMCP(
   asterwise_get_crystal — single crystal lookup by slug or name
   asterwise_get_crystal_by_planet — crystals filtered by Vedic planet (Navaratna first)
   asterwise_get_crystal_recommendations — crystal recommendations by zodiac sign, chakra, or intention
-  asterwise_get_crystal_recommendations_natal — classical Ratna Shastra crystal recommendations from a computed Vedic natal chart using BPHS house lordship rules; Lagna lord (Life Stone), 9th lord (Fortune Stone), 5th lord (Lucky Stone), Yogakaraka (supreme benefic); only navaratna and uparatna crystals returned; dangerous combinations flagged in warnings[]
+  asterwise_get_crystal_recommendations_natal — classical Ratna Shastra crystal recommendations from a computed Vedic natal chart using house lordship rules; Lagna lord (Life Stone), 9th lord (Fortune Stone), 5th lord (Lucky Stone), Yogakaraka (supreme benefic); only navaratna and uparatna crystals returned; dangerous combinations flagged in warnings[]
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DREAMS
