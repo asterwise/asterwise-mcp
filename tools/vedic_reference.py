@@ -29,13 +29,13 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_planet_nature",
         description=(
             "Returns classical graha (planet) properties for all nine planets or a single planet "
-            "as described in Brihat Parashara Hora Shastra (BPHS) Chapter 3.\n\n"
+            "as described in classical hora shastra Chapter 3.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Returns tattva (element), guna (Sattvic/Rajasic/Tamasic), gender, caste/varna, "
             "natural benefic/malefic nature, direction, color, presiding deity, ruling day of week, "
             "metal, body part governed, and naisargika maitri (natural friends, enemies, neutrals) "
             "for each of the nine grahas: Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu. "
-            "Rahu and Ketu include classical_note explaining the limits of BPHS Chapter 3 for shadow nodes.\n\n"
+            "Rahu and Ketu include note explaining the limits of Chapter 3 for shadow nodes.\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: None — standalone reference.\n"
             "AFTER: asterwise_get_puja_suggestions — propitiation for a specific graha.\n\n"
@@ -46,14 +46,14 @@ def register(mcp: FastMCP) -> None:
             "Single planet: data.planet, data.tattva, data.guna, data.gender, data.caste, "
             "data.nature, data.direction, data.color, data.deity, data.day, data.metal, "
             "data.body_part, data.friends[], data.enemies[], data.neutrals[], "
-            "data.classical_note, data.source\n"
+            ", \n"
             "All planets: data.planets{} — object keyed by planet name, each with above fields\n\n"
             "SECTION: COMPUTE CLASS\nFAST_LOOKUP\n\n"
             "SECTION: ERROR CONTRACT\n"
             "INVALID_PARAMS (upstream): Unknown planet name → MCP INTERNAL_ERROR\n"
             "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
             "SECTION: DO NOT CONFUSE WITH\n"
-            "asterwise_get_puja_suggestions — ritual propitiation per planet, not BPHS properties.\n"
+            "asterwise_get_puja_suggestions — ritual propitiation per planet, not properties.\n"
             "asterwise_get_rudraksha — bead recommendations per planet, not natal properties."
         ),
         annotations=mcp_types.ToolAnnotations(
@@ -68,7 +68,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
         planet: Optional[str] = None,
     ) -> str:
-        """BPHS graha properties — all nine or one planet."""
+        """Graha properties — all nine or one planet."""
         try:
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
@@ -95,7 +95,7 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_puja_suggestions",
         description=(
             "Returns classical puja (ritual worship) recommendations for planetary propitiation "
-            "sourced from Agni Purana, Matsya Purana, Skanda Purana, and BPHS Chapter 84.\n\n"
+            "sourced from Agni Purana, Matsya Purana, Skanda Purana, and Chapter 84.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "For each of the nine grahas, returns: puja name, presiding deity, day of week, "
             "specific offerings (flowers, grains, incense), grain associated, beej mantra, "
@@ -109,7 +109,7 @@ def register(mcp: FastMCP) -> None:
             "Omit to get all nine planets.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
             "Single planet: data.planet, data.puja_name, data.deity, data.day, "
-            "data.offerings[], data.grain, data.mantra, data.source\n"
+            "data.offerings[], data.grain, data.mantra, \n"
             "All planets: data.planets{} — object keyed by planet name\n\n"
             "SECTION: COMPUTE CLASS\nFAST_LOOKUP\n\n"
             "SECTION: ERROR CONTRACT\n"
@@ -157,16 +157,11 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_rudraksha",
         description=(
-            "Returns Rudraksha bead recommendations per planet as per Shiva Purana "
-            "Vidyeshvara Samhita Chapter 25.\n\n"
+            "Returns Rudraksha bead recommendations per planet.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
-            "For each of the nine planets, returns: mukhi (face count), presiding deity "
-            "per Shiva Purana, exact beej mantra, recommended metal for stringing, "
-            "wearing day, mala bead count (108), recommended wearing finger, spiritual benefits, "
-            "and a classical_note clarifying that the Shiva Purana assigns Mukhis to deities — "
-            "the planetary correspondence is traditional astrological synthesis, not scriptural. "
-            "Includes the known deity discrepancy for 8 Mukhi (Bhairava per Shiva Purana vs "
-            "Vinayaka per Rudrakshajabala Upanishad).\n\n"
+            "For each of the nine planets, returns: mukhi (face count), presiding deity, "
+            "exact beej mantra, recommended metal for stringing, wearing day, mala bead count "
+            "(108), recommended wearing finger, and spiritual benefits.\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: asterwise_get_natal_chart — identify planets needing support.\n"
             "AFTER: None.\n\n"
@@ -176,7 +171,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: OUTPUT CONTRACT\n"
             "Single planet: data.planet, data.mukhi (int), data.presiding_deity, data.mantra, "
             "data.metal, data.wearing_day, data.mala_beads (int), data.wearing_finger, "
-            "data.benefits, data.classical_note, data.source\n"
+            "data.benefits\n"
             "All planets: data.planets{} — object keyed by planet name\n\n"
             "SECTION: COMPUTE CLASS\nFAST_LOOKUP\n\n"
             "SECTION: ERROR CONTRACT\n"
@@ -374,8 +369,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_nakshatra_prediction",
         description=(
-            "Returns a personalised daily prediction using Tarabala and Chandrabala "
-            "from the Muhurta Chintamani tradition.\n\n"
+            "Returns a personalised daily prediction using Tarabala and Chandrabala.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Computes the individual's daily auspiciousness score by:\n"
             "1. TARABALA: Counts from birth nakshatra to today's transit Moon nakshatra (inclusive). "
@@ -386,8 +380,7 @@ def register(mcp: FastMCP) -> None:
             "3. TRANSIT NAKSHATRA QUALITY: The type of today's Moon nakshatra "
             "(Dhruva/Chara/Ugra/Tikshna/Kshipra/Mridu/Mishra) with auspicious and "
             "inauspicious activities.\n"
-            "Combined daily score out of 4 with label (Excellent/Good/Moderate/Challenging). "
-            "Source: Muhurta Chintamani; Brihat Samhita Ch.98.\n\n"
+            "Combined daily score out of 4 with label (Excellent/Good/Moderate/Challenging).\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: None — birth data computes everything needed.\n"
             "AFTER: asterwise_get_panchanga — for full daily panchanga context.\n\n"
@@ -401,16 +394,15 @@ def register(mcp: FastMCP) -> None:
             "data.transit_moon{}: nakshatra (string), nakshatra_index (int), rashi_index (int)\n"
             "data.tarabala{}: tara_number (int 1-9), count_from_birth (int),\n"
             "  name (string), meaning (string), is_favorable (bool),\n"
-            "  interpretation (string), source (string)\n"
+            "  interpretation (string)\n"
             "data.chandrabala{}: moon_house_from_natal (int 1-12),\n"
             "  is_favorable (bool), favorable_houses[] (int array)\n"
             "data.daily_score{}: score (int 0-4), max_score (4), label (string)\n"
             "data.transit_nakshatra_quality{}: nakshatra (string), quality_type (string),\n"
             "  english (string), auspicious_for[] (string array),\n"
-            "  inauspicious_for[] (string array), source (string)\n"
+            "  inauspicious_for[] (string array)\n"
             "data.nakshatra_activities{}: favorable[] (string array),\n"
             "  unfavorable[] (string array)\n"
-            "data.classical_sources (string)\n\n"
             "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE — natal chart + ephemeris Moon position.\n\n"
             "SECTION: ERROR CONTRACT\n"
             "INVALID_PARAMS (local): BirthData Pydantic violations → MCP INVALID_PARAMS\n"
@@ -462,17 +454,17 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_pitra_dosha",
         description=(
             "Detects and analyses Pitru Dosha (Pitru Shapa — Ancestral Curse) using "
-            "all five classical combinations from BPHS Chapter 83.\n\n"
+            "all five classical combinations from Chapter 83.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Standalone Pitru Dosha endpoint with deeper analysis than the pitru_dosha "
             "field inside asterwise_get_doshas. Returns: presence flag, severity "
-            "(mild/moderate/severe), which of the 5 BPHS Ch.83 combinations triggered, "
+            "(mild/moderate/severe), which of the 5 Ch.83 combinations triggered, "
             "Sun analysis (house, sign, debilitation, afflictions), 9th lord analysis "
             "(identity, house, debilitation, afflictions), all contributing factors, "
             "cancellation conditions (Jupiter protective), classical symptoms, and remedies.\n"
-            "Primary classical symptom per BPHS Ch.83: denial of progeny or difficulties "
+            "Primary classical symptom Ch.83: denial of progeny or difficulties "
             "with children. Afflicting planets: Saturn, Rahu, Mars, Ketu.\n"
-            "Source: Brihat Parashara Hora Shastra Ch.83 (Purvajanma Shapa Adhyaya).\n\n"
+            "Source: classical hora shastra Ch.83 (Purvajanma Shapa Adhyaya).\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: None — birth data computes everything needed.\n"
             "AFTER: asterwise_get_puja_suggestions — recommend remedial pujas for Sun/Mars.\n\n"
@@ -482,9 +474,9 @@ def register(mcp: FastMCP) -> None:
             "data.present (bool)\n"
             "data.severity (string — 'mild', 'moderate', 'severe', or null)\n"
             "data.severity_note (string or null)\n"
-            "data.bphs_combinations_triggered[] — each: combination (string), "
+            "data.combinations_triggered[] — each: combination (string), "
             "description (string), factors[] (string array), weight (int)\n"
-            "data.bphs_combinations_count (int)\n"
+            "data.combinations_count (int)\n"
             "data.sun_analysis{}: house (int), sign_index (int), debilitated (bool), "
             "afflictions[] (string array)\n"
             "data.ninth_lord_analysis{}: planet (string), house (int), sign_index (int), "
@@ -515,7 +507,7 @@ def register(mcp: FastMCP) -> None:
         birth: BirthData,
         response_format: ResponseFormat,
     ) -> str:
-        """Standalone Pitru Dosha analysis — all 5 BPHS Ch.83 combinations."""
+        """Standalone Pitru Dosha analysis — all 5 Ch.83 combinations."""
         try:
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()
@@ -551,8 +543,8 @@ def register(mcp: FastMCP) -> None:
             "starting new ventures, surgery, travel, or auspicious ceremonies. "
             "When multiple Ghatak parameters coincide simultaneously, the period "
             "is considered extremely inauspicious.\n"
-            "Source: Muhurta Chintamani Ch.1 (Shubhashubha Prakarana); "
-            "Phaladeepika Ch.26 (Gocharaphala).\n\n"
+            "Source: classical muhurta tradition Ch.1 (Shubhashubha Prakarana); "
+            "classical text Ch.26 (Gocharaphala).\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: None — birth data computes everything needed.\n"
             "AFTER: asterwise_get_nakshatra_prediction — for today's personalized "
