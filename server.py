@@ -402,7 +402,7 @@ mcp = FastMCP(
   asterwise_get_crystal — single crystal lookup by slug or name
   asterwise_get_crystal_by_planet — crystals filtered by Vedic planet (Navaratna first)
   asterwise_get_crystal_recommendations — crystal recommendations by zodiac sign, chakra, or intention
-  asterwise_get_crystal_recommendations_natal — classical Ratna Shastra crystal recommendations from a computed Vedic natal chart using house lordship rules; Lagna lord (Life Stone), 9th lord (Fortune Stone), 5th lord (Lucky Stone), Yogakaraka (supreme benefic); only navaratna and uparatna crystals returned; dangerous combinations flagged in warnings[]
+  asterwise_get_crystal_recommendations_natal — natal chart crystal recommendations from house lordship rules on a computed Vedic natal chart; Lagna lord (Life Stone), 9th lord (Fortune Stone), 5th lord (Lucky Stone), Yogakaraka (supreme benefic); only navaratna and uparatna crystals returned; dangerous combinations flagged in warnings[]
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DREAMS
