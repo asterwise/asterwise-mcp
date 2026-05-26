@@ -29,13 +29,13 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_planet_nature",
         description=(
             "Returns classical graha (planet) properties for all nine planets or a single planet "
-            "as described in classical hora shastra Chapter 3.\n\n"
+            "per classical Vedic tradition.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Returns tattva (element), guna (Sattvic/Rajasic/Tamasic), gender, caste/varna, "
             "natural benefic/malefic nature, direction, color, presiding deity, ruling day of week, "
             "metal, body part governed, and naisargika maitri (natural friends, enemies, neutrals) "
             "for each of the nine grahas: Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu. "
-            "Rahu and Ketu include note explaining the limits of Chapter 3 for shadow nodes.\n\n"
+            "Rahu and Ketu include note explaining reference-table limits for shadow nodes.\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: None — standalone reference.\n"
             "AFTER: asterwise_get_puja_suggestions — propitiation for a specific graha.\n\n"
@@ -451,17 +451,17 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_pitra_dosha",
         description=(
             "Detects and analyses Pitru Dosha (Pitru Shapa — Ancestral Curse) using "
-            "all five classical combinations from Chapter 83.\n\n"
+            "all five classical Pitru Dosha combinations.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Standalone Pitru Dosha endpoint with deeper analysis than the pitru_dosha "
             "field inside asterwise_get_doshas. Returns: presence flag, severity "
-            "(mild/moderate/severe), which of the 5 Ch.83 combinations triggered, "
+            "(mild/moderate/severe), which of the 5 classical combinations triggered, "
             "Sun analysis (house, sign, debilitation, afflictions), 9th lord analysis "
             "(identity, house, debilitation, afflictions), all contributing factors, "
             "cancellation conditions (Jupiter protective), classical symptoms, and remedies.\n"
-            "Primary classical symptom Ch.83: denial of progeny or difficulties "
-            "with children. Afflicting planets: Saturn, Rahu, Mars, Ketu.\n"
-            "Source: classical hora shastra Ch.83 (Purvajanma Shapa Adhyaya).\n\n"
+            "Primary classical symptom for Purvajanma Shapa (karmic affliction): "
+            "denial of progeny or difficulties with children. "
+            "Afflicting planets: Saturn, Rahu, Mars, Ketu.\n\n"
             "SECTION: WORKFLOW\n"
             "BEFORE: None — birth data computes everything needed.\n"
             "AFTER: asterwise_get_puja_suggestions — recommend remedial pujas for Sun/Mars.\n\n"
@@ -504,7 +504,7 @@ def register(mcp: FastMCP) -> None:
         birth: BirthData,
         response_format: ResponseFormat,
     ) -> str:
-        """Standalone Pitru Dosha analysis — all 5 Ch.83 combinations."""
+        """Standalone Pitru Dosha analysis — all five classical combinations."""
         try:
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()

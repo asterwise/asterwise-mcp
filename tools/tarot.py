@@ -526,7 +526,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_celtic_cross",
         description=(
-            "Ten-card Celtic Cross spread — the most comprehensive traditional tarot layout. "
+            "Ten-card Celtic Cross spread — traditional ten-position tarot layout. "
             "Draws 10 unique cards using cryptographic randomness and assigns each to one of "
             "the 10 classical Celtic Cross positions.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
