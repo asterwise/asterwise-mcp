@@ -407,7 +407,7 @@ mcp = FastMCP(
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DREAMS
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  asterwise_get_dream_symbols — 500 dream symbols with dual Jungian + Vedic Swapna Shastra interpretation
+  asterwise_get_dream_symbols — 500 dream symbols with dual Jungian + Vedic dream interpretation
   asterwise_get_dream_symbol — single dream symbol lookup with context variants and traditions_agree flag
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
