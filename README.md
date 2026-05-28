@@ -22,7 +22,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
         "https://mcp.asterwise.com/mcp"
       ],
       "env": {
-        "MCP_HEADER_X_API_KEY": "your-api-key-here"
+        "MCP_HEADER_AUTHORIZATION": "Bearer your-api-key-here"
       }
     }
   }
@@ -39,7 +39,7 @@ Add to `.cursor/mcp.json` in your project:
     "asterwise": {
       "url": "https://mcp.asterwise.com/mcp",
       "headers": {
-        "X-API-Key": "your-api-key-here"
+        "Authorization": "Bearer your-api-key-here"
       }
     }
   }
@@ -57,7 +57,7 @@ curl https://mcp.asterwise.com/health
 Two methods supported:
 
 **Method 1 — API Key (quick start)**  
-Pass `X-API-Key` with your Asterwise API key.
+Pass your Asterwise API key as an `Authorization: Bearer` header.
 
 **Method 2 — OAuth 2.1 (production)**  
 Exchange your API key for a short-lived token:
