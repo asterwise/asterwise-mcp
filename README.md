@@ -1,6 +1,6 @@
 # Asterwise MCP Server
 
-Classical Vedic astrology calculations as MCP tools. **103 tools** covering natal charts, Dasha, matchmaking, Panchanga, numerology, Western astrology, tarot, crystals, dreams, and interpretations — derived from BPHS, Phaladeepika, and Saravali with citations.
+Astrology and divination calculations as MCP tools. **103 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking, Panchanga, and interpretations grounded in classical Jyotish methodology (BPHS, Phaladeepika).
 
 ## Quick Start (2 minutes)
 
