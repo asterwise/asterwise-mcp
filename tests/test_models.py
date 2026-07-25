@@ -118,6 +118,17 @@ class TestBirthData:
         assert b.date == "1985-11-12"
         assert b.time == "06:45"
 
+    def test_to_api_dict_omits_time_when_none(self) -> None:
+        b = BirthData(date="1985-11-12", lat=0.0, lon=0.0)
+        assert b.time is None
+        d = b.to_api_dict()
+        assert "time" not in d
+
+    def test_to_api_dict_includes_time_when_set(self) -> None:
+        b = BirthData(date="1985-11-12", time="06:45", lat=0.0, lon=0.0)
+        d = b.to_api_dict()
+        assert d["time"] == "06:45"
+
 
 class TestWesternBirthData:
     def test_valid_defaults(self) -> None:

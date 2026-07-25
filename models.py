@@ -44,10 +44,14 @@ class BirthData(BaseModel):
         ),
         pattern=r"^\d{4}-\d{2}-\d{2}$",
     )
-    time: str = Field(
-        ...,
+    time: str | None = Field(
+        default=None,
         description=(
-            "Birth time in HH:MM format (24-hour). Example: '06:45'. Use '00:00' if unknown."
+            "Birth time in HH:MM 24-hour format. Example: '06:45'. Omit entirely if "
+            "the birth time is unknown: a sunrise chart is used and "
+            "birth_time_provided returns false. Do not pass '00:00' for an unknown "
+            "time, it is treated as a real midnight birth and returns a confidently "
+            "wrong ascendant."
         ),
         pattern=r"^\d{2}:\d{2}$",
     )
@@ -123,27 +127,31 @@ class BirthData(BaseModel):
 
     @field_validator("time")
     @classmethod
-    def validate_time(cls, v: str) -> str:
+    def validate_time(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         try:
             datetime.strptime(v, "%H:%M")
         except ValueError:
             raise ValueError(
                 f"time must be HH:MM in 24-hour format. Got: {v!r}. "
-                "Example: '06:45', '14:30', '00:00'"
+                "Example: '06:45', '14:30'"
             ) from None
         return v
 
     def to_api_dict(self) -> dict[str, Any]:
         """Convert to the dict format the Asterwise API expects."""
-        return {
+        payload: dict[str, Any] = {
             "name": self.person_name,
             "date": self.date,
-            "time": self.time,
             "latitude": self.lat,
             "longitude": self.lon,
             "timezone": self.timezone,
             "ayanamsa": self.ayanamsa.value,
         }
+        if self.time is not None:
+            payload["time"] = self.time
+        return payload
 
 
 class WesternBirthData(BaseModel):
