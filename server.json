@@ -1,0 +1,14 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.asterwise/mcp",
+  "title": "Asterwise",
+  "description": "Vedic and Western astrology, numerology, tarot. Kundali, dasha, panchanga, Rajju/Vedha matching.",
+  "websiteUrl": "https://asterwise.com",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.asterwise.com/mcp"
+    }
+  ]
+}

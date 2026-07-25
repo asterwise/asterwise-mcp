@@ -49,3 +49,4 @@ gcp-key*.json
 firebase-adminsdk*.json
 auth_token*
 .netrc
+key.pem
