@@ -93,6 +93,7 @@ EXEMPT_PATHS = frozenset(
         "/.well-known/openid-configuration",
         "/.well-known/oauth-protected-resource",
         "/.well-known/oauth-protected-resource/mcp",
+        "/.well-known/glama.json",
         "/authorize",
         "/token",
         "/register",
@@ -555,6 +556,19 @@ async def oauth_protected_resource_metadata(request: Request) -> Response:
     )
 
 
+async def glama_metadata(request: Request) -> Response:
+    """Glama MCP server claim verification (https://glama.ai)."""
+    _ = request
+    return JSONResponse(
+        {
+            "$schema": "https://glama.ai/mcp/schemas/connector.json",
+            "maintainers": [
+                {"email": "asterwiselabs@gmail.com"},
+            ],
+        }
+    )
+
+
 async def oauth_dynamic_client_register(request: Request) -> Response:
     """RFC 7591-style dynamic client registration (proxied to asterwise-api)."""
     client_ip = request.client.host if request.client else "unknown"
@@ -996,6 +1010,7 @@ _custom_route_keys = frozenset(
         ("/.well-known/openid-configuration", "GET"),
         ("/.well-known/oauth-protected-resource", "GET"),
         ("/.well-known/oauth-protected-resource/mcp", "GET"),
+        ("/.well-known/glama.json", "GET"),
         ("/authorize", "GET"),
         ("/token", "POST"),
         ("/register", "POST"),
@@ -1041,6 +1056,11 @@ _custom_routes = [
     Route(
         "/.well-known/oauth-protected-resource/mcp",
         endpoint=oauth_protected_resource_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/.well-known/glama.json",
+        endpoint=glama_metadata,
         methods=["GET"],
     ),
     Route(
