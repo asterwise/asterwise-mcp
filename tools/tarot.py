@@ -31,6 +31,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_cards",
+        title="Tarot Cards Catalogue",
         description=(
             "Returns the complete 78-card Rider-Waite-Smith deck with full metadata. "
             "Each card includes id (slug), name, arcana_type (major/minor), suit, "
@@ -102,6 +103,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_card",
+        title="Tarot Card Lookup",
         description=(
             "Returns full structured data for a single card identified by its slug ID. "
             "Useful for card detail pages, single-card lookups, and displaying a specific "
@@ -176,6 +178,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_major_arcana",
+        title="Tarot Major Arcana",
         description=(
             "Returns all 22 Major Arcana cards (The Fool through The World) as a structured array. "
             "Major Arcana represent universal archetypes and major life themes.\n\n"
@@ -233,6 +236,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_suit",
+        title="Tarot Suit",
         description=(
             "Returns all 14 cards in a given Minor Arcana suit as a structured array.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -299,6 +303,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_card_of_the_day",
+        title="Tarot Card of the Day",
         description=(
             "Returns a deterministic daily tarot card seeded by SHA-256 hash of the date string. "
             "The same card is returned for all callers on the same date — this is intentional. "
@@ -371,6 +376,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_draw_tarot_cards",
+        title="Draw Tarot Cards",
         description=(
             "Draws N unique random cards from the 78-card deck using cryptographic randomness "
             "(Python secrets.SystemRandom). Every call is independent — there is no session state.\n\n"
@@ -449,6 +455,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_three_card_spread",
+        title="Tarot Three Card Spread",
         description=(
             "Past / Present / Future spread. Draws 3 unique cards using cryptographic randomness "
             "and assigns each to a named positional slot with an interpretive context.\n\n"
@@ -525,6 +532,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_celtic_cross",
+        title="Tarot Celtic Cross",
         description=(
             "Ten-card Celtic Cross spread — traditional ten-position tarot layout. "
             "Draws 10 unique cards using cryptographic randomness and assigns each to one of "
@@ -609,6 +617,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tarot_yes_no",
+        title="Tarot Yes No",
         description=(
             "Draws one card and returns a yes, no, or maybe answer with confidence level. "
             "The answer is derived from the card's built-in yes_no polarity and its orientation.\n\n"

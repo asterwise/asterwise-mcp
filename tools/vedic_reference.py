@@ -27,6 +27,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_planet_nature",
+        title="Planet Nature",
         description=(
             "Returns classical graha (planet) properties for all nine planets or a single planet "
             "per classical Vedic tradition.\n\n"
@@ -92,6 +93,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_puja_suggestions",
+        title="Puja Suggestions",
         description=(
             "Returns puja (ritual worship) recommendations for planetary propitiation per graha.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -153,6 +155,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_rudraksha",
+        title="Rudraksha",
         description=(
             "Returns Rudraksha bead recommendations per planet.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -215,6 +218,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_ayanamsha",
+        title="Ayanamsha",
         description=(
             "Returns ayanamsha values for all four supported systems "
             "(Lahiri, Raman, KP, Tropical) for a given date.\n\n"
@@ -284,6 +288,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_biorhythm",
+        title="Biorhythm",
         description=(
             "Computes physical (23-day), emotional (28-day), and intellectual (33-day) "
             "biorhythm cycles for a birth date.\n\n"
@@ -365,6 +370,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_nakshatra_prediction",
+        title="Nakshatra Prediction",
         description=(
             "Returns a personalised daily prediction using Tarabala and Chandrabala.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -449,6 +455,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_pitra_dosha",
+        title="Pitra Dosha",
         description=(
             "Detects and analyses Pitru Dosha (Pitru Shapa — Ancestral Curse) using "
             "all five classical Pitru Dosha combinations.\n\n"
@@ -525,6 +532,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_ghat_chakra",
+        title="Ghat Chakra",
         description=(
             "Returns the four Ghatak (inauspicious) timing parameters for a native "
             "based on their Janma Rasi (natal Moon sign).\n\n"

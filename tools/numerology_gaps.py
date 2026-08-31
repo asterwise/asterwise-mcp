@@ -25,6 +25,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_expression_number",
+        title="Expression Number",
         description=(
             "Calculates the Expression (Destiny) number from the full name using Pythagorean "
             "letter values. Reduces each name part separately before summing — this is the "
@@ -100,6 +101,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_soul_urge_number",
+        title="Soul Urge Number",
         description=(
             "Calculates the Soul Urge (Heart's Desire) number from vowels in the full name. "
             "Only A, E, I, O, U are treated as vowels — Y is always a consonant in this system. "
@@ -164,6 +166,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_personality_number",
+        title="Personality Number",
         description=(
             "Calculates the Personality number from consonants in the full name. "
             "All non-vowels (BCDFGHJKLMNPQRSTVWXYZ) contribute — Y is always a consonant. "
@@ -225,6 +228,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_maturity_number",
+        title="Maturity Number",
         description=(
             "Calculates the Maturity number as the sum of Life Path and Expression numbers, "
             "reduced to a single digit or master number. Represents the underlying wish or "
@@ -289,6 +293,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_balance_number",
+        title="Balance Number",
         description=(
             "Calculates the Balance number from the first letter of each name part, using "
             "Pythagorean values. A three-part name yields three initials summed and reduced. "
@@ -352,6 +357,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_karmic_lessons",
+        title="Karmic Lessons",
         description=(
             "Identifies karmic lessons by scanning all letter values in the full name and "
             "finding which digits 1–9 are absent. Each missing digit represents an area "
@@ -417,6 +423,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_personal_cycles",
+        title="Personal Cycles",
         description=(
             "Returns the Personal Year, Personal Month, and Personal Day numbers for a given "
             "birth date and optional target date. All three cycle numbers are derived from the "

@@ -11,6 +11,22 @@ def test_format_tool_result_json() -> None:
     assert '"x": 1' in out
 
 
+def test_format_tool_result_scrubs_leak_keys() -> None:
+    payload = {
+        "success": True,
+        "data": {"planets": [{"planet": "Sun"}], "request_id": "abc", "account_id": "u1"},
+        "api_key": "secret",
+        "engine_version": "9.9",
+    }
+    out = format_tool_result(payload, ResponseFormat.JSON, lambda d: "md")
+    assert "secret" not in out
+    assert "request_id" not in out
+    assert "account_id" not in out
+    assert "engine_version" not in out
+    assert "Sun" in out
+    assert '"success": true' in out
+
+
 def test_format_tool_result_markdown() -> None:
     out = format_tool_result({"a": 1}, ResponseFormat.MARKDOWN, lambda d: "## Hi")
     assert out == "## Hi"
