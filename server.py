@@ -94,6 +94,7 @@ EXEMPT_PATHS = frozenset(
         "/.well-known/oauth-protected-resource",
         "/.well-known/oauth-protected-resource/mcp",
         "/.well-known/glama.json",
+        "/.well-known/openai-apps-challenge",
         "/authorize",
         "/token",
         "/register",
@@ -569,6 +570,19 @@ async def glama_metadata(request: Request) -> Response:
     )
 
 
+async def openai_apps_challenge(request: Request) -> Response:
+    """OpenAI Apps domain verification challenge (plain text token)."""
+    _ = request
+    token = os.getenv("OPENAI_APPS_CHALLENGE_TOKEN", "").strip()
+    if not token:
+        return Response(status_code=404)
+    return Response(
+        content=token,
+        status_code=200,
+        media_type="text/plain",
+    )
+
+
 async def oauth_dynamic_client_register(request: Request) -> Response:
     """RFC 7591-style dynamic client registration (proxied to asterwise-api)."""
     client_ip = request.client.host if request.client else "unknown"
@@ -1011,6 +1025,7 @@ _custom_route_keys = frozenset(
         ("/.well-known/oauth-protected-resource", "GET"),
         ("/.well-known/oauth-protected-resource/mcp", "GET"),
         ("/.well-known/glama.json", "GET"),
+        ("/.well-known/openai-apps-challenge", "GET"),
         ("/authorize", "GET"),
         ("/token", "POST"),
         ("/register", "POST"),
@@ -1061,6 +1076,11 @@ _custom_routes = [
     Route(
         "/.well-known/glama.json",
         endpoint=glama_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/.well-known/openai-apps-challenge",
+        endpoint=openai_apps_challenge,
         methods=["GET"],
     ),
     Route(

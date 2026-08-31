@@ -23,15 +23,58 @@ STANDARD_ANNOTATIONS = ToolAnnotations(
     readOnlyHint=True,
     destructiveHint=False,
     idempotentHint=True,
-    openWorldHint=True,
+    openWorldHint=False,
 )
 
 REPORT_ANNOTATIONS = ToolAnnotations(
     readOnlyHint=True,
     destructiveHint=False,
     idempotentHint=False,
-    openWorldHint=True,
+    openWorldHint=False,
 )
+
+# Keys that must never appear in tool results (identity, infra, debugging).
+_RESPONSE_LEAK_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "raw_key",
+        "x_api_key",
+        "key_id",
+        "userid",
+        "user_id",
+        "account_id",
+        "accountid",
+        "request_id",
+        "requestid",
+        "engine_version",
+        "engineversion",
+        "sentry_id",
+        "sentry_event_id",
+        "sentryid",
+        "traceback",
+        "stack_trace",
+        "stacktrace",
+        "upstream_url",
+        "upstreamurl",
+        "internal_url",
+        "internalurl",
+    }
+)
+
+
+def scrub_tool_payload(obj: Any) -> Any:
+    """Drop identity/infra leak keys from nested payloads; keep calculation fields."""
+    if isinstance(obj, dict):
+        out: dict[str, Any] = {}
+        for k, v in obj.items():
+            if str(k).lower().replace("-", "_") in _RESPONSE_LEAK_KEYS:
+                continue
+            out[k] = scrub_tool_payload(v)
+        return out
+    if isinstance(obj, list):
+        return [scrub_tool_payload(item) for item in obj]
+    return obj
 
 
 def tool_error(message: str, code: int = INTERNAL_ERROR) -> NoReturn:
@@ -62,9 +105,13 @@ def raise_validation_error(exc: ValidationError) -> NoReturn:
 
 
 def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
-    """Unexpected exception inside a tool handler."""
+    """Unexpected exception inside a tool handler (no stack / internal detail leak)."""
+    logger.exception(
+        "unexpected_tool_error",
+        extra={"tool": tool_name, "error_type": type(exc).__name__},
+    )
     tool_error(
-        f"Unexpected error in {tool_name}: {type(exc).__name__}: {exc}"
+        f"Unexpected error in {tool_name}. Retry the request or check status.asterwise.com."
     )
 
 
@@ -158,10 +205,13 @@ def format_tool_result(
     response_format: ResponseFormat,
     to_markdown: Callable[[dict[str, Any]], str],
 ) -> str:
-    """Return JSON or markdown per tool contract."""
+    """Return JSON or markdown per tool contract (leak keys scrubbed)."""
+    cleaned = scrub_tool_payload(data)
+    if not isinstance(cleaned, dict):
+        cleaned = {"data": cleaned}
     if response_format == ResponseFormat.JSON:
-        return json.dumps(data, indent=2, default=str)
-    return to_markdown(data)
+        return json.dumps(cleaned, indent=2, default=str)
+    return to_markdown(cleaned)
 
 
 def structured_markdown(title: str, data: dict[str, Any]) -> str:

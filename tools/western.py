@@ -29,6 +29,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_natal",
+        title="Western Natal Chart",
         description=(
             "Calculate a complete Western natal chart using the tropical zodiac and Swiss Ephemeris. "
             "Returns 10 planet positions with Placidus (or chosen) house placements, essential "
@@ -110,7 +111,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_natal(
@@ -141,6 +142,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_moon_phase",
+        title="Western Moon Phase",
         description=(
             "Calculates the tropical lunar phase for any date using Swiss Ephemeris. "
             "Returns the phase name, phase angle, illumination percentage, Moon age in days, "
@@ -182,7 +184,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_moon_phase(
@@ -216,6 +218,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_moon_calendar",
+        title="Western Moon Calendar",
         description=(
             "Returns lunar phase data for every day in a calendar month as a structured array. "
             "Each element is a complete daily phase object identical to asterwise_get_western_moon_phase.\n\n"
@@ -248,7 +251,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_moon_calendar(
@@ -287,6 +290,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_aspects",
+        title="Western Aspects",
         description=(
             "Calculates all active aspects between a supplied set of planetary longitudes. "
             "Accepts a dictionary of body name to tropical ecliptic longitude and returns "
@@ -327,7 +331,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_aspects(
@@ -363,6 +367,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_transits_daily",
+        title="Western Daily Transits",
         description=(
             "Current sky positions vs natal chart for a single day. Returns all 10 planets with "
             "tropical longitudes and active aspects to natal positions using transit orbs: "
@@ -399,7 +404,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_transits_daily(
@@ -432,6 +437,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_transits_weekly",
+        title="Western Weekly Transits",
         description=(
             "7-day transit window vs natal chart. Returns day-by-day transit snapshots plus peak "
             "aspects (active 4+ days in the window). Use start_date to set the week start; defaults "
@@ -464,7 +470,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_transits_weekly(
@@ -497,6 +503,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_transits_monthly",
+        title="Western Monthly Transits",
         description=(
             "30-day transit window vs natal chart. Returns day-by-day transit snapshots plus peak "
             "aspects (active 10+ days in the window). Use start_date to set the month start; defaults "
@@ -531,7 +538,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_transits_monthly(
@@ -566,6 +573,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_synastry",
+        title="Western Synastry",
         description=(
             "Aspect grid between two natal charts using the tropical zodiac. Returns all inter-chart "
             "aspects using standard inter-chart orbs. Useful for relationship compatibility analysis.\n\n"
@@ -596,7 +604,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_synastry(
@@ -630,6 +638,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_composite",
+        title="Western Composite",
         description=(
             "Midpoint composite chart for two people. Each composite planet is "
             "the midpoint of the two natal positions. Returns composite planets with dignities and "
@@ -661,7 +670,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_composite(
@@ -695,6 +704,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_compatibility",
+        title="Western Compatibility",
         description=(
             "Overall compatibility score (0–100) between two natal charts. Scores element affinity, "
             "synastry aspects between personal planets (Sun, Moon, Venus, Mars), and Sun/Moon/rising "
@@ -734,7 +744,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_compatibility(
@@ -768,6 +778,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_zodiac_compatibility",
+        title="Western Zodiac Compatibility",
         description=(
             "Sign-to-sign compatibility without birth data. Based on element and modality affinity. "
             "Fast — no ephemeris calculation required.\n\n"
@@ -801,7 +812,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_zodiac_compatibility(
@@ -836,6 +847,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_solar_return",
+        title="Western Solar Return",
         description=(
             "Solar return chart for a given year. Finds the exact moment the Sun returns to its natal "
             "tropical longitude and builds a complete Western natal chart for that moment at the birth "
@@ -874,7 +886,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_solar_return(
@@ -905,6 +917,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_lunar_return",
+        title="Western Lunar Return",
         description=(
             "Next lunar return chart after a given date. Finds the next moment the Moon returns to its "
             "natal tropical longitude (approximately every 27.3 days) and builds a complete Western "
@@ -937,7 +950,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_lunar_return(
@@ -970,6 +983,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_planetary_return",
+        title="Western Planetary Return",
         description=(
             "Next return chart for any planet after a given date. Finds the exact moment the specified "
             "planet returns to its natal tropical longitude and builds a complete Western natal chart "
@@ -1006,7 +1020,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_planetary_return(
@@ -1051,6 +1065,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_secondary_progressions",
+        title="Western Secondary Progressions",
         description=(
             "Secondary progressed chart using the day-for-a-year method. Each day after birth "
             "symbolises one year of life (1 ephemeris day = 1 tropical year = 365.2421904 days). "
@@ -1089,7 +1104,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_secondary_progressions(
@@ -1124,6 +1139,7 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_western_solar_arc",
+        title="Western Solar Arc",
         description=(
             "Solar Arc Directions for a target date. The solar arc (progressed Sun minus natal Sun) is "
             "applied uniformly to every natal planet and angle — approximately 1° per year. Unlike "
@@ -1161,7 +1177,7 @@ def register(mcp: FastMCP) -> None:
         ),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
-            idempotentHint=True, openWorldHint=True,
+            idempotentHint=True, openWorldHint=False,
         ),
     )
     async def asterwise_get_western_solar_arc(
