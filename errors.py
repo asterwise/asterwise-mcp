@@ -52,7 +52,7 @@ def map_http_status_to_message(status_code: int, detail: str | None) -> str:
         )
     if status_code == 429:
         return (
-            "Rate limit exceeded. Upgrade at https://asterwise.com/pricing or retry after a short wait."
+            "Rate limit exceeded. Please retry after a short wait."
         )
     if status_code >= 500:
         return (
