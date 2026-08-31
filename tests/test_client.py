@@ -66,7 +66,7 @@ class TestClientErrorMapping:
         await client.close()
 
     @pytest.mark.asyncio
-    async def test_429_raises_with_pricing_link(self, client: AsterwiseClient) -> None:
+    async def test_429_raises_retry_message(self, client: AsterwiseClient) -> None:
         await client.open()
         mock_http = MagicMock()
         mock_http.request = AsyncMock(return_value=self._mock_response(429))
@@ -74,7 +74,7 @@ class TestClientErrorMapping:
             with patch("client.asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(AsterwiseAPIError) as exc:
                     await client.get("/test", "key")
-        assert "asterwise.com/pricing" in str(exc.value)
+        assert "Rate limit exceeded. Please retry after a short wait." in str(exc.value)
         await client.close()
 
     @pytest.mark.asyncio
