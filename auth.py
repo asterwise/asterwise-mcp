@@ -182,20 +182,45 @@ def _lower_headers(headers: Mapping[str, str] | dict[str, str]) -> dict[str, str
     return {str(k).lower(): v for k, v in headers.items()}
 
 
+def looks_like_jwt(token: str) -> bool:
+    """
+    True when the value has the three dot-separated segments of a compact JWS.
+
+    Asterwise API keys (``aw_`` + url-safe token) never contain dots, so anything
+    without exactly two dots is treated as a raw API key rather than a token.
+    """
+    parts = token.split(".")
+    return len(parts) == 3 and all(parts)
+
+
+def resolve_bearer_token(token: str) -> str:
+    """
+    Turn a Bearer credential into an API key.
+
+    JWTs issued by this server (or by asterwise-api for OAuth) are validated and
+    the embedded key is returned. Any other value is passed through unchanged as a
+    raw API key; asterwise-api validates it on every upstream call.
+
+    Raises TokenExpiredError / TokenInvalidError only for malformed or bad JWTs.
+    """
+    if looks_like_jwt(token):
+        return decode_token(token)
+    return token
+
+
 def extract_api_key(headers: Mapping[str, str] | dict[str, str]) -> Optional[str]:
     """
     Extract API key from normalized headers (Bearer first, then X-API-Key).
-    Returns None if neither is present. Does not raise for missing auth.
+
+    The Bearer value may be a JWT from /oauth/token or a raw Asterwise API key.
+    Returns None if neither header is present. Does not raise for missing auth.
     """
     h = _lower_headers(headers)
     auth_header = h.get("authorization", "")
     if auth_header.lower().startswith("bearer "):
         token = auth_header[7:].strip()
         if token:
-            try:
-                return decode_token(token)
-            except (TokenExpiredError, TokenInvalidError):
-                raise
+            return resolve_bearer_token(token)
     api_key = h.get("x-api-key", "").strip()
     if api_key:
         return api_key
