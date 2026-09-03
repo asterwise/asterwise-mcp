@@ -117,11 +117,13 @@ For the full tool list see [docs.asterwise.com](https://docs.asterwise.com) or t
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 export ASTERWISE_API_BASE_URL=https://api.asterwise.com
 export JWT_SECRET="$(python -c 'import secrets; print(secrets.token_hex(32))')"
-python server.py
+uvicorn server:app --host 0.0.0.0 --port 8080
 ```
+
+`uvicorn server:app` is the same entry point the production `Dockerfile` and `railway.toml` use, so the auth middleware, OAuth routes and `/health` are all present locally. Runtime dependencies are pinned in `requirements.txt`; `requirements-dev.txt` adds the test tooling.
 
 ## Tests
 
@@ -129,7 +131,7 @@ python server.py
 pytest
 ```
 
-Coverage is enforced at **80%** for core modules (`auth`, `client`, `errors`, `logging_config`, `models`, `runtime`, `server`); tool modules are excluded from the gate (see `.coveragerc`).
+Coverage is enforced at **78%** for core modules (`auth`, `client`, `errors`, `logging_config`, `models`, `runtime`, `server`); tool modules are excluded from the gate (see `.coveragerc`).
 
 ## Status
 
