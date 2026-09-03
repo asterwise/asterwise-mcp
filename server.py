@@ -28,7 +28,7 @@ from logging_config import configure_logging
 
 configure_logging()
 
-from auth import TOKEN_TTL, _token_cache, create_token, looks_like_jwt, resolve_bearer_token
+from auth import TOKEN_TTL, create_token, looks_like_jwt, resolve_bearer_token
 from client import get_client
 from errors import AsterwiseAPIError
 from tools import (
@@ -462,33 +462,59 @@ def _register_tools() -> None:
 _register_tools()
 
 
+_UPSTREAM_PROBE_TIMEOUT = httpx.Timeout(3.0)
+
+
+def _describe_exception(exc: BaseException) -> str:
+    """Exception type plus message; httpx timeouts stringify to '' so the type matters."""
+    name = type(exc).__name__
+    msg = str(exc).strip()
+    return f"{name}: {msg}" if msg else name
+
+
+async def _probe_upstream(base: str) -> tuple[bool, str | None]:
+    """GET {base}/health once. Reuses the pooled client when the app lifespan opened it."""
+    pooled = get_client()._http  # None before lifespan (e.g. ASGI test transports)
+    try:
+        if pooled is not None:
+            r = await pooled.get("/health", timeout=_UPSTREAM_PROBE_TIMEOUT)
+        else:
+            async with httpx.AsyncClient(timeout=_UPSTREAM_PROBE_TIMEOUT) as c:
+                r = await c.get(f"{base}/health")
+        if r.status_code == 200:
+            return True, None
+        return False, f"upstream /health returned HTTP {r.status_code}"
+    except Exception as e:  # noqa: BLE001 - report, never raise from a health probe
+        return False, _describe_exception(e)
+
+
 async def health_check(request: Request) -> Response:
-    """Health with upstream probe and token cache size."""
+    """
+    Liveness for the platform health check, plus upstream reachability as data.
+
+    Always 200 while this process can serve requests. Railway polls this path
+    (railway.toml healthcheckPath); returning 503 on an upstream blip made the
+    platform restart or fail deploys of this service for a fault it does not own.
+    Monitor ``upstream.reachable`` / ``status == "degraded"`` for the API itself.
+    """
     _ = request
     start = time.perf_counter()
-    upstream_ok = False
-    upstream_error: str | None = None
     base = os.getenv("ASTERWISE_API_BASE_URL", "").rstrip("/")
 
     if base:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as c:
-                r = await c.get(f"{base}/health")
-                upstream_ok = r.status_code == 200
-        except Exception as e:
-            upstream_error = str(e)
+        upstream_ok, upstream_error = await _probe_upstream(base)
     else:
-        upstream_error = "ASTERWISE_API_BASE_URL not set"
+        upstream_ok, upstream_error = False, "ASTERWISE_API_BASE_URL not set"
 
     elapsed = round((time.perf_counter() - start) * 1000, 1)
     body = {
         "status": "ok" if upstream_ok else "degraded",
+        "liveness": "ok",
         "version": "1.0.0",
         "upstream": {"reachable": upstream_ok, "error": upstream_error},
         "latency_ms": elapsed,
-        "token_cache_size": len(_token_cache),
     }
-    return JSONResponse(body, status_code=200 if upstream_ok else 503)
+    return JSONResponse(body, status_code=200)
 
 
 async def oauth_metadata(request: Request) -> Response:
