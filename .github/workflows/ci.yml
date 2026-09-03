@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests, coverage gate, tool audit
+    runs-on: ubuntu-latest
+    env:
+      # Matches the Dockerfile base image.
+      PYTHON_VERSION: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install pinned runtime + test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Syntax and undefined-name check
+        run: |
+          pip install ruff
+          ruff check --select E9,F63,F7,F82 .
+
+      - name: Tests with coverage gate (78%, see .coveragerc)
+        env:
+          ASTERWISE_API_BASE_URL: https://api.example.com
+          JWT_SECRET: ci-only-jwt-secret-not-used-anywhere-0123456789
+        run: python -m pytest -q
+
+      - name: Tool annotation audit (103 tools, titles + annotations)
+        env:
+          ASTERWISE_API_BASE_URL: https://api.example.com
+        run: python scripts/audit_tool_annotations.py
+
+  docker:
+    name: Production image builds and boots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image from the Dockerfile
+        run: docker build -t asterwise-mcp:ci .
+
+      - name: Boot the image and hit /health
+        run: |
+          docker run -d --name mcp -p 8080:8080 \
+            -e ASTERWISE_API_BASE_URL=https://api.example.com \
+            -e JWT_SECRET=ci-only-jwt-secret-not-used-anywhere-0123456789 \
+            asterwise-mcp:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/health
+          echo
+          docker logs mcp | tail -20
+          docker rm -f mcp
