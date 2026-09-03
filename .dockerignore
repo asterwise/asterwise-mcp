@@ -1,0 +1,43 @@
+# Keep the production image to runtime code only.
+# Anything listed here never enters the Docker build context, so it can
+# neither bloat the image nor leak into it (COPY . . in the Dockerfile).
+
+# Version control and local tooling
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+
+# Python environments and caches
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.coverage
+.coveragerc
+htmlcov
+pytest.ini
+
+# Secrets and keys (belt and braces; these are also gitignored)
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+key.pem
+
+# Not needed at runtime
+tests
+docs
+_docs
+evaluation
+scripts
+README.md
+Dockerfile
+.dockerignore
+.railway-rebuild
