@@ -57,7 +57,7 @@ curl https://mcp.asterwise.com/health
 Two methods supported:
 
 **Method 1 — API Key (quick start)**  
-Pass your Asterwise API key as an `Authorization: Bearer` header.
+Pass your Asterwise API key (starts with `aw_`) either as `Authorization: Bearer <api-key>` or as an `X-API-Key: <api-key>` header. Both are equivalent; use whichever your MCP client can set.
 
 **Method 2 — OAuth 2.1 (production)**  
 Exchange your API key for a short-lived token:
@@ -76,7 +76,7 @@ Returns: `{"access_token": "...", "expires_in": 3600, ...}`
 
 Use the token: `Authorization: Bearer <access_token>`
 
-JWTs issued by this server store only a **SHA-256 hash** of the API key server-side; the raw key is never embedded in the token payload.
+Access tokens are stateless HS256 JWTs. The API key is carried inside the token encrypted with a key derived from `JWT_SECRET`; only a SHA-256 hash of the key appears in the `sub` claim. Keep `JWT_SECRET` private.
 
 ## Configuration
 

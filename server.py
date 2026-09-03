@@ -28,7 +28,7 @@ from logging_config import configure_logging
 
 configure_logging()
 
-from auth import TOKEN_TTL, _token_cache, create_token
+from auth import TOKEN_TTL, _token_cache, create_token, looks_like_jwt, resolve_bearer_token
 from client import get_client
 from errors import AsterwiseAPIError
 from tools import (
@@ -133,14 +133,15 @@ class APIKeyASGIWrapper:
         api_key: str | None = None
         auth_header = hdr.get("authorization", "")
         bearer_present = False
+        bearer_is_jwt = False
         if auth_header.lower().startswith("bearer "):
             token = auth_header[7:].strip()
             bearer_present = bool(token)
             if token:
+                bearer_is_jwt = looks_like_jwt(token)
                 try:
-                    from auth import decode_token
-
-                    api_key = decode_token(token)
+                    # JWT -> validated + decrypted key; raw aw_ key -> passed through
+                    api_key = resolve_bearer_token(token)
                 except Exception:
                     pass
 
@@ -175,7 +176,7 @@ class APIKeyASGIWrapper:
                 "path": path,
                 "has_api_key": api_key is not None,
                 "method": (
-                    "bearer_jwt"
+                    ("bearer_jwt" if bearer_is_jwt else "bearer_raw_key")
                     if bearer_present
                     else "x_api_key"
                     if xkey_present

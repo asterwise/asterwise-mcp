@@ -22,6 +22,8 @@ from auth import (
     create_token,
     decode_token,
     extract_api_key,
+    looks_like_jwt,
+    resolve_bearer_token,
     validate_and_get_key,
 )
 from errors import AuthError
@@ -196,6 +198,39 @@ class TestKeyExtraction:
         headers = {"x-api-key": "direct-api-key"}
         result = extract_api_key(headers)
         assert result == "direct-api-key"
+
+    def test_bearer_raw_api_key_passes_through(self) -> None:
+        # README quick-start: Authorization: Bearer <aw_ key>, no JWT involved
+        raw = "aw_" + "x" * 43
+        result = extract_api_key({"authorization": f"Bearer {raw}"})
+        assert result == raw
+
+    def test_bearer_raw_key_is_case_insensitive_scheme(self) -> None:
+        raw = "aw_" + "y" * 43
+        assert extract_api_key({"Authorization": f"bearer {raw}"}) == raw
+
+    def test_bearer_malformed_jwt_still_rejected(self) -> None:
+        # Three dot-separated segments -> treated as a JWT and must fail closed
+        with pytest.raises(TokenInvalidError):
+            extract_api_key({"authorization": "Bearer aaa.bbb.ccc"})
+
+    def test_bearer_expired_jwt_still_rejected(self) -> None:
+        with patch("auth.time.time", return_value=1000.0):
+            token = create_token("expired-key")
+        with pytest.raises(TokenExpiredError):
+            extract_api_key({"authorization": f"Bearer {token}"})
+
+    def test_looks_like_jwt_shape(self) -> None:
+        assert looks_like_jwt("a.b.c")
+        assert not looks_like_jwt("aw_abc123")
+        assert not looks_like_jwt("a.b")
+        assert not looks_like_jwt("a..c")
+        assert not looks_like_jwt("a.b.c.d")
+
+    def test_resolve_bearer_token_roundtrip_jwt(self) -> None:
+        token = create_token("roundtrip-key")
+        assert resolve_bearer_token(token) == "roundtrip-key"
+        assert resolve_bearer_token("aw_raw") == "aw_raw"
 
     def test_bearer_takes_priority_over_api_key(self) -> None:
         api_key = "priority-test-key"
