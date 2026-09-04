@@ -6,22 +6,17 @@ from typing import Optional
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import Field, ValidationError
+from pydantic import Field
 
 from client import get_client, safe_segment
-from errors import AsterwiseMCPError
 from models import BirthData, HoroscopePeriod, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
-    invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -44,7 +39,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Moon-sign horoscope by period."""
-        try:
+        async with tool_guard("asterwise_get_horoscope"):
             api_key = await require_api_key(ctx)
             path = (
                 f"/v1/horoscope/{safe_segment(period.value)}/"
@@ -56,15 +51,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Horoscope ({period.value}, {moon_sign})", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_horoscope", exc)
-
     @mcp.tool(
         name="asterwise_get_western_horoscope",
         title="Western Horoscope",
@@ -83,7 +69,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Western sun-sign horoscope by period."""
-        try:
+        async with tool_guard("asterwise_get_western_horoscope"):
             api_key = await require_api_key(ctx)
             path = (
                 f"/v1/western/horoscope/{safe_segment(period.value)}/"
@@ -97,15 +83,6 @@ def register(mcp: FastMCP) -> None:
                     f"Western Horoscope ({period.value}, {sun_sign})", d
                 ),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_horoscope", exc)
-
     @mcp.tool(
         name="asterwise_get_gochar",
         title="Gochar",
@@ -127,7 +104,7 @@ def register(mcp: FastMCP) -> None:
         ),
     ) -> str:
         """Gochar from natal chart."""
-        try:
+        async with tool_guard("asterwise_get_gochar"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()
             if target_date is not None:
@@ -140,15 +117,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Gochar (transits)", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_gochar", exc)
-
     @mcp.tool(
         name="asterwise_get_transits",
         title="Transits",
@@ -168,7 +136,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Date-range transits."""
-        try:
+        async with tool_guard("asterwise_get_transits"):
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "from_date": from_date, "to_date": to_date}
             data = await get_client().post(
@@ -179,11 +147,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Transits {from_date} → {to_date}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_transits", exc)

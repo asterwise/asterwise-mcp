@@ -4,22 +4,16 @@ from __future__ import annotations
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
-    invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -41,7 +35,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Chart yogas."""
-        try:
+        async with tool_guard("asterwise_get_yogas"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/yoga", api_key, birth.to_api_dict())
             return format_tool_result(
@@ -49,15 +43,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Yogas", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_yogas", exc)
-
     @mcp.tool(
         name="asterwise_get_doshas",
         title="Doshas",
@@ -75,7 +60,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Dosha analysis."""
-        try:
+        async with tool_guard("asterwise_get_doshas"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/dosha", api_key, birth.to_api_dict())
             return format_tool_result(
@@ -83,15 +68,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Doshas", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_doshas", exc)
-
     @mcp.tool(
         name="asterwise_get_remedies",
         title="Remedies",
@@ -109,7 +85,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Classical-style remedies."""
-        try:
+        async with tool_guard("asterwise_get_remedies"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/remedies", api_key, birth.to_api_dict())
             return format_tool_result(
@@ -117,15 +93,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Remedies", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_remedies", exc)
-
     @mcp.tool(
         name="asterwise_get_gemstone_recommendations",
         title="Gemstone Recommendations",
@@ -143,7 +110,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Gemstones."""
-        try:
+        async with tool_guard("asterwise_get_gemstone_recommendations"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/gemstones", api_key, birth.to_api_dict())
             return format_tool_result(
@@ -151,11 +118,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Gemstone recommendations", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_gemstone_recommendations", exc)

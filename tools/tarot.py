@@ -3,21 +3,16 @@
 from __future__ import annotations
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 _VALID_SUITS = frozenset({"wands", "cups", "swords", "pentacles"})
@@ -83,7 +78,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """All 78 tarot cards."""
-        try:
+        async with tool_guard("asterwise_get_tarot_cards"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/tarot/cards", api_key, timeout=15.0
@@ -92,15 +87,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("78-card tarot deck", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_cards", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_card",
         title="Tarot Card Lookup",
@@ -157,7 +143,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Single tarot card by slug ID."""
-        try:
+        async with tool_guard("asterwise_get_tarot_card"):
             api_key = await require_api_key(ctx)
             from client import safe_segment
             data = await get_client().get(
@@ -167,15 +153,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(f"Tarot card: {card_id}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_card", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_major_arcana",
         title="Tarot Major Arcana",
@@ -216,7 +193,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """22 Major Arcana cards."""
-        try:
+        async with tool_guard("asterwise_get_tarot_major_arcana"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/tarot/major-arcana", api_key, timeout=10.0
@@ -225,15 +202,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Major Arcana", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_major_arcana", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_suit",
         title="Tarot Suit",
@@ -277,7 +245,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Tarot cards by suit."""
-        try:
+        async with tool_guard("asterwise_get_tarot_suit"):
             api_key = await require_api_key(ctx)
             if suit.lower() not in _VALID_SUITS:
                 invalid_params(
@@ -292,15 +260,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(f"Suit of {suit}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_suit", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_card_of_the_day",
         title="Tarot Card of the Day",
@@ -353,7 +312,7 @@ def register(mcp: FastMCP) -> None:
         allow_reversed: bool = False,
     ) -> str:
         """Daily tarot card (deterministic by date)."""
-        try:
+        async with tool_guard("asterwise_get_tarot_card_of_the_day"):
             api_key = await require_api_key(ctx)
             params: dict = {"allow_reversed": allow_reversed}
             if date:
@@ -365,15 +324,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Card of the day", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_card_of_the_day", exc)
-
     @mcp.tool(
         name="asterwise_draw_tarot_cards",
         title="Draw Tarot Cards",
@@ -431,7 +381,7 @@ def register(mcp: FastMCP) -> None:
         allow_reversed: bool = False,
     ) -> str:
         """Draw random tarot cards."""
-        try:
+        async with tool_guard("asterwise_draw_tarot_cards"):
             api_key = await require_api_key(ctx)
             if not 1 <= count <= 78:
                 invalid_params("count must be between 1 and 78.")
@@ -444,15 +394,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(f"Tarot draw ({count} cards)", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_draw_tarot_cards", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_three_card_spread",
         title="Tarot Three Card Spread",
@@ -509,7 +450,7 @@ def register(mcp: FastMCP) -> None:
         question: str | None = None,
     ) -> str:
         """Three-card tarot spread (Past/Present/Future)."""
-        try:
+        async with tool_guard("asterwise_get_tarot_three_card_spread"):
             api_key = await require_api_key(ctx)
             body: dict = {"allow_reversed": allow_reversed}
             if question:
@@ -521,15 +462,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Three-card spread", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_three_card_spread", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_celtic_cross",
         title="Tarot Celtic Cross",
@@ -594,7 +526,7 @@ def register(mcp: FastMCP) -> None:
         question: str | None = None,
     ) -> str:
         """Celtic Cross 10-card spread."""
-        try:
+        async with tool_guard("asterwise_get_tarot_celtic_cross"):
             api_key = await require_api_key(ctx)
             body: dict = {"allow_reversed": allow_reversed}
             if question:
@@ -606,15 +538,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Celtic Cross spread", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_celtic_cross", exc)
-
     @mcp.tool(
         name="asterwise_get_tarot_yes_no",
         title="Tarot Yes No",
@@ -675,7 +598,7 @@ def register(mcp: FastMCP) -> None:
         question: str | None = None,
     ) -> str:
         """Yes/No tarot reading."""
-        try:
+        async with tool_guard("asterwise_get_tarot_yes_no"):
             api_key = await require_api_key(ctx)
             body: dict = {"allow_reversed": allow_reversed}
             if question:
@@ -687,11 +610,3 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Yes/No reading", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tarot_yes_no", exc)

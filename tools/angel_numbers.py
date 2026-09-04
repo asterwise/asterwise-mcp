@@ -5,20 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client, safe_segment
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -40,7 +35,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Get today's angel number."""
-        try:
+        async with tool_guard("asterwise_get_angel_number_today"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/angel/today", api_key, timeout=10.0
@@ -50,15 +45,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Angel Number Today", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_angel_number_today", exc)
-
     @mcp.tool(
         name="asterwise_get_angel_number",
         title="Angel Number",
@@ -76,7 +62,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Look up a specific angel number."""
-        try:
+        async with tool_guard("asterwise_get_angel_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 f"/v1/numerology/angel/{safe_segment(number)}",
@@ -88,15 +74,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Angel Number {number}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_angel_number", exc)
-
     @mcp.tool(
         name="asterwise_get_angel_number_personal",
         title="Personal Angel Number",
@@ -115,7 +92,7 @@ def register(mcp: FastMCP) -> None:
         name: str | None = None,
     ) -> str:
         """Compute personal angel number from birth date."""
-        try:
+        async with tool_guard("asterwise_get_angel_number_personal"):
             api_key = await require_api_key(ctx)
             body: dict[str, Any] = {"date": date}
             if name:
@@ -128,11 +105,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Personal Angel Number", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_angel_number_personal", exc)

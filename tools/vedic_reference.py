@@ -3,23 +3,18 @@
 from __future__ import annotations
 
 from typing import Any, Optional
-from datetime import date
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import Field, ValidationError
+from pydantic import Field
 
-from client import get_client, safe_segment
-from errors import AsterwiseMCPError
+from client import get_client
 from models import BirthData, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -69,7 +64,7 @@ def register(mcp: FastMCP) -> None:
         planet: Optional[str] = None,
     ) -> str:
         """Graha properties — all nine or one planet."""
-        try:
+        async with tool_guard("asterwise_get_planet_nature"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
             if planet:
@@ -82,15 +77,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(title, d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_planet_nature", exc)
-
     @mcp.tool(
         name="asterwise_get_puja_suggestions",
         title="Puja Suggestions",
@@ -131,7 +117,7 @@ def register(mcp: FastMCP) -> None:
         planet: Optional[str] = None,
     ) -> str:
         """Classical puja recommendations per planet."""
-        try:
+        async with tool_guard("asterwise_get_puja_suggestions"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
             if planet:
@@ -144,15 +130,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(title, d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_puja_suggestions", exc)
-
     @mcp.tool(
         name="asterwise_get_rudraksha",
         title="Rudraksha",
@@ -194,7 +171,7 @@ def register(mcp: FastMCP) -> None:
         planet: Optional[str] = None,
     ) -> str:
         """Rudraksha bead recommendations per planet."""
-        try:
+        async with tool_guard("asterwise_get_rudraksha"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
             if planet:
@@ -207,15 +184,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(title, d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_rudraksha", exc)
-
     @mcp.tool(
         name="asterwise_get_ayanamsha",
         title="Ayanamsha",
@@ -264,7 +232,7 @@ def register(mcp: FastMCP) -> None:
         ),
     ) -> str:
         """Ayanamsha values for all four systems for a given date."""
-        try:
+        async with tool_guard("asterwise_get_ayanamsha"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
             if date:
@@ -277,15 +245,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(title, d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_ayanamsha", exc)
-
     @mcp.tool(
         name="asterwise_get_biorhythm",
         title="Biorhythm",
@@ -344,7 +303,7 @@ def register(mcp: FastMCP) -> None:
         days: int = 1,
     ) -> str:
         """Biorhythm cycles — physical, emotional, intellectual."""
-        try:
+        async with tool_guard("asterwise_get_biorhythm"):
             api_key = await require_api_key(ctx)
             body: dict[str, Any] = {"birth_date": birth_date}
             if target_date:
@@ -359,15 +318,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(title, d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_biorhythm", exc)
-
     @mcp.tool(
         name="asterwise_get_nakshatra_prediction",
         title="Nakshatra Prediction",
@@ -432,7 +382,7 @@ def register(mcp: FastMCP) -> None:
         ),
     ) -> str:
         """Personalised Tarabala + Chandrabala daily prediction."""
-        try:
+        async with tool_guard("asterwise_get_nakshatra_prediction"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()
             if target_date:
@@ -444,15 +394,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Nakshatra Prediction (Tarabala)", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_nakshatra_prediction", exc)
-
     @mcp.tool(
         name="asterwise_get_pitra_dosha",
         title="Pitra Dosha",
@@ -511,7 +452,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Standalone Pitru Dosha analysis — all five classical combinations."""
-        try:
+        async with tool_guard("asterwise_get_pitra_dosha"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()
             data = await get_client().post(
@@ -521,15 +462,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Pitru Dosha Analysis", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_pitra_dosha", exc)
-
     @mcp.tool(
         name="asterwise_get_ghat_chakra",
         title="Ghat Chakra",
@@ -588,7 +520,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Ghat Chakra — four Ghatak timing parameters from Janma Rasi."""
-        try:
+        async with tool_guard("asterwise_get_ghat_chakra"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()
             data = await get_client().post(
@@ -598,11 +530,3 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Ghat Chakra", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_ghat_chakra", exc)

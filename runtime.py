@@ -14,7 +14,7 @@ from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import ValidationError
 
 from auth import extract_api_key
-from errors import TokenExpiredError, TokenInvalidError
+from errors import AsterwiseMCPError, TokenExpiredError, TokenInvalidError
 from models import ResponseFormat
 
 logger = logging.getLogger("asterwise_mcp.runtime")
@@ -113,6 +113,48 @@ def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
     tool_error(
         f"Unexpected error in {tool_name}. Retry the request or check status.asterwise.com."
     )
+
+
+class _ToolGuard:
+    """See tool_guard()."""
+
+    __slots__ = ("tool_name",)
+
+    def __init__(self, tool_name: str) -> None:
+        self.tool_name = tool_name
+
+    async def __aenter__(self) -> "_ToolGuard":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> bool:
+        if exc is None:
+            return False
+        if isinstance(exc, McpError):
+            return False  # already a protocol error: propagate untouched
+        if isinstance(exc, AsterwiseMCPError):
+            tool_error(str(exc))
+        if isinstance(exc, ValidationError):
+            raise_validation_error(exc)
+        if isinstance(exc, Exception):
+            unexpected_tool_error(self.tool_name, exc)
+        return False  # BaseException (cancellation etc.): propagate
+
+
+def tool_guard(tool_name: str) -> _ToolGuard:
+    """
+    Error boundary shared by every tool handler.
+
+    Use as ``async with tool_guard("asterwise_get_x"):`` around the handler
+    body. Maps exceptions to MCP errors exactly as the historical per-tool
+    try/except ladder did:
+
+      McpError            -> re-raised as is
+      AsterwiseMCPError   -> INTERNAL_ERROR with the upstream message
+      ValidationError     -> INVALID_PARAMS naming the offending field
+      any other Exception -> INTERNAL_ERROR "Unexpected error in <tool>",
+                             logged with the traceback, no detail leaked
+    """
+    return _ToolGuard(tool_name)
 
 
 async def require_api_key(ctx: Context | None = None) -> str:

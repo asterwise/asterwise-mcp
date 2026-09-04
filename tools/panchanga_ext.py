@@ -5,20 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -45,7 +40,7 @@ def register(mcp: FastMCP) -> None:
         timezone: str | None = None,
     ) -> str:
         """Compute Tamil Panchanga for a date and location."""
-        try:
+        async with tool_guard("asterwise_get_tamil_panchanga"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {"date": date}
             if location:
@@ -64,15 +59,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Tamil Panchanga", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_tamil_panchanga", exc)
-
     @mcp.tool(
         name="asterwise_get_festival_calendar",
         title="Festival Calendar",
@@ -94,7 +80,7 @@ def register(mcp: FastMCP) -> None:
         timezone: str | None = None,
     ) -> str:
         """Compute Hindu festival calendar for a year and location."""
-        try:
+        async with tool_guard("asterwise_get_festival_calendar"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {"year": year}
             if location:
@@ -113,11 +99,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Hindu Festival Calendar {year}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_festival_calendar", exc)

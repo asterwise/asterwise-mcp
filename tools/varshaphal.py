@@ -3,20 +3,15 @@
 from __future__ import annotations
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -39,7 +34,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Varshaphal solar return."""
-        try:
+        async with tool_guard("asterwise_get_varshaphal"):
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "target_year": year}
             data = await get_client().post("/v1/astro/varshaphal", api_key, body, timeout=20.0)
@@ -48,15 +43,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Varshaphal ({year})", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_varshaphal", exc)
-
     @mcp.tool(
         name="asterwise_get_varshaphal_saham",
         title="Varshaphal Saham",
@@ -75,7 +61,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Compute Tajika Saham sensitive points for a Varshaphal solar return."""
-        try:
+        async with tool_guard("asterwise_get_varshaphal_saham"):
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "target_year": year}
             data = await get_client().post(
@@ -86,15 +72,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Varshaphal Saham", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_varshaphal_saham", exc)
-
     @mcp.tool(
         name="asterwise_get_varshaphal_harsha_bala",
         title="Varshaphal Harsha Bala",
@@ -113,7 +90,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Compute Harsha Bala positional happiness scores for a Varshaphal solar return."""
-        try:
+        async with tool_guard("asterwise_get_varshaphal_harsha_bala"):
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "target_year": year}
             data = await get_client().post(
@@ -124,11 +101,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Varshaphal Harsha Bala", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_varshaphal_harsha_bala", exc)
