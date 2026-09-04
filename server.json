@@ -2,9 +2,9 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.asterwise/mcp",
   "title": "Asterwise",
-  "description": "Vedic and Western astrology, numerology, tarot. Kundali, dasha, panchanga, Rajju/Vedha matching.",
+  "description": "Real Vedic and Western astrology for AI agents: 103 tools for natal charts, dasha, matchmaking, panchanga, numerology and tarot. Swiss Ephemeris precision, OAuth 2.1, free tier.",
   "websiteUrl": "https://asterwise.com",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "remotes": [
     {
       "type": "streamable-http",

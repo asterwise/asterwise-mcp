@@ -307,7 +307,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
         await client.close()
 
 
-SERVER_VERSION = "1.0.0"  # also reported by /health and server.json
+SERVER_VERSION = "1.0.1"  # also reported by /health and server.json
 
 mcp = FastMCP(
     "asterwise_mcp",
