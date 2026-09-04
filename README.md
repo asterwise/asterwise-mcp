@@ -6,7 +6,7 @@ Astrology and divination calculations as MCP tools. **103 tools** covering Vedic
 
 ### Get your API key
 
-Sign up free at [asterwise.com/dashboard](https://asterwise.com/dashboard): 2,000 calls/month. No credit card. No time limit.
+Sign up free at [asterwise.com/dashboard](https://asterwise.com/dashboard): 500 calls/month on the Sandbox tier. No credit card. No time limit.
 
 ### Connect to Claude Desktop
 
