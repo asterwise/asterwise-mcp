@@ -473,6 +473,15 @@ def _register_tools() -> None:
 
 _register_tools()
 
+from param_docs import describe_parameters  # noqa: E402
+
+_undescribed_params = describe_parameters(mcp)
+if _undescribed_params:
+    logger.warning(
+        "tool_parameters_undescribed",
+        extra={"params": _undescribed_params[:20], "count": len(_undescribed_params)},
+    )
+
 
 _UPSTREAM_PROBE_TIMEOUT = httpx.Timeout(3.0)
 
