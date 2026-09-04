@@ -11,6 +11,7 @@ from pydantic import Field
 from client import get_client
 from models import BirthData, ResponseFormat
 from runtime import (
+    compact_description,
     tool_guard,
     format_tool_result,
     require_api_key,
@@ -23,7 +24,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_planet_nature",
         title="Planet Nature",
-        description=(
+        description=compact_description("asterwise_get_planet_nature", (
             "Returns classical graha (planet) properties for all nine planets or a single planet "
             "per classical Vedic tradition.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -50,7 +51,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_puja_suggestions — ritual propitiation per planet, not properties.\n"
             "asterwise_get_rudraksha — bead recommendations per planet, not natal properties."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -60,7 +61,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_planet_nature(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         planet: Optional[str] = None,
     ) -> str:
         """Graha properties — all nine or one planet."""
@@ -80,7 +81,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_puja_suggestions",
         title="Puja Suggestions",
-        description=(
+        description=compact_description("asterwise_get_puja_suggestions", (
             "Returns puja (ritual worship) recommendations for planetary propitiation per graha.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "For each of the nine grahas, returns: puja name, presiding deity, day of week, "
@@ -103,7 +104,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_remedies — personalised remedies from natal chart analysis.\n"
             "asterwise_get_rudraksha — bead recommendations, not puja rituals."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -113,7 +114,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_puja_suggestions(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         planet: Optional[str] = None,
     ) -> str:
         """Classical puja recommendations per planet."""
@@ -133,7 +134,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_rudraksha",
         title="Rudraksha",
-        description=(
+        description=compact_description("asterwise_get_rudraksha", (
             "Returns Rudraksha bead recommendations per planet.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "For each of the nine planets, returns: mukhi (face count), presiding deity, "
@@ -157,7 +158,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_gemstone_recommendations — Ratna-style gemstones from natal chart.\n"
             "asterwise_get_puja_suggestions — ritual worship, not bead recommendations."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -167,7 +168,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_rudraksha(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         planet: Optional[str] = None,
     ) -> str:
         """Rudraksha bead recommendations per planet."""
@@ -187,7 +188,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_ayanamsha",
         title="Ayanamsha",
-        description=(
+        description=compact_description("asterwise_get_ayanamsha", (
             "Returns ayanamsha values for all four supported systems "
             "(Lahiri, Raman, KP, Tropical) for a given date.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -215,7 +216,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_natal_chart — applies Lahiri ayanamsha automatically to natal positions.\n"
             "asterwise_get_western_natal — uses tropical zodiac (ayanamsha = 0)."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -225,7 +226,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_ayanamsha(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         date: Optional[str] = Field(
             default=None,
             pattern=r"^\d{4}-\d{2}-\d{2}$",
@@ -248,7 +249,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_biorhythm",
         title="Biorhythm",
-        description=(
+        description=compact_description("asterwise_get_biorhythm", (
             "Computes physical (23-day), emotional (28-day), and intellectual (33-day) "
             "biorhythm cycles for a birth date.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -287,7 +288,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_nakshatra_prediction — Vedic Tarabala/Chandrabala daily prediction.\n"
             "asterwise_get_panchanga — Vedic daily panchanga elements, not biorhythm cycles."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -298,7 +299,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_biorhythm(
         ctx: Context,
         birth_date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: Optional[str] = None,
         days: int = 1,
     ) -> str:
@@ -321,7 +322,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_nakshatra_prediction",
         title="Nakshatra Prediction",
-        description=(
+        description=compact_description("asterwise_get_nakshatra_prediction", (
             "Returns a personalised daily prediction using Tarabala and Chandrabala.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Computes the individual's daily auspiciousness score by:\n"
@@ -364,7 +365,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_nakshatra_details — static nakshatra reference, not personalised prediction.\n"
             "asterwise_get_panchanga — daily panchanga (tithi, yoga, karana), not Tarabala scoring.\n"
             "asterwise_get_biorhythm — Western biorhythm cycles, not classical Vedic prediction."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -375,7 +376,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_nakshatra_prediction(
         ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: Optional[str] = Field(
             default=None,
             pattern=r"^\d{4}-\d{2}-\d{2}$",
@@ -397,7 +398,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_pitra_dosha",
         title="Pitra Dosha",
-        description=(
+        description=compact_description("asterwise_get_pitra_dosha", (
             "Detects and analyses Pitru Dosha (Pitru Shapa — Ancestral Curse) using "
             "all five classical Pitru Dosha combinations.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -438,7 +439,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_doshas — returns pitru_dosha as one of twelve doshas with "
             "less detail. Use this tool when dedicated Pitru Dosha analysis is needed."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -449,7 +450,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_pitra_dosha(
         ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Standalone Pitru Dosha analysis — all five classical combinations."""
         async with tool_guard("asterwise_get_pitra_dosha"):
@@ -465,7 +466,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_ghat_chakra",
         title="Ghat Chakra",
-        description=(
+        description=compact_description("asterwise_get_ghat_chakra", (
             "Returns the four Ghatak (inauspicious) timing parameters for a native "
             "based on their Janma Rasi (natal Moon sign).\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -506,7 +507,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_nakshatra_prediction — personalised daily Tarabala score, "
             "not static Ghatak parameters.\n"
             "asterwise_get_panchanga — daily panchanga elements, not Ghat Chakra lookup."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -517,7 +518,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_ghat_chakra(
         ctx: Context,
         birth: BirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Ghat Chakra — four Ghatak timing parameters from Janma Rasi."""
         async with tool_guard("asterwise_get_ghat_chakra"):

@@ -10,6 +10,7 @@ import mcp.types as mcp_types
 from client import get_client
 from models import ResponseFormat, WesternBirthData
 from runtime import (
+    compact_description,
     tool_guard,
     format_tool_result,
     invalid_params,
@@ -25,7 +26,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_natal",
         title="Western Natal Chart",
-        description=(
+        description=compact_description("asterwise_get_western_natal", (
             "Calculate a complete Western natal chart using the tropical zodiac and Swiss Ephemeris. "
             "Returns 10 planet positions with Placidus (or chosen) house placements, essential "
             "dignities, all active aspects, and element/modality/hemisphere balance statistics.\n\n"
@@ -103,7 +104,7 @@ def register(mcp: FastMCP) -> None:
             "different house system, different planet set (9 grahas vs 10 tropical planets).\n"
             "asterwise_get_western_aspects — takes raw longitudes as input; use when you already have "
             "positions and don't need full chart computation."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -112,7 +113,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_natal(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Western tropical natal chart."""
         async with tool_guard("asterwise_get_western_natal"):
@@ -129,7 +130,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_moon_phase",
         title="Western Moon Phase",
-        description=(
+        description=compact_description("asterwise_get_western_moon_phase", (
             "Calculates the tropical lunar phase for any date using Swiss Ephemeris. "
             "Returns the phase name, phase angle, illumination percentage, Moon age in days, "
             "and the next major phase transition.\n\n"
@@ -167,7 +168,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_moon_calendar — full monthly day-by-day phase table.\n"
             "asterwise_get_panchanga — Vedic tithi system (lunar day based on 12° arc increments)."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -175,7 +176,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_western_moon_phase(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         date: str | None = None,
     ) -> str:
         """Western moon phase for a date."""
@@ -196,7 +197,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_moon_calendar",
         title="Western Moon Calendar",
-        description=(
+        description=compact_description("asterwise_get_western_moon_calendar", (
             "Returns lunar phase data for every day in a calendar month as a structured array. "
             "Each element is a complete daily phase object identical to asterwise_get_western_moon_phase.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -225,7 +226,7 @@ def register(mcp: FastMCP) -> None:
             "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_moon_phase — single-day phase only."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -233,7 +234,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_western_moon_calendar(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         year: int | None = None,
         month: int | None = None,
     ) -> str:
@@ -259,7 +260,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_aspects",
         title="Western Aspects",
-        description=(
+        description=compact_description("asterwise_get_western_aspects", (
             "Calculates all active aspects between a supplied set of planetary longitudes. "
             "Accepts a dictionary of body name to tropical ecliptic longitude and returns "
             "every aspect within standard natal orbs.\n\n"
@@ -296,7 +297,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_natal — computes both positions and aspects from birth data.\n"
             "asterwise_get_western_synastry — inter-chart aspects between two people."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -305,7 +306,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_aspects(
         ctx: Context,
         positions: dict[str, float],
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Western aspect grid from raw positions."""
         async with tool_guard("asterwise_get_western_aspects"):
@@ -327,7 +328,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_transits_daily",
         title="Western Daily Transits",
-        description=(
+        description=compact_description("asterwise_get_western_transits_daily", (
             "Current sky positions vs natal chart for a single day. Returns all 10 planets with "
             "tropical longitudes and active aspects to natal positions using transit orbs: "
             "major 3°, sextile 2°, minor 1°. Provide start_date for "
@@ -360,7 +361,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_transits_weekly — 7 days vs 1 day.\n"
             "asterwise_get_western_transits_monthly — 30-day window vs single day."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -369,7 +370,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_transits_daily(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         start_date: str | None = None,
     ) -> str:
         """Daily Western transits vs natal."""
@@ -388,7 +389,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_transits_weekly",
         title="Western Weekly Transits",
-        description=(
+        description=compact_description("asterwise_get_western_transits_weekly", (
             "7-day transit window vs natal chart. Returns day-by-day transit snapshots plus peak "
             "aspects (active 4+ days in the window). Use start_date to set the week start; defaults "
             "to today.\n\n"
@@ -417,7 +418,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_transits_daily — single day.\n"
             "asterwise_get_western_transits_monthly — 30 days vs 7."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -426,7 +427,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_transits_weekly(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         start_date: str | None = None,
     ) -> str:
         """Weekly Western transits vs natal."""
@@ -445,7 +446,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_transits_monthly",
         title="Western Monthly Transits",
-        description=(
+        description=compact_description("asterwise_get_western_transits_monthly", (
             "30-day transit window vs natal chart. Returns day-by-day transit snapshots plus peak "
             "aspects (active 10+ days in the window). Use start_date to set the month start; defaults "
             "to today.\n\n"
@@ -476,7 +477,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_transits_daily — 1 day.\n"
             "asterwise_get_western_transits_weekly — 7 days."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -485,7 +486,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_transits_monthly(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         start_date: str | None = None,
     ) -> str:
         """Monthly Western transits vs natal."""
@@ -506,7 +507,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_synastry",
         title="Western Synastry",
-        description=(
+        description=compact_description("asterwise_get_western_synastry", (
             "Aspect grid between two natal charts using the tropical zodiac. Returns all inter-chart "
             "aspects using standard inter-chart orbs. Useful for relationship compatibility analysis.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -533,7 +534,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_composite — one merged midpoint chart vs synastry (two charts overlaid).\n"
             "asterwise_get_western_compatibility — numeric 0–100 score vs raw aspects."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -543,7 +544,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         person1: WesternBirthData,
         person2: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Western synastry aspect grid."""
         async with tool_guard("asterwise_get_western_synastry"):
@@ -562,7 +563,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_composite",
         title="Western Composite",
-        description=(
+        description=compact_description("asterwise_get_western_composite", (
             "Midpoint composite chart for two people. Each composite planet is "
             "the midpoint of the two natal positions. Returns composite planets with dignities and "
             "internal aspects.\n\n"
@@ -590,7 +591,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_synastry — two charts, inter-chart aspects vs composite (one midpoint chart).\n"
             "asterwise_get_western_compatibility — numeric score vs structural composite chart."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -600,7 +601,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         person1: WesternBirthData,
         person2: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Western composite midpoint chart."""
         async with tool_guard("asterwise_get_western_composite"):
@@ -619,7 +620,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_compatibility",
         title="Western Compatibility",
-        description=(
+        description=compact_description("asterwise_get_western_compatibility", (
             "Overall compatibility score (0–100) between two natal charts. Scores element affinity, "
             "synastry aspects between personal planets (Sun, Moon, Venus, Mars), and Sun/Moon/rising "
             "sign comparisons.\n\n"
@@ -655,7 +656,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_synastry — raw aspects, no score.\n"
             "asterwise_get_western_zodiac_compatibility — sign-only, no birth data."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -665,7 +666,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         person1: WesternBirthData,
         person2: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Western compatibility score (0-100)."""
         async with tool_guard("asterwise_get_western_compatibility"):
@@ -684,7 +685,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_zodiac_compatibility",
         title="Western Zodiac Compatibility",
-        description=(
+        description=compact_description("asterwise_get_western_zodiac_compatibility", (
             "Sign-to-sign compatibility without birth data. Based on element and modality affinity. "
             "Fast — no ephemeris calculation required.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -714,7 +715,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_compatibility — requires full birth data, more accurate.\n"
             "asterwise_get_western_synastry — aspect geometry between two full charts."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -724,7 +725,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         sign1: str,
         sign2: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Zodiac sign-to-sign compatibility."""
         async with tool_guard("asterwise_get_western_zodiac_compatibility"):
@@ -744,7 +745,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_solar_return",
         title="Western Solar Return",
-        description=(
+        description=compact_description("asterwise_get_western_solar_return", (
             "Solar return chart for a given year. Finds the exact moment the Sun returns to its natal "
             "tropical longitude and builds a complete Western natal chart for that moment at the birth "
             "location. Provide the year as an integer (e.g. 2026).\n\n"
@@ -779,7 +780,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_lunar_return — Moon return, ~monthly.\n"
             "asterwise_get_varshaphal — Vedic Tajika solar return — different system."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -789,7 +790,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         birth: WesternBirthData,
         year: int,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Western solar return chart."""
         async with tool_guard("asterwise_get_western_solar_return"):
@@ -805,7 +806,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_lunar_return",
         title="Western Lunar Return",
-        description=(
+        description=compact_description("asterwise_get_western_lunar_return", (
             "Next lunar return chart after a given date. Finds the next moment the Moon returns to its "
             "natal tropical longitude (approximately every 27.3 days) and builds a complete Western "
             "natal chart for that moment at the birth location.\n\n"
@@ -834,7 +835,7 @@ def register(mcp: FastMCP) -> None:
             "returns the next return from today.\n\n"
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_solar_return — annual Sun return vs lunar_return (monthly Moon return)."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -843,7 +844,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_lunar_return(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         after_date: str | None = None,
     ) -> str:
         """Western lunar return chart."""
@@ -862,7 +863,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_planetary_return",
         title="Western Planetary Return",
-        description=(
+        description=compact_description("asterwise_get_western_planetary_return", (
             "Next return chart for any planet after a given date. Finds the exact moment the specified "
             "planet returns to its natal tropical longitude and builds a complete Western natal chart "
             "for that moment at the birth location.\n\n"
@@ -895,7 +896,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_solar_return — Sun-only shortcut.\n"
             "asterwise_get_western_lunar_return — Moon-only shortcut."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -905,7 +906,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         birth: WesternBirthData,
         planet: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         after_date: str | None = None,
     ) -> str:
         """Western planetary return chart."""
@@ -935,7 +936,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_secondary_progressions",
         title="Western Secondary Progressions",
-        description=(
+        description=compact_description("asterwise_get_western_secondary_progressions", (
             "Secondary progressed chart using the day-for-a-year method. Each day after birth "
             "symbolises one year of life (1 ephemeris day = 1 tropical year = 365.2421904 days). "
             "Returns all 10 progressed planet positions, progressed Ascendant and MC, and the solar arc.\n\n"
@@ -970,7 +971,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_solar_arc — all planets move by one uniform arc.\n"
             "asterwise_get_western_transits_daily — real-time sky, not symbolic progression."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -979,7 +980,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_secondary_progressions(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: str | None = None,
     ) -> str:
         """Secondary progressed chart (day-for-a-year)."""
@@ -999,7 +1000,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_western_solar_arc",
         title="Western Solar Arc",
-        description=(
+        description=compact_description("asterwise_get_western_solar_arc", (
             "Solar Arc Directions for a target date. The solar arc (progressed Sun minus natal Sun) is "
             "applied uniformly to every natal planet and angle — approximately 1° per year. Unlike "
             "secondary progressions, all planets advance at the same rate.\n\n"
@@ -1033,7 +1034,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_western_secondary_progressions — each planet moves at its own rate.\n"
             "asterwise_get_western_transits_daily — real-time transits, not arc directions."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -1042,7 +1043,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_solar_arc(
         ctx: Context,
         birth: WesternBirthData,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: str | None = None,
     ) -> str:
         """Solar Arc Directions."""

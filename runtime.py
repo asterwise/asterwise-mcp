@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import logging
 from collections.abc import Callable
 from typing import Any, NoReturn
@@ -113,6 +114,41 @@ def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
     tool_error(
         f"Unexpected error in {tool_name}. Retry the request or check status.asterwise.com."
     )
+
+
+# Full tool descriptions (with output/error contracts) are kept here for the
+# docs exporter; the description sent to MCP clients is the compact form.
+FULL_TOOL_DESCRIPTIONS: dict[str, str] = {}
+
+_KEEP_SECTIONS = ("WORKFLOW", "INPUT CONTRACT", "DO NOT CONFUSE WITH")
+TOOL_DOCS_BASE_URL = "https://docs.asterwise.com/mcp/tools/"
+
+
+def tool_doc_url(tool_name: str) -> str:
+    return f"{TOOL_DOCS_BASE_URL}{tool_name.removeprefix('asterwise_').replace('_', '-')}/"
+
+
+def compact_description(tool_name: str, full: str) -> str:
+    """
+    Reduce a tool description to what an agent needs to choose and call the
+    tool: the lead paragraph, what it covers, workflow, input contract and the
+    disambiguation list. The output contract, error contract, response-format
+    boilerplate and compute class move to the per-tool docs page, which the
+    description links to. The full text is retained in FULL_TOOL_DESCRIPTIONS
+    for scripts/export_tool_docs.py.
+    """
+    FULL_TOOL_DESCRIPTIONS[tool_name] = full
+    # Section headers are "SECTION: NAME" and may carry a parenthetical
+    # qualifier, e.g. "SECTION: OUTPUT CONTRACT (single date)".
+    parts = re.split(r"\n\s*SECTION: ([A-Z][A-Z ]*(?:\([^)\n]*\))?)\s*\n", "\n\n" + full)
+    lead = parts[0].strip()
+    kept: list[str] = [lead] if lead else []
+    for i in range(1, len(parts) - 1, 2):
+        title, body = parts[i].strip(), parts[i + 1].strip()
+        if title.split(" (")[0] in _KEEP_SECTIONS and body:
+            kept.append(f"{title}: {body}")
+    kept.append(f"Full output and error contract: {tool_doc_url(tool_name)}")
+    return "\n\n".join(kept)
 
 
 class _ToolGuard:

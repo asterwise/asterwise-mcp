@@ -39,62 +39,38 @@ class BirthData(BaseModel):
 
     date: str = Field(
         ...,
-        description=(
-            "Birth date in YYYY-MM-DD format. Example: '1985-11-12'"
-        ),
+        description="Birth date YYYY-MM-DD.",
         pattern=r"^\d{4}-\d{2}-\d{2}$",
     )
     time: str | None = Field(
         default=None,
         description=(
-            "Birth time in HH:MM 24-hour format. Example: '06:45'. Omit entirely if "
-            "the birth time is unknown: a sunrise chart is used and "
-            "birth_time_provided returns false. Do not pass '00:00' for an unknown "
-            "time, it is treated as a real midnight birth and returns a confidently "
-            "wrong ascendant."
+            "Birth time HH:MM (24h), e.g. '06:45'. Omit if unknown (a sunrise chart is "
+            "used and birth_time_provided=false); never pass '00:00' for unknown."
         ),
         pattern=r"^\d{2}:\d{2}$",
     )
     lat: float = Field(
         ...,
-        description=(
-            "Birth latitude in decimal degrees. North positive, south negative. "
-            "Example: 19.0760 for Mumbai, -33.8688 for Sydney"
-        ),
+        description="Latitude in decimal degrees, north positive (Mumbai 19.076).",
         ge=-90.0,
         le=90.0,
     )
     lon: float = Field(
         ...,
-        description=(
-            "Birth longitude in decimal degrees. East positive, west negative. "
-            "Example: 72.8777 for Mumbai, -74.0060 for New York"
-        ),
+        description="Longitude in decimal degrees, east positive (Mumbai 72.8777).",
         ge=-180.0,
         le=180.0,
     )
     person_name: str = Field(
         default="Chart",
-        description=(
-            "Name of the person for this chart. "
-            "Example: 'Arjun Mehta'"
-        ),
+        description="Person's name, used in labels only.",
     )
     timezone: str = Field(
         default="Asia/Kolkata",
         description=(
-            "IANA timezone for the birth location. "
-            "Examples: 'Asia/Kolkata' (India), "
-            "'America/New_York' (New York), "
-            "'Europe/London' (London), "
-            "'Asia/Tokyo' (Japan), "
-            "'America/Los_Angeles' (Los Angeles), "
-            "'Europe/Paris' (Paris), "
-            "'Asia/Dubai' (Dubai), "
-            "'Asia/Singapore' (Singapore), "
-            "'America/Chicago' (Chicago), "
-            "'Australia/Sydney' (Sydney). "
-            "Default: Asia/Kolkata"
+            "IANA timezone of the birth place, e.g. 'Asia/Kolkata', 'America/New_York', "
+            "'Europe/London'. Default: Asia/Kolkata"
         ),
     )
     ayanamsa: AyanamsaType = Field(
