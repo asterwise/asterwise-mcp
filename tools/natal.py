@@ -6,13 +6,10 @@ from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client, safe_segment
-from errors import AsterwiseMCPError
 from models import (
     BirthData,
     DivisionalChartType,
@@ -21,13 +18,10 @@ from models import (
     prashna_dict,
 )
 from runtime import (
+    tool_guard,
     format_tool_result,
-    invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -85,7 +79,7 @@ def register(mcp: FastMCP) -> None:
         include_interpretation: bool = False,
     ) -> str:
         """Compute full natal chart from classical calculations."""
-        try:
+        async with tool_guard("asterwise_get_natal_chart"):
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "include_interpretation": include_interpretation}
             data = await get_client().post(
@@ -97,15 +91,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 _natal_table_md,
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_natal_chart", exc)
-
     @mcp.tool(
         name="asterwise_get_divisional_chart",
         title="Divisional Chart",
@@ -124,7 +109,7 @@ def register(mcp: FastMCP) -> None:
         chart_type: Optional[DivisionalChartType] = None,
     ) -> str:
         """Compute divisional (varga) chart."""
-        try:
+        async with tool_guard("asterwise_get_divisional_chart"):
             api_key = await require_api_key(ctx)
             body = {
                 **birth.to_api_dict(),
@@ -141,15 +126,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(title, d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_divisional_chart", exc)
-
     @mcp.tool(
         name="asterwise_get_chart_strength",
         title="Chart Strength",
@@ -167,7 +143,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Shadbala and Bhavbala."""
-        try:
+        async with tool_guard("asterwise_get_chart_strength"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/strength", api_key, birth.to_api_dict(),
                 timeout=20.0)
@@ -176,15 +152,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Chart strength (Shadbala / Bhavbala)", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_chart_strength", exc)
-
     @mcp.tool(
         name="asterwise_get_special_ascendants",
         title="Special Ascendants",
@@ -202,7 +169,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Atmakaraka and Ishta Devata (two API calls)."""
-        try:
+        async with tool_guard("asterwise_get_special_ascendants"):
             api_key = await require_api_key(ctx)
             bd = birth.to_api_dict()
             atm = await get_client().post("/v1/astro/atmakaraka", api_key, bd, timeout=20.0)
@@ -223,15 +190,6 @@ def register(mcp: FastMCP) -> None:
                 return "\n".join(parts)
 
             return format_tool_result(merged, response_format, _md)
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_special_ascendants", exc)
-
     @mcp.tool(
         name="asterwise_get_nakshatra_details",
         title="Nakshatra Details",
@@ -249,7 +207,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Nakshatra reference details."""
-        try:
+        async with tool_guard("asterwise_get_nakshatra_details"):
             api_key = await require_api_key(ctx)
             path = f"/v1/astro/nakshatra/{safe_segment(nakshatra_name)}"
             data = await get_client().get(path, api_key, timeout=20.0)
@@ -258,15 +216,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Nakshatra: {nakshatra_name}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_nakshatra_details", exc)
-
     @mcp.tool(
         name="asterwise_check_sade_sati",
         title="Sade Sati",
@@ -284,7 +233,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Sade Sati check."""
-        try:
+        async with tool_guard("asterwise_check_sade_sati"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/sade-sati", api_key, birth.to_api_dict(),
                 timeout=20.0)
@@ -293,15 +242,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Sade Sati", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_check_sade_sati", exc)
-
     @mcp.tool(
         name="asterwise_get_prashna_chart",
         title="Prashna Chart",
@@ -318,7 +258,7 @@ def register(mcp: FastMCP) -> None:
         prashna: PrashnaInput
     ) -> str:
         """Prashna horary chart."""
-        try:
+        async with tool_guard("asterwise_get_prashna_chart"):
             api_key = await require_api_key(ctx)
             rf = prashna.response_format
             data = await get_client().post(
@@ -330,15 +270,6 @@ def register(mcp: FastMCP) -> None:
                 rf,
                 lambda d: structured_markdown("Prashna chart", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_prashna_chart", exc)
-
     @mcp.tool(
         name="asterwise_get_lal_kitab_chart",
         title="Lal Kitab Chart",
@@ -356,7 +287,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Lal Kitab chart."""
-        try:
+        async with tool_guard("asterwise_get_lal_kitab_chart"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/lal-kitab/chart", api_key, birth.to_api_dict(),
@@ -367,15 +298,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lal Kitab chart", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_lal_kitab_chart", exc)
-
     @mcp.tool(
         name="asterwise_get_lal_kitab_remedies",
         title="Lal Kitab Remedies",
@@ -393,7 +315,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Lal Kitab remedies."""
-        try:
+        async with tool_guard("asterwise_get_lal_kitab_remedies"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/lal-kitab/remedies", api_key, birth.to_api_dict(),
@@ -404,15 +326,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lal Kitab remedies", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_lal_kitab_remedies", exc)
-
     @mcp.tool(
         name="asterwise_get_kp_chart",
         title="KP Chart",
@@ -430,7 +343,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """KP chart."""
-        try:
+        async with tool_guard("asterwise_get_kp_chart"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/kp/chart", api_key, birth.to_api_dict(),
                 timeout=20.0)
@@ -439,15 +352,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("KP chart", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_kp_chart", exc)
-
     @mcp.tool(
         name="asterwise_get_kp_significators",
         title="KP Significators",
@@ -466,7 +370,7 @@ def register(mcp: FastMCP) -> None:
         house_number: int | None = None
     ) -> str:
         """KP significators."""
-        try:
+        async with tool_guard("asterwise_get_kp_significators"):
             api_key = await require_api_key(ctx)
             body: dict[str, Any] = birth.to_api_dict()
             if house_number is not None:
@@ -477,15 +381,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("KP significators", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_kp_significators", exc)
-
     @mcp.tool(
         name="asterwise_get_kp_ruling_planets",
         title="KP Ruling Planets",
@@ -504,7 +399,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """KP ruling planets (time/location)."""
-        try:
+        async with tool_guard("asterwise_get_kp_ruling_planets"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/kp/ruling-planets",
@@ -517,15 +412,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("KP ruling planets", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_kp_ruling_planets", exc)
-
     @mcp.tool(
         name="asterwise_get_ashtakavarga",
         title="Ashtakavarga",
@@ -543,7 +429,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Ashtakavarga."""
-        try:
+        async with tool_guard("asterwise_get_ashtakavarga"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/ashtakavarga", api_key, birth.to_api_dict(),
                 timeout=20.0)
@@ -552,11 +438,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Ashtakavarga", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_ashtakavarga", exc)

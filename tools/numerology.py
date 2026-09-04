@@ -4,22 +4,17 @@ from __future__ import annotations
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client, safe_segment
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -42,7 +37,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Pythagorean profile."""
-        try:
+        async with tool_guard("asterwise_get_numerology_profile"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/profile",
@@ -54,15 +49,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Numerology profile", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_numerology_profile", exc)
-
     @mcp.tool(
         name="asterwise_get_numerology_compatibility",
         title="Numerology Compatibility",
@@ -83,7 +69,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Two-person numerology compatibility."""
-        try:
+        async with tool_guard("asterwise_get_numerology_compatibility"):
             api_key = await require_api_key(ctx)
             body = {
                 "person1_name": person1_name,
@@ -97,15 +83,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Numerology compatibility", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_numerology_compatibility", exc)
-
     @mcp.tool(
         name="asterwise_get_chaldean_numerology",
         title="Chaldean Numerology",
@@ -124,7 +101,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Chaldean chart."""
-        try:
+        async with tool_guard("asterwise_get_chaldean_numerology"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/chaldean",
@@ -136,15 +113,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Chaldean numerology", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_chaldean_numerology", exc)
-
     @mcp.tool(
         name="asterwise_get_lo_shu_grid",
         title="Lo Shu Grid",
@@ -162,7 +130,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Lo Shu grid."""
-        try:
+        async with tool_guard("asterwise_get_lo_shu_grid"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/lo-shu",
@@ -174,15 +142,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lo Shu grid", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_lo_shu_grid", exc)
-
     @mcp.tool(
         name="asterwise_get_name_correction",
         title="Name Correction",
@@ -201,7 +160,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Name correction."""
-        try:
+        async with tool_guard("asterwise_get_name_correction"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/name-correction",
@@ -213,15 +172,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Name correction", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_name_correction", exc)
-
     @mcp.tool(
         name="asterwise_get_lucky_numbers",
         title="Lucky Numbers",
@@ -240,7 +190,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Lucky numbers."""
-        try:
+        async with tool_guard("asterwise_get_lucky_numbers"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/lucky-numbers",
@@ -252,15 +202,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Lucky numbers", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_lucky_numbers", exc)
-
     @mcp.tool(
         name="asterwise_get_personal_year",
         title="Personal Year",
@@ -279,7 +220,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Personal year."""
-        try:
+        async with tool_guard("asterwise_get_personal_year"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/personal-year",
@@ -291,15 +232,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Personal year", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_personal_year", exc)
-
     @mcp.tool(
         name="asterwise_get_number_meaning",
         title="Number Meaning",
@@ -317,7 +249,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Number dictionary entry."""
-        try:
+        async with tool_guard("asterwise_get_number_meaning"):
             if number < 1 or number > 33:
                 invalid_params(
                     "number must be between 1 and 33 (including master numbers 11, 22, 33)."
@@ -332,15 +264,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Meaning of {number}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_number_meaning", exc)
-
     @mcp.tool(
         name="asterwise_check_mobile_number",
         title="Mobile Number Check",
@@ -360,7 +283,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Mobile number check."""
-        try:
+        async with tool_guard("asterwise_check_mobile_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/mobile-number",
@@ -372,15 +295,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Mobile number analysis", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_check_mobile_number", exc)
-
     @mcp.tool(
         name="asterwise_check_vehicle_number",
         title="Vehicle Number Check",
@@ -400,7 +314,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Vehicle number check."""
-        try:
+        async with tool_guard("asterwise_check_vehicle_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/vehicle-number",
@@ -412,15 +326,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Vehicle number analysis", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_check_vehicle_number", exc)
-
     @mcp.tool(
         name="asterwise_get_business_name_analysis",
         title="Business Name Analysis",
@@ -439,7 +344,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Business name."""
-        try:
+        async with tool_guard("asterwise_get_business_name_analysis"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/numerology/business-name",
@@ -451,11 +356,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Business name analysis", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_business_name_analysis", exc)

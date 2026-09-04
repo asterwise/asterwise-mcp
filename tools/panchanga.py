@@ -6,22 +6,16 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import LocationInput, PanchangaCalendarInput
 from runtime import (
+    tool_guard,
     format_tool_result,
-    invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -42,7 +36,7 @@ def register(mcp: FastMCP) -> None:
         location: LocationInput
     ) -> str:
         """Daily Panchanga."""
-        try:
+        async with tool_guard("asterwise_get_panchanga"):
             api_key = await require_api_key(ctx)
             body = {
                 "date": location.date,
@@ -57,15 +51,6 @@ def register(mcp: FastMCP) -> None:
                 rf,
                 lambda d: structured_markdown("Panchanga", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_panchanga", exc)
-
     @mcp.tool(
         name="asterwise_get_choghadiya",
         title="Choghadiya",
@@ -82,7 +67,7 @@ def register(mcp: FastMCP) -> None:
         location: LocationInput
     ) -> str:
         """Choghadiya."""
-        try:
+        async with tool_guard("asterwise_get_choghadiya"):
             api_key = await require_api_key(ctx)
             body = {
                 "date": location.date,
@@ -97,15 +82,6 @@ def register(mcp: FastMCP) -> None:
                 rf,
                 lambda d: structured_markdown("Choghadiya", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_choghadiya", exc)
-
     @mcp.tool(
         name="asterwise_get_hora",
         title="Hora",
@@ -122,7 +98,7 @@ def register(mcp: FastMCP) -> None:
         location: LocationInput
     ) -> str:
         """Hora table."""
-        try:
+        async with tool_guard("asterwise_get_hora"):
             api_key = await require_api_key(ctx)
             body = {
                 "date": location.date,
@@ -137,15 +113,6 @@ def register(mcp: FastMCP) -> None:
                 rf,
                 lambda d: structured_markdown("Hora", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_hora", exc)
-
     @mcp.tool(
         name="asterwise_get_rahu_kaal",
         title="Rahu Kaal",
@@ -162,7 +129,7 @@ def register(mcp: FastMCP) -> None:
         location: LocationInput
     ) -> str:
         """Rahu Kaal."""
-        try:
+        async with tool_guard("asterwise_get_rahu_kaal"):
             api_key = await require_api_key(ctx)
             body = {
                 "date": location.date,
@@ -177,15 +144,6 @@ def register(mcp: FastMCP) -> None:
                 rf,
                 lambda d: structured_markdown("Rahu Kaal", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_rahu_kaal", exc)
-
     @mcp.tool(
         name="asterwise_get_muhurta",
         title="Muhurta",
@@ -205,7 +163,7 @@ def register(mcp: FastMCP) -> None:
         to_date: str,
     ) -> str:
         """Activity-specific muhurta."""
-        try:
+        async with tool_guard("asterwise_get_muhurta"):
             api_key = await require_api_key(ctx)
             body = {
                 "event_type": activity,
@@ -222,15 +180,6 @@ def register(mcp: FastMCP) -> None:
                 rf,
                 lambda d: structured_markdown(f"Muhurta — {activity}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_muhurta", exc)
-
     @mcp.tool(
         name="asterwise_get_panchanga_calendar",
         title="Panchanga Calendar",
@@ -247,7 +196,7 @@ def register(mcp: FastMCP) -> None:
         calendar: PanchangaCalendarInput
     ) -> str:
         """Panchanga calendar month."""
-        try:
+        async with tool_guard("asterwise_get_panchanga_calendar"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {
                 "year": calendar.year,
@@ -266,11 +215,3 @@ def register(mcp: FastMCP) -> None:
                     f"Panchanga calendar {calendar.year}-{calendar.month:02d}", d
                 ),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_panchanga_calendar", exc)

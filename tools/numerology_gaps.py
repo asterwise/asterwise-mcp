@@ -4,20 +4,15 @@ balance, karmic lessons, personal cycles."""
 from __future__ import annotations
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -81,7 +76,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Expression (Destiny) number from name."""
-        try:
+        async with tool_guard("asterwise_get_expression_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/expression", api_key, {"name": name}
@@ -90,15 +85,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Expression number", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_expression_number", exc)
-
     @mcp.tool(
         name="asterwise_get_soul_urge_number",
         title="Soul Urge Number",
@@ -146,7 +132,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Soul Urge number from vowels."""
-        try:
+        async with tool_guard("asterwise_get_soul_urge_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/soul-urge", api_key, {"name": name}
@@ -155,15 +141,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Soul Urge number", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_soul_urge_number", exc)
-
     @mcp.tool(
         name="asterwise_get_personality_number",
         title="Personality Number",
@@ -208,7 +185,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Personality number from consonants."""
-        try:
+        async with tool_guard("asterwise_get_personality_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/personality", api_key, {"name": name}
@@ -217,15 +194,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Personality number", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_personality_number", exc)
-
     @mcp.tool(
         name="asterwise_get_maturity_number",
         title="Maturity Number",
@@ -273,7 +241,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Maturity number (Life Path + Expression)."""
-        try:
+        async with tool_guard("asterwise_get_maturity_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/maturity", api_key, {"name": name, "date": date}
@@ -282,15 +250,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Maturity number", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_maturity_number", exc)
-
     @mcp.tool(
         name="asterwise_get_balance_number",
         title="Balance Number",
@@ -337,7 +296,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Balance number from initials."""
-        try:
+        async with tool_guard("asterwise_get_balance_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/balance", api_key, {"name": name}
@@ -346,15 +305,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Balance number", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_balance_number", exc)
-
     @mcp.tool(
         name="asterwise_get_karmic_lessons",
         title="Karmic Lessons",
@@ -403,7 +353,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Karmic lessons from name."""
-        try:
+        async with tool_guard("asterwise_get_karmic_lessons"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/numerology/karmic-lessons", api_key, {"name": name}
@@ -412,15 +362,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Karmic lessons", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_karmic_lessons", exc)
-
     @mcp.tool(
         name="asterwise_get_personal_cycles",
         title="Personal Cycles",
@@ -484,7 +425,7 @@ def register(mcp: FastMCP) -> None:
         day: int | None = None,
     ) -> str:
         """Personal Year, Month, and Day cycles."""
-        try:
+        async with tool_guard("asterwise_get_personal_cycles"):
             api_key = await require_api_key(ctx)
             body: dict = {"date": date}
             if year is not None:
@@ -500,11 +441,3 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Personal cycles", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_personal_cycles", exc)

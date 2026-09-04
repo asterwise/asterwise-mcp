@@ -5,21 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import ResponseFormat, WesternBirthData
 from runtime import (
+    tool_guard,
     format_tool_result,
     invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -120,7 +115,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Western tropical natal chart."""
-        try:
+        async with tool_guard("asterwise_get_western_natal"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/western/natal", api_key, birth.to_api_dict(), timeout=20.0
@@ -129,15 +124,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Western natal chart", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_natal", exc)
-
     # ─── Moon Phase ───────────────────────────────────────────────
 
     @mcp.tool(
@@ -193,7 +179,7 @@ def register(mcp: FastMCP) -> None:
         date: str | None = None,
     ) -> str:
         """Western moon phase for a date."""
-        try:
+        async with tool_guard("asterwise_get_western_moon_phase"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
             if date:
@@ -205,15 +191,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Moon phase", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_moon_phase", exc)
-
     # ─── Moon Calendar ────────────────────────────────────────────
 
     @mcp.tool(
@@ -261,7 +238,7 @@ def register(mcp: FastMCP) -> None:
         month: int | None = None,
     ) -> str:
         """Monthly moon phase calendar."""
-        try:
+        async with tool_guard("asterwise_get_western_moon_calendar"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] = {}
             if year:
@@ -277,15 +254,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Moon phase calendar", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_moon_calendar", exc)
-
     # ─── Aspects ──────────────────────────────────────────────────
 
     @mcp.tool(
@@ -340,7 +308,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Western aspect grid from raw positions."""
-        try:
+        async with tool_guard("asterwise_get_western_aspects"):
             api_key = await require_api_key(ctx)
             if len(positions) < 2:
                 invalid_params(
@@ -354,15 +322,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Western aspects", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_aspects", exc)
-
     # ─── Transits ─────────────────────────────────────────────────
 
     @mcp.tool(
@@ -414,7 +373,7 @@ def register(mcp: FastMCP) -> None:
         start_date: str | None = None,
     ) -> str:
         """Daily Western transits vs natal."""
-        try:
+        async with tool_guard("asterwise_get_western_transits_daily"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict_no_house()
             if start_date:
@@ -426,15 +385,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Daily transits", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_transits_daily", exc)
-
     @mcp.tool(
         name="asterwise_get_western_transits_weekly",
         title="Western Weekly Transits",
@@ -480,7 +430,7 @@ def register(mcp: FastMCP) -> None:
         start_date: str | None = None,
     ) -> str:
         """Weekly Western transits vs natal."""
-        try:
+        async with tool_guard("asterwise_get_western_transits_weekly"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict_no_house()
             if start_date:
@@ -492,15 +442,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Weekly transits", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_transits_weekly", exc)
-
     @mcp.tool(
         name="asterwise_get_western_transits_monthly",
         title="Western Monthly Transits",
@@ -548,7 +489,7 @@ def register(mcp: FastMCP) -> None:
         start_date: str | None = None,
     ) -> str:
         """Monthly Western transits vs natal."""
-        try:
+        async with tool_guard("asterwise_get_western_transits_monthly"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict_no_house()
             if start_date:
@@ -560,15 +501,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Monthly transits", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_transits_monthly", exc)
-
     # ─── Synastry & Compatibility ─────────────────────────────────
 
     @mcp.tool(
@@ -614,7 +546,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Western synastry aspect grid."""
-        try:
+        async with tool_guard("asterwise_get_western_synastry"):
             api_key = await require_api_key(ctx)
             body = {
                 "person1": person1.to_api_dict_no_house(),
@@ -627,15 +559,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Western synastry", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_synastry", exc)
-
     @mcp.tool(
         name="asterwise_get_western_composite",
         title="Western Composite",
@@ -680,7 +603,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Western composite midpoint chart."""
-        try:
+        async with tool_guard("asterwise_get_western_composite"):
             api_key = await require_api_key(ctx)
             body = {
                 "person1": person1.to_api_dict_no_house(),
@@ -693,15 +616,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Composite chart", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_composite", exc)
-
     @mcp.tool(
         name="asterwise_get_western_compatibility",
         title="Western Compatibility",
@@ -754,7 +668,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Western compatibility score (0-100)."""
-        try:
+        async with tool_guard("asterwise_get_western_compatibility"):
             api_key = await require_api_key(ctx)
             body = {
                 "person1": person1.to_api_dict_no_house(),
@@ -767,15 +681,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Western compatibility", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_compatibility", exc)
-
     @mcp.tool(
         name="asterwise_get_western_zodiac_compatibility",
         title="Western Zodiac Compatibility",
@@ -822,7 +727,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Zodiac sign-to-sign compatibility."""
-        try:
+        async with tool_guard("asterwise_get_western_zodiac_compatibility"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 "/v1/western/compatibility/zodiac", api_key,
@@ -834,15 +739,6 @@ def register(mcp: FastMCP) -> None:
                     f"Zodiac compatibility: {sign1} + {sign2}", d
                 ),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_zodiac_compatibility", exc)
-
     # ─── Returns ──────────────────────────────────────────────────
 
     @mcp.tool(
@@ -896,7 +792,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Western solar return chart."""
-        try:
+        async with tool_guard("asterwise_get_western_solar_return"):
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict_no_house(), "year": year}
             data = await get_client().post(
@@ -906,15 +802,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(f"Solar return {year}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_solar_return", exc)
-
     @mcp.tool(
         name="asterwise_get_western_lunar_return",
         title="Western Lunar Return",
@@ -960,7 +847,7 @@ def register(mcp: FastMCP) -> None:
         after_date: str | None = None,
     ) -> str:
         """Western lunar return chart."""
-        try:
+        async with tool_guard("asterwise_get_western_lunar_return"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict_no_house()
             if after_date:
@@ -972,15 +859,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Lunar return", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_lunar_return", exc)
-
     @mcp.tool(
         name="asterwise_get_western_planetary_return",
         title="Western Planetary Return",
@@ -1031,7 +909,7 @@ def register(mcp: FastMCP) -> None:
         after_date: str | None = None,
     ) -> str:
         """Western planetary return chart."""
-        try:
+        async with tool_guard("asterwise_get_western_planetary_return"):
             api_key = await require_api_key(ctx)
             valid_planets = {
                 "Sun", "Moon", "Mercury", "Venus", "Mars",
@@ -1052,15 +930,6 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown(f"{planet} return", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_planetary_return", exc)
-
     # ─── Progressions ─────────────────────────────────────────────
 
     @mcp.tool(
@@ -1114,7 +983,7 @@ def register(mcp: FastMCP) -> None:
         target_date: str | None = None,
     ) -> str:
         """Secondary progressed chart (day-for-a-year)."""
-        try:
+        async with tool_guard("asterwise_get_western_secondary_progressions"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict_no_house()
             if target_date:
@@ -1125,16 +994,6 @@ def register(mcp: FastMCP) -> None:
             return format_tool_result(
                 data, response_format,
                 lambda d: structured_markdown("Secondary progressions", d),
-            )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error(
-                "asterwise_get_western_secondary_progressions", exc
             )
 
     @mcp.tool(
@@ -1187,7 +1046,7 @@ def register(mcp: FastMCP) -> None:
         target_date: str | None = None,
     ) -> str:
         """Solar Arc Directions."""
-        try:
+        async with tool_guard("asterwise_get_western_solar_arc"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict_no_house()
             if target_date:
@@ -1199,11 +1058,3 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Solar Arc directions", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_western_solar_arc", exc)

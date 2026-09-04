@@ -5,20 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client, safe_segment
-from errors import AsterwiseMCPError
 from models import ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -41,7 +36,7 @@ def register(mcp: FastMCP) -> None:
         category: str | None = None,
     ) -> str:
         """Get dream symbol database."""
-        try:
+        async with tool_guard("asterwise_get_dream_symbols"):
             api_key = await require_api_key(ctx)
             params: dict[str, Any] | None = None
             if category:
@@ -54,15 +49,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Dream Symbols", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_dream_symbols", exc)
-
     @mcp.tool(
         name="asterwise_get_dream_symbol",
         title="Dream Symbol",
@@ -80,7 +66,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Lookup a specific dream symbol."""
-        try:
+        async with tool_guard("asterwise_get_dream_symbol"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 f"/v1/dreams/symbol/{safe_segment(name)}",
@@ -92,11 +78,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Dream Symbol: {name}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_dream_symbol", exc)

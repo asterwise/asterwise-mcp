@@ -6,22 +6,16 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
-    invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -73,7 +67,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Ashtakoota with vetoes."""
-        try:
+        async with tool_guard("asterwise_get_compatibility"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking",
@@ -82,15 +76,6 @@ def register(mcp: FastMCP) -> None:
                 timeout=20.0,
             )
             return format_tool_result(data, response_format, _ashtakoota_md)
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_compatibility", exc)
-
     @mcp.tool(
         name="asterwise_get_dashakoot",
         title="Dashakoot",
@@ -109,7 +94,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Dashakoot."""
-        try:
+        async with tool_guard("asterwise_get_dashakoot"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/dashakoot",
@@ -122,15 +107,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Dashakoot", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_dashakoot", exc)
-
     @mcp.tool(
         name="asterwise_get_papasamyam",
         title="Papasamyam",
@@ -149,7 +125,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Papa Samyam."""
-        try:
+        async with tool_guard("asterwise_get_papasamyam"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/papasamyam",
@@ -162,15 +138,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Papa Samyam", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_papasamyam", exc)
-
     @mcp.tool(
         name="asterwise_get_porutham",
         title="Porutham",
@@ -189,7 +156,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Tamil Porutham."""
-        try:
+        async with tool_guard("asterwise_get_porutham"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/porutham",
@@ -202,15 +169,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Porutham", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_porutham", exc)
-
     @mcp.tool(
         name="asterwise_get_thirumana_porutham",
         title="Thirumana Porutham",
@@ -229,7 +187,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Thirumana Porutham."""
-        try:
+        async with tool_guard("asterwise_get_thirumana_porutham"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/matchmaking/thirumana-porutham",
@@ -242,11 +200,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Thirumana Porutham", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_thirumana_porutham", exc)

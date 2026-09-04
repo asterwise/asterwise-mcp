@@ -6,22 +6,17 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 
-from mcp.shared.exceptions import McpError
 
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client
-from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     invalid_params,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -72,22 +67,13 @@ def register(mcp: FastMCP) -> None:
         levels: int = 3
     ) -> str:
         """Vimshottari Dasha up to five levels."""
-        try:
+        async with tool_guard("asterwise_get_dasha"):
             if levels < 1 or levels > 5:
                 invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "levels": levels}
             data = await get_client().post("/v1/astro/dasha", api_key, body, timeout=20.0)
             return format_tool_result(data, response_format, _dasha_tree_md)
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_dasha", exc)
-
     @mcp.tool(
         name="asterwise_get_dasha_transits",
         title="Dasha Transits",
@@ -105,7 +91,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Dasha-period transits."""
-        try:
+        async with tool_guard("asterwise_get_dasha_transits"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
                 "/v1/astro/dasha-transits", api_key, birth.to_api_dict(),
@@ -116,15 +102,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Dasha transits", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_dasha_transits", exc)
-
     @mcp.tool(
         name="asterwise_get_char_dasha",
         title="Char Dasha",
@@ -142,7 +119,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Char Dasha."""
-        try:
+        async with tool_guard("asterwise_get_char_dasha"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/char-dasha", api_key, birth.to_api_dict(),
                 timeout=20.0)
@@ -151,15 +128,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Char Dasha", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_char_dasha", exc)
-
     @mcp.tool(
         name="asterwise_get_yogini_dasha",
         title="Yogini Dasha",
@@ -177,7 +145,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat
     ) -> str:
         """Yogini Dasha."""
-        try:
+        async with tool_guard("asterwise_get_yogini_dasha"):
             api_key = await require_api_key(ctx)
             data = await get_client().post("/v1/astro/yogini", api_key, birth.to_api_dict(),
                 timeout=20.0)
@@ -186,15 +154,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Yogini Dasha", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_yogini_dasha", exc)
-
     @mcp.tool(
         name="asterwise_get_ashtottari_dasha",
         title="Ashtottari Dasha",
@@ -213,7 +172,7 @@ def register(mcp: FastMCP) -> None:
         levels: int = 3,
     ) -> str:
         """Ashtottari Dasha."""
-        try:
+        async with tool_guard("asterwise_get_ashtottari_dasha"):
             if levels < 1 or levels > 5:
                 invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key(ctx)
@@ -226,11 +185,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Ashtottari Dasha", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_ashtottari_dasha", exc)

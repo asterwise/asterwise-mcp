@@ -5,20 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from fastmcp import Context, FastMCP
-from mcp.shared.exceptions import McpError
 import mcp.types as mcp_types
-from pydantic import ValidationError
 
 from client import get_client, safe_segment
-from errors import AsterwiseMCPError
 from models import BirthData, ResponseFormat
 from runtime import (
+    tool_guard,
     format_tool_result,
     require_api_key,
     structured_markdown,
-    tool_error,
-    raise_validation_error,
-    unexpected_tool_error,
 )
 
 
@@ -40,7 +35,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Get complete crystal database."""
-        try:
+        async with tool_guard("asterwise_get_crystals"):
             api_key = await require_api_key(ctx)
             data = await get_client().get("/v1/crystals", api_key, timeout=15.0)
             return format_tool_result(
@@ -48,15 +43,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Crystal Database", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_crystals", exc)
-
     @mcp.tool(
         name="asterwise_get_crystal",
         title="Crystal Lookup",
@@ -74,7 +60,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Lookup a specific crystal by slug or name."""
-        try:
+        async with tool_guard("asterwise_get_crystal"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 f"/v1/crystals/{safe_segment(name)}",
@@ -86,15 +72,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Crystal: {name}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_crystal", exc)
-
     @mcp.tool(
         name="asterwise_get_crystal_by_planet",
         title="Crystals by Planet",
@@ -112,7 +89,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Get crystals associated with a Vedic planet."""
-        try:
+        async with tool_guard("asterwise_get_crystal_by_planet"):
             api_key = await require_api_key(ctx)
             data = await get_client().get(
                 f"/v1/crystals/by-planet/{safe_segment(planet)}",
@@ -124,15 +101,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown(f"Crystals for {planet}", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_crystal_by_planet", exc)
-
     @mcp.tool(
         name="asterwise_get_crystal_recommendations",
         title="Crystal Recommendations",
@@ -153,7 +121,7 @@ def register(mcp: FastMCP) -> None:
         limit: int = 5,
     ) -> str:
         """Get crystal recommendations by zodiac, chakra, or intention."""
-        try:
+        async with tool_guard("asterwise_get_crystal_recommendations"):
             api_key = await require_api_key(ctx)
             body: dict[str, Any] = {"limit": limit}
             if zodiac_sign:
@@ -170,15 +138,6 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Crystal Recommendations", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_crystal_recommendations", exc)
-
     @mcp.tool(
         name="asterwise_get_crystal_recommendations_natal",
         title="Natal Crystal Recommendations",
@@ -196,7 +155,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat,
     ) -> str:
         """Get natal chart crystal recommendations from house lordship rules."""
-        try:
+        async with tool_guard("asterwise_get_crystal_recommendations_natal"):
             api_key = await require_api_key(ctx)
             body = birth.to_api_dict()
             data = await get_client().post(
@@ -207,11 +166,3 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Crystal Recommendations (Natal)", d),
             )
-        except McpError:
-            raise
-        except AsterwiseMCPError as exc:
-            tool_error(str(exc))
-        except ValidationError as exc:
-            raise_validation_error(exc)
-        except Exception as exc:
-            unexpected_tool_error("asterwise_get_crystal_recommendations_natal", exc)
