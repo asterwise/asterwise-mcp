@@ -47,8 +47,9 @@ def test_two_level_dasha_is_small_in_both_formats():
     assert len(format_tool_result(_slim_dasha(three), ResponseFormat.JSON, _dasha_tree_md)) < 130_000
     assert "Raw structure" not in as_md
     assert "Current periods" in as_md
-    # every antardasha line is still present in markdown
-    assert as_md.count("  - ") == 81
+    # every antardasha line is still present in markdown (9 x 9 "  - Planet: start → end")
+    import re
+    assert len(re.findall(r"^  - [A-Z][a-z]+: ", as_md, flags=re.M)) == 81
 
 
 def test_markdown_renderer_handles_generic_payloads():
