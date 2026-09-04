@@ -278,17 +278,48 @@ async def require_api_key(ctx: Context | None = None) -> str:
     return api_key
 
 
+_DEDUPE_MIN_CHARS = 240
+
+
+def dedupe_long_strings(obj: Any, *, min_chars: int = _DEDUPE_MIN_CHARS) -> Any:
+    """
+    Replace repeated long strings with a pointer to their first occurrence.
+
+    Upstream payloads carry interpretive essays that repeat verbatim: a
+    Vimshottari tree at two levels holds the same nine planet summaries in
+    ~90 places (300 KB); a natal chart repeats the same house-system note per
+    planet. Agents pay for every copy. The first occurrence is kept intact;
+    later identical strings become "(identical to <path>)". Short strings and
+    everything else are untouched, so calculation fields never change.
+    """
+    seen: dict[str, str] = {}
+
+    def walk(node: Any, path: str) -> Any:
+        if isinstance(node, dict):
+            return {k: walk(v, f"{path}.{k}" if path else str(k)) for k, v in node.items()}
+        if isinstance(node, list):
+            return [walk(v, f"{path}[{i}]") for i, v in enumerate(node)]
+        if isinstance(node, str) and len(node) >= min_chars:
+            first = seen.get(node)
+            if first is not None:
+                return f"(identical to {first})"
+            seen[node] = path
+        return node
+
+    return walk(obj, "")
+
+
 def format_tool_result(
     data: dict[str, Any],
     response_format: ResponseFormat,
     to_markdown: Callable[[dict[str, Any]], str],
 ) -> str:
-    """Return JSON or markdown per tool contract (leak keys scrubbed)."""
-    cleaned = scrub_tool_payload(data)
+    """Return JSON or markdown per tool contract (leak keys scrubbed, long repeats deduplicated)."""
+    cleaned = dedupe_long_strings(scrub_tool_payload(data))
     if not isinstance(cleaned, dict):
         cleaned = {"data": cleaned}
     if response_format == ResponseFormat.JSON:
-        return json.dumps(cleaned, indent=2, default=str)
+        return json.dumps(cleaned, indent=1, default=str)
     return to_markdown(cleaned)
 
 

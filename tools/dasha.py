@@ -21,7 +21,41 @@ from runtime import (
 )
 
 
+def _slim_dasha(payload: dict[str, Any], *, keep_levels: int = 0) -> dict[str, Any]:
+    """
+    Drop per-period bulk from the tree: the generic per-planet essay
+    (modern_summary, identical for every period of the same planet) and the
+    Julian-day pair, which duplicates the calendar dates. The current-period
+    interpretation block keeps its essays, so nothing interpretive is lost
+    and markdown output never points at text it does not show. Cuts a
+    three-level tree from ~1.3 MB to about 100 KB.
+    """
+    def walk(periods: Any, depth: int) -> Any:
+        if not isinstance(periods, list):
+            return periods
+        out = []
+        for p in periods:
+            if not isinstance(p, dict):
+                out.append(p); continue
+            q = {k: v for k, v in p.items() if k not in ("start_jd", "end_jd")}
+            if depth > keep_levels:
+                q.pop("modern_summary", None)
+            if "sub" in q:
+                q["sub"] = walk(q["sub"], depth + 1)
+            out.append(q)
+        return out
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else None
+    if data is None or not isinstance(data.get("periods"), list):
+        return payload
+    slim = dict(payload); slim["data"] = dict(data)
+    slim["data"]["periods"] = walk(data["periods"], 1)
+    return slim
+
+
 def _dasha_tree_md(data: dict[str, Any]) -> str:
+    # Upstream wraps the result in {success, message, data}; render the inner object.
+    if isinstance(data.get("data"), dict) and "periods" in data["data"]:
+        data = data["data"]
     periods = data.get("periods") or data.get("dasha") or data.get("vimshottari")
     lines = ["## Vimshottari Dasha", ""]
     if isinstance(periods, list):
@@ -35,17 +69,26 @@ def _dasha_tree_md(data: dict[str, Any]) -> str:
                     f"- **{label}** — {start} → {end}"
                     + (f" (balance: {bal})" if bal else "")
                 )
-                children = block.get("antar") or block.get("children") or block.get("sub_periods")
+                children = block.get("antar") or block.get("children") or block.get("sub_periods") or block.get("sub")
                 if isinstance(children, list):
                     for ch in children[:50]:
                         if isinstance(ch, dict):
                             lines.append(
                                 f"  - {ch.get('planet', ch.get('lord', '—'))}: "
-                                f"{ch.get('start', '')} → {ch.get('end', '')}"
+                                f"{ch.get('start', ch.get('start_date', ''))} → {ch.get('end', ch.get('end_date', ''))}"
                             )
         lines.append("")
-    lines.append("### Raw structure\n\n")
-    lines.append(structured_markdown("Dasha details", data))
+    # Current-period interpretation is the part worth reading in full; the
+    # per-period essays are generic per planet and are not repeated here.
+    interp = data.get("interpretation")
+    if isinstance(interp, dict) and interp:
+        lines.append("### Current periods")
+        lines.append("")
+        lines.append(structured_markdown("Interpretation", interp))
+        lines.append("")
+    extras = {k: v for k, v in data.items() if k not in ("periods", "dasha", "vimshottari", "interpretation")}
+    if extras:
+        lines.append(structured_markdown("Details", extras))
     return "\n".join(lines)
 
 
@@ -53,7 +96,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dasha",
         title="Vimshottari Dasha",
-        description=compact_description("asterwise_get_dasha", "Computes Vimshottari Dasha from birth data and returns hierarchical period trees plus current Maha/Antar interpretation blocks.\n\nSECTION: WHAT THIS TOOL COVERS\nComputes the classical classical Vimshottari timeline from the Moon's birth nakshatra: Mahadasha and nested sub-periods up to the depth set by levels, with Julian and calendar boundaries and optional modern summaries. It returns data.periods[] and data.interpretation for the active periods. It does not compute Char Dasha, Yogini Dasha, Ashtottari, or transit correlations; use the dedicated tools for those systems.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — establishes chart and Moon context before interpreting Dasha lords.\nAFTER: asterwise_get_dasha_transits — correlates active Dasha lords with transits for the same birth data.\n\nSECTION: INPUT CONTRACT\nlevels (int, default 3, max 5): tree depth — 1 = Mahadasha only; 2 adds Antardasha; 3 Pratyantar; 4 Sookshma; 5 Prana (much larger payload). Response dates in periods[] use DD/MM/YYYY, not ISO. BirthData fields follow global contract (date YYYY-MM-DD, time HH:MM; time='00:00' is accepted without flag — lagna-sensitive timing may be wrong if birth time is unknown).\n\nSECTION: OUTPUT CONTRACT\ndata.periods[] — array of Mahadasha objects:\n  planet (string)\n  start_jd (float)\n  end_jd (float)\n  start_date (string — DD/MM/YYYY, not ISO)\n  end_date (string — DD/MM/YYYY)\n  modern_summary (string or null)\n  sub[] — array of Antardasha objects with the same shape; sub=null at deepest level\ndata.interpretation.current_mahadasha:\n  planet (string)\n  start_date (string)\n  end_date (string)\n  duration_years (float)\n  modern_summary (string or null)\n  favorable_conditions[] (string array)\n  favorable_results[] (string array)\n  unfavorable_conditions[] (string array)\n  unfavorable_results[] (string array)\n  timing_note (string)\ndata.interpretation.current_antardasha — same fields as current_mahadasha plus mahadasha_planet (string)\ndata.birth_time_provided (bool)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE (~100ms at levels=1, ~1500ms at levels=5)\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — levels < 1 or levels > 5 → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — BirthData validation is upstream beyond Pydantic field constraints.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Period start_date/end_date strings are DD/MM/YYYY; do not parse as ISO.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_char_dasha — classical sign-based periods with ISO dates on periods[], not planet-based Vimshottari.\nasterwise_get_yogini_dasha — 36-year eight-Yogini cycle with data.periods.root[], not Vimshottari.\nasterwise_get_ashtottari_dasha — 108-year alternative tree with data.periods.root[] and same levels semantics as this tool."),
+        description=compact_description("asterwise_get_dasha", "Computes Vimshottari Dasha from birth data and returns hierarchical period trees plus current Maha/Antar interpretation blocks.\n\nSECTION: WHAT THIS TOOL COVERS\nComputes the classical classical Vimshottari timeline from the Moon's birth nakshatra: Mahadasha and nested sub-periods up to the depth set by levels, with Julian and calendar boundaries and optional modern summaries. It returns data.periods[] and data.interpretation for the active periods. It does not compute Char Dasha, Yogini Dasha, Ashtottari, or transit correlations; use the dedicated tools for those systems.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — establishes chart and Moon context before interpreting Dasha lords.\nAFTER: asterwise_get_dasha_transits — correlates active Dasha lords with transits for the same birth data.\n\nSECTION: INPUT CONTRACT\nlevels (int, default 2, max 5): tree depth — 1 = Mahadasha only; 2 adds Antardasha; 3 Pratyantar; 4 Sookshma; 5 Prana (much larger payload). Response dates in periods[] use DD/MM/YYYY, not ISO. BirthData fields follow global contract (date YYYY-MM-DD, time HH:MM; time='00:00' is accepted without flag — lagna-sensitive timing may be wrong if birth time is unknown).\n\nSECTION: OUTPUT CONTRACT\ndata.periods[] — array of Mahadasha objects:\n  planet (string)\n  start_date (string — DD/MM/YYYY, not ISO)\n  end_date (string — DD/MM/YYYY)\n  sub[] — array of Antardasha objects with the same shape; sub=null at deepest level\n  (The per-period planet essays and Julian-day pairs from the REST API are omitted here to keep the tree small; the current-period essays are in data.interpretation.)\ndata.interpretation.current_mahadasha:\n  planet (string)\n  start_date (string)\n  end_date (string)\n  duration_years (float)\n  modern_summary (string or null)\n  favorable_conditions[] (string array)\n  favorable_results[] (string array)\n  unfavorable_conditions[] (string array)\n  unfavorable_results[] (string array)\n  timing_note (string)\ndata.interpretation.current_antardasha — same fields as current_mahadasha plus mahadasha_planet (string)\ndata.birth_time_provided (bool)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE (~100ms at levels=1, ~1500ms at levels=5)\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — levels < 1 or levels > 5 → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — BirthData validation is upstream beyond Pydantic field constraints.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Period start_date/end_date strings are DD/MM/YYYY; do not parse as ISO.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_char_dasha — classical sign-based periods with ISO dates on periods[], not planet-based Vimshottari.\nasterwise_get_yogini_dasha — 36-year eight-Yogini cycle with data.periods.root[], not Vimshottari.\nasterwise_get_ashtottari_dasha — 108-year alternative tree with data.periods.root[] and same levels semantics as this tool."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -65,16 +108,16 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         birth: BirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
-        levels: int = 3
+        levels: int = 2
     ) -> str:
-        """Vimshottari Dasha up to five levels."""
+        """Vimshottari Dasha up to five levels (default 2: Mahadasha + Antardasha)."""
         async with tool_guard("asterwise_get_dasha"):
             if levels < 1 or levels > 5:
                 invalid_params("levels must be between 1 and 5 inclusive.")
             api_key = await require_api_key(ctx)
             body = {**birth.to_api_dict(), "levels": levels}
-            data = await get_client().post("/v1/astro/dasha", api_key, body, timeout=20.0)
-            return format_tool_result(data, response_format, _dasha_tree_md)
+            data = await get_client().post("/v1/astro/dasha", api_key, body, timeout=25.0)
+            return format_tool_result(_slim_dasha(data), response_format, _dasha_tree_md)
     @mcp.tool(
         name="asterwise_get_dasha_transits",
         title="Dasha Transits",
