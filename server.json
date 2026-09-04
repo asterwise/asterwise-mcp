@@ -8,7 +8,19 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://mcp.asterwise.com/mcp"
+      "url": "https://mcp.asterwise.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer <Asterwise API key or OAuth access token>. Get a free key at https://asterwise.com/dashboard.",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
     }
-  ]
+  ],
+  "repository": {
+    "url": "https://github.com/asterwise/asterwise-mcp",
+    "source": "github"
+  }
 }
