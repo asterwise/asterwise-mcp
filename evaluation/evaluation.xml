@@ -17,7 +17,7 @@
       according to Vimshottari Dasha as of 2026?
       Answer with the planet name only.
     </question>
-    <answer>Saturn</answer>
+    <answer>Mercury</answer>
   </qa_pair>
 
   <qa_pair>
@@ -26,7 +26,7 @@
       Lahiri), is Mars Vargottama in the natal chart?
       Answer True or False.
     </question>
-    <answer>True</answer>
+    <answer>False</answer>
   </qa_pair>
 
   <qa_pair>
@@ -35,7 +35,7 @@
       Lahiri), is Mercury combust in the natal chart?
       Answer True or False.
     </question>
-    <answer>True</answer>
+    <answer>False</answer>
   </qa_pair>
 
   <qa_pair>
@@ -56,7 +56,7 @@
       Does the match pass the Rajju hard veto?
       Answer True or False.
     </question>
-    <answer>True</answer>
+    <answer>False</answer>
   </qa_pair>
 
   <qa_pair>
@@ -66,7 +66,7 @@
       to Pythagorean numerology? Answer with the
       number only.
     </question>
-    <answer>8</answer>
+    <answer>1</answer>
   </qa_pair>
 
   <qa_pair>
@@ -89,10 +89,9 @@
   <qa_pair>
     <question>
       For Arjun Mehta (1985-11-12, 06:45, Mumbai,
-      Lahiri), in which house is Saturn placed
-      in the natal chart? Answer with the house
+      Lahiri), in which house is Saturn placed in the natal chart by rasi (sign) placement? Answer with the house
       number only (1-12).
     </question>
-    <answer>1</answer>
+    <answer>2</answer>
   </qa_pair>
 </evaluation>
