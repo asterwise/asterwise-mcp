@@ -7,8 +7,8 @@
 #
 # Bump deliberately: change the pin, rebuild the image, run the tests, deploy.
 # Test tooling lives in requirements-dev.txt.
-fastmcp==3.4.7
-mcp[cli]==1.29.1
+fastmcp==4.0.0
+mcp[cli]==2.1.1
 uvicorn==0.52.4
 httpx==0.28.1
 pydantic==2.13.5
