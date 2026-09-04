@@ -15,10 +15,8 @@ from auth import (
     TOKEN_TTL,
     TokenExpiredError,
     TokenInvalidError,
-    _evict_expired_tokens,
     _get_fernet,
     _hash_key,
-    _token_cache,
     create_token,
     decode_token,
     extract_api_key,
@@ -27,13 +25,6 @@ from auth import (
     validate_and_get_key,
 )
 from errors import AuthError
-
-
-@pytest.fixture(autouse=True)
-def clear_token_cache() -> None:
-    _token_cache.clear()
-    yield
-    _token_cache.clear()
 
 
 class TestTokenCreation:
@@ -63,12 +54,6 @@ class TestTokenCreation:
         assert "key" in payload
         assert isinstance(payload["key"], str)
         assert payload["iss"] == "asterwise-mcp"
-
-    def test_token_stored_in_cache(self) -> None:
-        api_key = "cached-key-test"
-        _token_cache.clear()
-        create_token(api_key)
-        assert _hash_key(api_key) in _token_cache
 
     def test_missing_jwt_secret_raises(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
@@ -141,34 +126,6 @@ class TestTokenDecoding:
         )
         with pytest.raises(TokenInvalidError, match="Invalid token"):
             decode_token(fake_token)
-
-    def test_token_valid_after_cache_cleared(self) -> None:
-        """Token must work even if cache is cleared (stateless JWT)."""
-        api_key = "stateless-test-key-abc123"
-        token = create_token(api_key)
-        _token_cache.clear()
-        recovered = decode_token(token)
-        assert recovered == api_key
-
-    def test_decode_token_accepts_sub_not_equal_to_key_hash(self) -> None:
-        """asterwise-api authorization_code JWTs use account UUID as sub, not _hash_key(api_key)."""
-        api_key = "oauth-style-raw-key-xyz"
-        f = _get_fernet()
-        enc = f.encrypt(api_key.encode("utf-8")).decode("utf-8")
-        payload = {
-            "sub": "550e8400-e29b-41d4-a716-446655440000",
-            "key": enc,
-            "iat": int(time.time()),
-            "exp": int(time.time()) + TOKEN_TTL,
-            "iss": "asterwise-mcp",
-        }
-        token = pyjwt.encode(
-            payload,
-            os.environ["JWT_SECRET"],
-            algorithm="HS256",
-        )
-        assert decode_token(token) == api_key
-        assert _hash_key(api_key) in _token_cache
 
     def test_wrong_issuer_raises_invalid(self) -> None:
         payload = {
@@ -251,10 +208,24 @@ class TestKeyExtraction:
             validate_and_get_key({})
 
 
-class TestCacheEviction:
-    def test_evict_removes_expired_entries(self) -> None:
-        _token_cache["expired_hash"] = ("some-key", time.time() - 1)
-        _token_cache["valid_hash"] = ("other-key", time.time() + 3600)
-        _evict_expired_tokens()
-        assert "expired_hash" not in _token_cache
-        assert "valid_hash" in _token_cache
+class TestStatelessDecode:
+    def test_token_valid_without_any_server_state(self) -> None:
+        """JWT validation is stateless: nothing server-side is needed to decode."""
+        api_key = "stateless-test-key-abc123"
+        token = create_token(api_key)
+        assert decode_token(token) == api_key
+
+    def test_decode_token_accepts_sub_not_equal_to_key_hash(self) -> None:
+        """asterwise-api authorization_code JWTs use account UUID as sub, not _hash_key(api_key)."""
+        api_key = "oauth-style-raw-key-xyz"
+        f = _get_fernet()
+        enc = f.encrypt(api_key.encode("utf-8")).decode("utf-8")
+        payload = {
+            "sub": "550e8400-e29b-41d4-a716-446655440000",
+            "key": enc,
+            "iat": int(time.time()),
+            "exp": int(time.time()) + TOKEN_TTL,
+            "iss": "asterwise-mcp",
+        }
+        token = pyjwt.encode(payload, os.environ["JWT_SECRET"], algorithm="HS256")
+        assert decode_token(token) == api_key

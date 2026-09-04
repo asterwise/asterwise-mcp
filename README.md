@@ -88,6 +88,10 @@ Copy `.env.example` to `.env` and set at least:
 | `JWT_SECRET` | For `/oauth/token` | At least 32 characters; used to sign access tokens. |
 | `MCP_SERVER_HOST` / `MCP_SERVER_PORT` | No | Bind address and port for the MCP HTTP server. |
 | `LOG_LEVEL` | No | Default `INFO`. |
+| `MCP_OAUTH_SECRET` | For OAuth | Shared with asterwise-api; verifies access tokens issued by its `/v1/oauth/token`. |
+| `INTERNAL_API_TOKEN` | For OAuth client registration | Shared with asterwise-api; used when forwarding dynamic client registration. |
+| `FRONTEND_URL` | For `/authorize` | Where the browser is sent for sign-in and consent (e.g. `https://asterwise.com`). |
+| `OPENAI_APPS_CHALLENGE_TOKEN` | No | Served at `/.well-known/openai-apps-challenge` for directory verification. |
 
 ## Tools (103 total)
 

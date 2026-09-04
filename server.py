@@ -196,8 +196,16 @@ _OAUTH_MAX = 10
 _OAUTH_WINDOW_SEC = 60.0
 
 
+_OAUTH_TRACKED_IPS_MAX = 10_000
+
+
 def _oauth_rate_allow(client_ip: str) -> bool:
     now = time.time()
+    # Drop buckets that have fully aged out so the dict cannot grow without bound.
+    if len(_oauth_attempts) > _OAUTH_TRACKED_IPS_MAX:
+        stale = [ip for ip, ts in _oauth_attempts.items() if not ts or now - ts[-1] >= _OAUTH_WINDOW_SEC]
+        for ip in stale:
+            _oauth_attempts.pop(ip, None)
     times = _oauth_attempts.setdefault(client_ip, [])
     times[:] = [t for t in times if now - t < _OAUTH_WINDOW_SEC]
     if len(times) >= _OAUTH_MAX:
@@ -299,8 +307,11 @@ async def lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
         await client.close()
 
 
+SERVER_VERSION = "1.0.0"  # also reported by /health and server.json
+
 mcp = FastMCP(
     "asterwise_mcp",
+    version=SERVER_VERSION,
     instructions="""
   You are connected to the Asterwise Astrology and Divination API — the most
   comprehensive structured astrology MCP available.
@@ -510,7 +521,7 @@ async def health_check(request: Request) -> Response:
     body = {
         "status": "ok" if upstream_ok else "degraded",
         "liveness": "ok",
-        "version": "1.0.0",
+        "version": SERVER_VERSION,
         "upstream": {"reachable": upstream_ok, "error": upstream_error},
         "latency_ms": elapsed,
     }

@@ -1,4 +1,4 @@
-"""JWT + optional cache: Bearer tokens use Fernet-encrypted API key in the payload (stateless)."""
+"""JWT auth: Bearer tokens carry the Fernet-encrypted API key in the payload (stateless)."""
 
 from __future__ import annotations
 
@@ -21,8 +21,6 @@ JWT_ALGORITHM = "HS256"
 TOKEN_TTL = 3600
 ISSUER = "asterwise-mcp"
 
-# Server-side token cache: {key_hash: (api_key, expires_at)} — performance only
-_token_cache: dict[str, tuple[str, float]] = {}
 
 
 def _get_jwt_secret() -> str:
@@ -56,31 +54,15 @@ def _hash_key(api_key: str) -> str:
     return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
 
-def _evict_expired_tokens() -> None:
-    """Remove expired entries to prevent unbounded cache growth."""
-    now = time.time()
-    expired = [h for h, (_, exp) in _token_cache.items() if now > exp]
-    for h in expired:
-        _token_cache.pop(h, None)
-    if expired:
-        logger.debug(
-            "token_cache_eviction",
-            extra={"evicted": len(expired), "remaining": len(_token_cache)},
-        )
-
-
 def create_token(api_key: str) -> str:
     """
     Create a signed JWT. The API key is Fernet-encrypted in the payload; validation is stateless.
-    Cache is warmed for fast subsequent lookups.
     """
-    _evict_expired_tokens()
     f = _get_fernet()
     encrypted_key = f.encrypt(api_key.encode("utf-8")).decode("utf-8")
     key_hash = _hash_key(api_key)
     now = time.time()
     expires_at = now + TOKEN_TTL
-    _token_cache[key_hash] = (api_key, expires_at)
     payload: dict[str, Any] = {
         "sub": key_hash,
         "key": encrypted_key,
@@ -113,8 +95,6 @@ def decode_token(token: str) -> str:
     Accepts tokens signed with JWT_SECRET (client_credentials) or MCP_OAUTH_SECRET
     (authorization_code tokens from asterwise-api).
     """
-    _evict_expired_tokens()
-
     jwt_secret = os.getenv("JWT_SECRET")
     oauth_secret = os.getenv("MCP_OAUTH_SECRET")
     secrets_to_try: list[str] = []
@@ -129,6 +109,7 @@ def decode_token(token: str) -> str:
         )
 
     last_error: BaseException | None = None
+    saw_expired = False  # an expired-but-validly-signed token beats "invalid"
 
     for secret in secrets_to_try:
         try:
@@ -140,6 +121,7 @@ def decode_token(token: str) -> str:
             )
         except jwt.ExpiredSignatureError as exc:
             last_error = exc
+            saw_expired = True
             continue
         except jwt.InvalidTokenError as exc:
             last_error = exc
@@ -166,10 +148,9 @@ def decode_token(token: str) -> str:
             last_error = exc
             continue
 
-        _token_cache[_hash_key(api_key)] = (api_key, float(payload["exp"]))
         return api_key
 
-    if isinstance(last_error, jwt.ExpiredSignatureError):
+    if saw_expired or isinstance(last_error, jwt.ExpiredSignatureError):
         raise TokenExpiredError(
             "Token has expired. Request a new one via POST /oauth/token"
         ) from last_error
