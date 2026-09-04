@@ -8,6 +8,13 @@ updates:
       runtime:
         patterns: ["*"]
     open-pull-requests-limit: 3
+    ignore:
+      # fastmcp 4 / mcp 2 rename McpError and break every tool module; these
+      # are taken deliberately, with the migration, not by a bot.
+      - dependency-name: "fastmcp"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
