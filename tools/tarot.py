@@ -8,6 +8,7 @@ import mcp.types as mcp_types
 from client import get_client
 from models import ResponseFormat
 from runtime import (
+    compact_description,
     tool_guard,
     format_tool_result,
     invalid_params,
@@ -27,7 +28,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_cards",
         title="Tarot Cards Catalogue",
-        description=(
+        description=compact_description("asterwise_get_tarot_cards", (
             "Returns the complete 78-card Rider-Waite-Smith deck with full metadata. "
             "Each card includes id (slug), name, arcana_type (major/minor), suit, "
             "number, element, astrology_correspondence, upright and reversed meanings, "
@@ -67,7 +68,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_tarot_major_arcana — returns only the 22 Major Arcana subset.\n"
             "asterwise_get_tarot_suit — returns only the 14 cards of a single suit.\n"
             "asterwise_draw_tarot_cards — returns a random draw, not the catalogue."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -75,7 +76,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tarot_cards(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """All 78 tarot cards."""
         async with tool_guard("asterwise_get_tarot_cards"):
@@ -90,7 +91,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_card",
         title="Tarot Card Lookup",
-        description=(
+        description=compact_description("asterwise_get_tarot_card", (
             "Returns full structured data for a single card identified by its slug ID. "
             "Useful for card detail pages, single-card lookups, and displaying a specific "
             "card after the user selects one by name.\n\n"
@@ -131,7 +132,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_tarot_cards — returns all 78 cards in one call.\n"
             "asterwise_draw_tarot_cards — random draw, not a specific card."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -140,7 +141,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_tarot_card(
         ctx: Context,
         card_id: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Single tarot card by slug ID."""
         async with tool_guard("asterwise_get_tarot_card"):
@@ -156,7 +157,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_major_arcana",
         title="Tarot Major Arcana",
-        description=(
+        description=compact_description("asterwise_get_tarot_major_arcana", (
             "Returns all 22 Major Arcana cards (The Fool through The World) as a structured array. "
             "Major Arcana represent universal archetypes and major life themes.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -182,7 +183,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_tarot_cards — full 78-card deck including Minor Arcana.\n"
             "asterwise_get_tarot_suit — 14 Minor Arcana cards by suit."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -190,7 +191,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tarot_major_arcana(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """22 Major Arcana cards."""
         async with tool_guard("asterwise_get_tarot_major_arcana"):
@@ -205,7 +206,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_suit",
         title="Tarot Suit",
-        description=(
+        description=compact_description("asterwise_get_tarot_suit", (
             "Returns all 14 cards in a given Minor Arcana suit as a structured array.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Each of the four suits has 14 cards: Ace through 10 plus Page, Knight, Queen, King. "
@@ -233,7 +234,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_tarot_major_arcana — 22 Major Arcana, not suit-based.\n"
             "asterwise_get_tarot_cards — full 78-card catalogue."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -242,7 +243,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_tarot_suit(
         ctx: Context,
         suit: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Tarot cards by suit."""
         async with tool_guard("asterwise_get_tarot_suit"):
@@ -263,7 +264,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_card_of_the_day",
         title="Tarot Card of the Day",
-        description=(
+        description=compact_description("asterwise_get_tarot_card_of_the_day", (
             "Returns a deterministic daily tarot card seeded by SHA-256 hash of the date string. "
             "The same card is returned for all callers on the same date — this is intentional. "
             "The daily card is not a reading for an individual but a collective daily energy.\n\n"
@@ -299,7 +300,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_draw_tarot_cards — random draw, different every call.\n"
             "asterwise_get_tarot_three_card_spread — positional reading with question context."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -307,7 +308,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tarot_card_of_the_day(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         date: str | None = None,
         allow_reversed: bool = False,
     ) -> str:
@@ -327,7 +328,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_draw_tarot_cards",
         title="Draw Tarot Cards",
-        description=(
+        description=compact_description("asterwise_draw_tarot_cards", (
             "Draws N unique random cards from the 78-card deck using cryptographic randomness "
             "(Python secrets.SystemRandom). Every call is independent — there is no session state.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -368,7 +369,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_tarot_card_of_the_day — deterministic daily card, same for all callers.\n"
             "asterwise_get_tarot_three_card_spread — positional read with named positions and meanings.\n"
             "asterwise_get_tarot_celtic_cross — 10-card positional spread."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=False, openWorldHint=False,
@@ -376,7 +377,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_draw_tarot_cards(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         count: int = 1,
         allow_reversed: bool = False,
     ) -> str:
@@ -397,7 +398,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_three_card_spread",
         title="Tarot Three Card Spread",
-        description=(
+        description=compact_description("asterwise_get_tarot_three_card_spread", (
             "Past / Present / Future spread. Draws 3 unique cards using cryptographic randomness "
             "and assigns each to a named positional slot with an interpretive context.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -437,7 +438,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_draw_tarot_cards — free draw with no positional meaning.\n"
             "asterwise_get_tarot_celtic_cross — 10-card spread with comprehensive positional coverage.\n"
             "asterwise_get_tarot_yes_no — single-card binary answer, no positional structure."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=False, openWorldHint=False,
@@ -445,7 +446,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tarot_three_card_spread(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         allow_reversed: bool = False,
         question: str | None = None,
     ) -> str:
@@ -465,7 +466,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_celtic_cross",
         title="Tarot Celtic Cross",
-        description=(
+        description=compact_description("asterwise_get_tarot_celtic_cross", (
             "Ten-card Celtic Cross spread — traditional ten-position tarot layout. "
             "Draws 10 unique cards using cryptographic randomness and assigns each to one of "
             "the 10 classical Celtic Cross positions.\n\n"
@@ -513,7 +514,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_tarot_three_card_spread — 3 positions only; use for simpler questions.\n"
             "asterwise_draw_tarot_cards — free draw with no positional meaning.\n"
             "asterwise_get_tarot_yes_no — binary answer, not positional analysis."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=False, openWorldHint=False,
@@ -521,7 +522,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tarot_celtic_cross(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         allow_reversed: bool = False,
         question: str | None = None,
     ) -> str:
@@ -541,7 +542,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_tarot_yes_no",
         title="Tarot Yes No",
-        description=(
+        description=compact_description("asterwise_get_tarot_yes_no", (
             "Draws one card and returns a yes, no, or maybe answer with confidence level. "
             "The answer is derived from the card's built-in yes_no polarity and its orientation.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -585,7 +586,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_tarot_three_card_spread — positional reading, not binary answer.\n"
             "asterwise_draw_tarot_cards — free draw without answer logic."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=False, openWorldHint=False,
@@ -593,7 +594,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tarot_yes_no(
         ctx: Context,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         allow_reversed: bool = True,
         question: str | None = None,
     ) -> str:

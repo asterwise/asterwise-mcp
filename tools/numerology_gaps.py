@@ -9,6 +9,7 @@ import mcp.types as mcp_types
 from client import get_client
 from models import ResponseFormat
 from runtime import (
+    compact_description,
     tool_guard,
     format_tool_result,
     require_api_key,
@@ -21,7 +22,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_expression_number",
         title="Expression Number",
-        description=(
+        description=compact_description("asterwise_get_expression_number", (
             "Calculates the Expression (Destiny) number from the full name using Pythagorean "
             "letter values. Reduces each name part separately before summing — this is the "
             "Goodwin/Balliett per-part method which preserves the vibrational weight of "
@@ -64,7 +65,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_numerology_profile — returns Expression plus all other core numbers, "
             "pinnacles, challenges, and lucky numbers in one call.\n"
             "asterwise_get_chaldean_numerology — different letter-value system (Chaldean 1–8)."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -73,7 +74,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_expression_number(
         ctx: Context,
         name: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Expression (Destiny) number from name."""
         async with tool_guard("asterwise_get_expression_number"):
@@ -88,7 +89,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_soul_urge_number",
         title="Soul Urge Number",
-        description=(
+        description=compact_description("asterwise_get_soul_urge_number", (
             "Calculates the Soul Urge (Heart's Desire) number from vowels in the full name. "
             "Only A, E, I, O, U are treated as vowels — Y is always a consonant in this system. "
             "Reduces each name part separately before summing, preserving master numbers 11, 22, 33.\n\n"
@@ -120,7 +121,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_expression_number — all letters, not vowels only.\n"
             "asterwise_get_personality_number — consonants only, not vowels."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -129,7 +130,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_soul_urge_number(
         ctx: Context,
         name: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Soul Urge number from vowels."""
         async with tool_guard("asterwise_get_soul_urge_number"):
@@ -144,7 +145,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_personality_number",
         title="Personality Number",
-        description=(
+        description=compact_description("asterwise_get_personality_number", (
             "Calculates the Personality number from consonants in the full name. "
             "All non-vowels (BCDFGHJKLMNPQRSTVWXYZ) contribute — Y is always a consonant. "
             "Reduces each name part separately, preserving master numbers 11, 22, 33.\n\n"
@@ -173,7 +174,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_expression_number — all letters (Expression = Soul Urge + Personality).\n"
             "asterwise_get_soul_urge_number — vowels only."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -182,7 +183,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_personality_number(
         ctx: Context,
         name: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Personality number from consonants."""
         async with tool_guard("asterwise_get_personality_number"):
@@ -197,7 +198,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_maturity_number",
         title="Maturity Number",
-        description=(
+        description=compact_description("asterwise_get_maturity_number", (
             "Calculates the Maturity number as the sum of Life Path and Expression numbers, "
             "reduced to a single digit or master number. Represents the underlying wish or "
             "true desire that becomes conscious around age 35 and fully emerges by midlife.\n\n"
@@ -228,7 +229,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_numerology_profile — returns maturity_number as part of the full profile.\n"
             "asterwise_get_personal_cycles — temporal cycles that change annually, not a fixed number."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -238,7 +239,7 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         name: str,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Maturity number (Life Path + Expression)."""
         async with tool_guard("asterwise_get_maturity_number"):
@@ -253,7 +254,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_balance_number",
         title="Balance Number",
-        description=(
+        description=compact_description("asterwise_get_balance_number", (
             "Calculates the Balance number from the first letter of each name part, using "
             "Pythagorean values. A three-part name yields three initials summed and reduced. "
             "The Balance number describes how a person handles emotional crises and unresolved "
@@ -284,7 +285,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_expression_number — uses all letters, not just initials.\n"
             "asterwise_get_karmic_lessons — identifies absent digits across all letters."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -293,7 +294,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_balance_number(
         ctx: Context,
         name: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Balance number from initials."""
         async with tool_guard("asterwise_get_balance_number"):
@@ -308,7 +309,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_karmic_lessons",
         title="Karmic Lessons",
-        description=(
+        description=compact_description("asterwise_get_karmic_lessons", (
             "Identifies karmic lessons by scanning all letter values in the full name and "
             "finding which digits 1–9 are absent. Each missing digit represents an area "
             "where experience is thin and development is needed in this lifetime.\n\n"
@@ -341,7 +342,7 @@ def register(mcp: FastMCP) -> None:
             "asterwise_get_balance_number — uses only first letters (initials), not all letters.\n"
             "asterwise_get_expression_number — reduces all letters to a single number; does not "
             "scan for absent digits."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -350,7 +351,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_karmic_lessons(
         ctx: Context,
         name: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Karmic lessons from name."""
         async with tool_guard("asterwise_get_karmic_lessons"):
@@ -365,7 +366,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_personal_cycles",
         title="Personal Cycles",
-        description=(
+        description=compact_description("asterwise_get_personal_cycles", (
             "Returns the Personal Year, Personal Month, and Personal Day numbers for a given "
             "birth date and optional target date. All three cycle numbers are derived from the "
             "birth month, birth day, and the target calendar date.\n\n"
@@ -410,7 +411,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_personal_year — returns Personal Year only, no month or day breakdown.\n"
             "asterwise_get_numerology_profile — core name numbers; personal_year field is null there."
-        ),
+        )),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True, destructiveHint=False,
             idempotentHint=True, openWorldHint=False,
@@ -419,7 +420,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_personal_cycles(
         ctx: Context,
         date: str,
-        response_format: ResponseFormat,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         year: int | None = None,
         month: int | None = None,
         day: int | None = None,
