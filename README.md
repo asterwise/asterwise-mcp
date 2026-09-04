@@ -4,6 +4,8 @@ Astrology and divination calculations as MCP tools. **103 tools** covering Vedic
 
 ## Quick Start (2 minutes)
 
+See it first: [46-second demo of Claude Desktop casting a chart through this server](https://youtu.be/Oe17c6pXl8c), and the [independent Swiss Ephemeris cross-check](https://asterwise.com/proof/).
+
 ### Get your API key
 
 Sign up free at [asterwise.com/dashboard](https://asterwise.com/dashboard): 500 calls/month on the Sandbox tier. No credit card. No time limit.
