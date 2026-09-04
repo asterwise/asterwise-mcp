@@ -210,12 +210,15 @@ def register(mcp: FastMCP) -> None:
             merged = {"atmakaraka": atm, "ishta_devata": ishta}
 
             def _md(d: dict[str, Any]) -> str:
+                # Render from ``d`` (the scrubbed payload), not the raw upstream
+                # responses, so markdown output drops internal fields like the
+                # JSON path does.
                 parts = [
                     "## Atmakaraka",
-                    structured_markdown("Atmakaraka", atm),
+                    structured_markdown("Atmakaraka", d.get("atmakaraka", {})),
                     "",
                     "## Ishta Devata",
-                    structured_markdown("Ishta Devata", ishta),
+                    structured_markdown("Ishta Devata", d.get("ishta_devata", {})),
                 ]
                 return "\n".join(parts)
 
