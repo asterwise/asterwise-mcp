@@ -142,3 +142,7 @@ Coverage is enforced at **78%** for core modules (`auth`, `client`, `errors`, `l
 ## Status
 
 [https://status.asterwise.com](https://status.asterwise.com)
+
+## License
+
+MIT. See [LICENSE](LICENSE). Security reports: see [SECURITY.md](SECURITY.md).
