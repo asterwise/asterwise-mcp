@@ -94,6 +94,7 @@ EXEMPT_PATHS = frozenset(
         "/.well-known/oauth-protected-resource",
         "/.well-known/oauth-protected-resource/mcp",
         "/.well-known/glama.json",
+        "/.well-known/mcp/server-card.json",
         "/.well-known/openai-apps-challenge",
         "/authorize",
         "/token",
@@ -608,6 +609,46 @@ async def glama_metadata(request: Request) -> Response:
     )
 
 
+_SERVER_CARD_CACHE: dict[str, object] | None = None
+
+
+async def server_card(request: Request) -> Response:
+    """Static MCP server card (https://smithery.ai/docs/build/publish).
+
+    Directories whose scanners cannot pass our auth wall (Smithery uses
+    Client ID Metadata Documents, not dynamic registration) read tool
+    metadata from here instead of tools/list. Built once from the same
+    registry that serves tools/list, so the two never drift.
+    """
+    _ = request
+    global _SERVER_CARD_CACHE
+    if _SERVER_CARD_CACHE is None:
+        tools = [
+            t.to_mcp_tool().model_dump(mode="json", exclude_none=True)
+            for t in await mcp.list_tools()
+        ]
+        prompts = [
+            p.to_mcp_prompt().model_dump(mode="json", exclude_none=True)
+            for p in await mcp.list_prompts()
+        ]
+        _SERVER_CARD_CACHE = {
+            "serverInfo": {"name": mcp.name, "version": SERVER_VERSION},
+            "authentication": {
+                "required": True,
+                "schemes": ["oauth2", "apiKey"],
+                "apiKey": {"in": "header", "name": "x-api-key"},
+                "documentation": "https://asterwise.com/mcp",
+            },
+            "tools": tools,
+            "resources": [],
+            "prompts": prompts,
+        }
+    return JSONResponse(
+        _SERVER_CARD_CACHE,
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
 async def openai_apps_challenge(request: Request) -> Response:
     """OpenAI Apps domain verification challenge (plain text token)."""
     _ = request
@@ -1063,6 +1104,7 @@ _custom_route_keys = frozenset(
         ("/.well-known/oauth-protected-resource", "GET"),
         ("/.well-known/oauth-protected-resource/mcp", "GET"),
         ("/.well-known/glama.json", "GET"),
+        ("/.well-known/mcp/server-card.json", "GET"),
         ("/.well-known/openai-apps-challenge", "GET"),
         ("/authorize", "GET"),
         ("/token", "POST"),
@@ -1114,6 +1156,11 @@ _custom_routes = [
     Route(
         "/.well-known/glama.json",
         endpoint=glama_metadata,
+        methods=["GET"],
+    ),
+    Route(
+        "/.well-known/mcp/server-card.json",
+        endpoint=server_card,
         methods=["GET"],
     ),
     Route(
