@@ -1,6 +1,8 @@
 # Asterwise MCP Server
 
-Astrology and divination calculations as MCP tools. **103 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking and Panchanga, with interpretations that follow classical Jyotish method. Every position is verified against an independent Swiss Ephemeris run: [asterwise.com/proof](https://asterwise.com/proof/).
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/asterwise/asterwise-mcp)
+
+Astrology and divination calculations as MCP tools. **103 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking and Panchanga, with interpretations that follow classical Jyotish method. Every position is verified against an independent Swiss Ephemeris run ([asterwise.com/proof](https://asterwise.com/proof/)) and checked against NASA JPL Horizons, median 0.046 arcseconds over 80 positions ([asterwise.com/accuracy](https://asterwise.com/accuracy/)).
 
 ## Quick Start (2 minutes)
 
