@@ -549,7 +549,12 @@ async def oauth_metadata(request: Request) -> Response:
             "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
                 "client_secret_post",
+                "none",
             ],
+            # Client ID Metadata Documents (MCP authorization spec):
+            # clients may use an HTTPS URL as client_id; asterwise-api
+            # fetches and validates the document.
+            "client_id_metadata_document_supported": True,
             "grant_types_supported": [
                 "authorization_code",
                 "client_credentials",
@@ -576,7 +581,12 @@ async def openid_metadata(request: Request) -> Response:
             "registration_endpoint": "https://mcp.asterwise.com/oauth/register",
             "token_endpoint_auth_methods_supported": [
                 "client_secret_post",
+                "none",
             ],
+            # Client ID Metadata Documents (MCP authorization spec):
+            # clients may use an HTTPS URL as client_id; asterwise-api
+            # fetches and validates the document.
+            "client_id_metadata_document_supported": True,
             "grant_types_supported": [
                 "authorization_code",
                 "client_credentials",
@@ -920,11 +930,13 @@ async def oauth_token(request: Request) -> Response:
         grant_type = body.get("grant_type", "")
 
         if grant_type == "authorization_code":
+            # client_secret is optional: public clients (Client ID Metadata
+            # Documents) authenticate with PKCE only. asterwise-api enforces
+            # which clients may omit it.
             required = (
                 "code",
                 "redirect_uri",
                 "client_id",
-                "client_secret",
                 "code_verifier",
             )
             for k in required:
@@ -942,7 +954,7 @@ async def oauth_token(request: Request) -> Response:
             return await _forward_upstream_json("/v1/oauth/token", dict(body))
 
         if grant_type == "refresh_token":
-            for k in ("refresh_token", "client_id", "client_secret"):
+            for k in ("refresh_token", "client_id"):
                 v = body.get(k)
                 if v is None or (isinstance(v, str) and not str(v).strip()):
                     return JSONResponse(

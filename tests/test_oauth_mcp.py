@@ -279,12 +279,12 @@ async def test_token_refresh_missing_field_returns_400(
             "/oauth/token",
             json={
                 "grant_type": "refresh_token",
-                "refresh_token": "rt",
                 "client_id": "c",
+                "client_secret": "s",
             },
         )
     assert r.status_code == 400
-    assert "client_secret" in r.json()["error_description"]
+    assert "refresh_token" in r.json()["error_description"]
 
 
 @pytest.mark.asyncio
@@ -422,3 +422,96 @@ def test_decode_token_tries_both_secrets() -> None:
         }
         tok = pyjwt.encode(payload, oauth_s, algorithm="HS256")
         assert decode_token(tok) == "oauth-key-xyz"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path",
+    ["/.well-known/oauth-authorization-server", "/.well-known/openid-configuration"],
+)
+async def test_metadata_advertises_public_clients_and_cimd(path: str) -> None:
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        r = await ac.get(path)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["client_id_metadata_document_supported"] is True
+    assert "none" in data["token_endpoint_auth_methods_supported"]
+    assert "client_secret_post" in data["token_endpoint_auth_methods_supported"]
+    assert data["code_challenge_methods_supported"] == ["S256"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "grant_type": "authorization_code",
+            "code": "abc",
+            "redirect_uri": "http://localhost:3000/cb",
+            "client_id": "https://client.example/oauth/client.json",
+            "code_verifier": "v" * 43,
+        },
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": "rt",
+            "client_id": "https://client.example/oauth/client.json",
+        },
+    ],
+)
+async def test_token_endpoint_forwards_public_client_requests_without_secret(
+    monkeypatch: pytest.MonkeyPatch, payload: dict
+) -> None:
+    """Public clients (Client ID Metadata Documents) send no client_secret;
+    the proxy forwards the body unchanged and lets asterwise-api decide."""
+    monkeypatch.setenv("ASTERWISE_API_BASE_URL", "https://api.example.com")
+    captured: list[tuple[str, dict]] = []
+
+    async def fake_forward(
+        path: str,
+        body: dict,
+        *,
+        extra_headers: dict | None = None,
+    ) -> Response:
+        captured.append((path, dict(body)))
+        return Response(
+            content=b'{"access_token":"ok","token_type":"bearer"}',
+            status_code=200,
+            media_type="application/json",
+        )
+
+    import server as srv
+
+    monkeypatch.setattr(srv, "_forward_upstream_json", fake_forward)
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        r = await ac.post("/oauth/token", json=payload)
+    assert r.status_code == 200
+    assert captured == [("/v1/oauth/token", payload)]
+    assert "client_secret" not in captured[0][1]
+
+
+@pytest.mark.asyncio
+async def test_token_endpoint_still_rejects_missing_code_verifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ASTERWISE_API_BASE_URL", "https://api.example.com")
+    from server import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        r = await ac.post(
+            "/oauth/token",
+            json={
+                "grant_type": "authorization_code",
+                "code": "abc",
+                "redirect_uri": "http://localhost:3000/cb",
+                "client_id": "https://client.example/oauth/client.json",
+            },
+        )
+    assert r.status_code == 400
+    assert "code_verifier" in r.json()["error_description"]
