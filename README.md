@@ -58,7 +58,7 @@ curl https://mcp.asterwise.com/health
 
 ## Authentication
 
-Two methods supported:
+Three methods supported:
 
 **Method 1 — API Key (quick start)**  
 Pass your Asterwise API key (starts with `aw_`) either as `Authorization: Bearer <api-key>` or as an `X-API-Key: <api-key>` header. Both are equivalent; use whichever your MCP client can set.
@@ -81,6 +81,14 @@ Returns: `{"access_token": "...", "expires_in": 3600, ...}`
 Use the token: `Authorization: Bearer <access_token>`
 
 Access tokens are stateless HS256 JWTs. The API key is carried inside the token encrypted with a key derived from `JWT_SECRET`; only a SHA-256 hash of the key appears in the `sub` claim. Keep `JWT_SECRET` private.
+
+**Method 3 — OAuth 2.1 authorization code for MCP clients (Claude, Cursor, VS Code, Smithery)**  
+MCP clients log a user in through the standard authorization-code flow with PKCE (`S256`). Discovery is at `/.well-known/oauth-authorization-server`. Two ways for a client to identify itself are supported:
+
+- **Client ID Metadata Documents** (current MCP spec, preferred): use an HTTPS URL as `client_id`. The URL must serve a JSON document whose `client_id` equals the URL, with `client_name`, `redirect_uris`, and `token_endpoint_auth_method: "none"`. These clients are public: no secret, PKCE only, `authorization_code` and `refresh_token` grants, refresh tokens rotate on every use. Redirect URIs must be `https`, or `http` on `localhost` / `127.0.0.1` / `[::1]` (port ignored, per RFC 8252). A reference document you can copy: <https://asterwise.com/public/oauth/example-client.json>.
+- **Dynamic Client Registration** (`POST /oauth/register`, deprecated in the MCP spec but still supported): returns a `client_id` and `client_secret`; the secret is required at `/oauth/token`.
+
+The server fetches metadata documents with SSRF protections (public addresses only, no redirects, 64 KB, 10 s) and caches them for the document's `Cache-Control: max-age` (60 s to 24 h, default 1 h). The consent page shows the host that published the document.
 
 ## Configuration
 
