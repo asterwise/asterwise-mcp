@@ -143,6 +143,34 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
 }
 
 
+def _described(schema: Any, defs: dict, seen: frozenset[str] = frozenset()) -> bool:
+    """True when ``schema`` carries a description, directly or by reference.
+
+    A parameter typed as a model (``{"$ref": "#/$defs/BirthData"}``) has no
+    description of its own; the text lives on the referenced definition and
+    is inlined in the schema clients receive. Treating those as undescribed
+    produced a startup warning for 55 parameters that are in fact documented.
+    """
+    if not isinstance(schema, dict):
+        return False
+    if str(schema.get("description", "")).strip():
+        return True
+
+    ref = schema.get("$ref")
+    if isinstance(ref, str) and ref.startswith("#/$defs/"):
+        name = ref.rsplit("/", 1)[-1]
+        if name not in seen:  # guard against recursive models
+            return _described(defs.get(name), defs, seen | {name})
+
+    for keyword in ("anyOf", "allOf", "oneOf"):
+        variants = schema.get(keyword)
+        if isinstance(variants, list) and any(
+            _described(v, defs, seen) for v in variants
+        ):
+            return True
+    return False
+
+
 def describe_parameters(mcp: Any) -> list[tuple[str, str]]:
     """Fill missing top-level parameter descriptions on every registered tool.
 
@@ -155,9 +183,11 @@ def describe_parameters(mcp: Any) -> list[tuple[str, str]]:
     for component in mcp._local_provider._components.values():
         if not isinstance(component, Tool):
             continue
-        props = (component.parameters or {}).get("properties") or {}
+        parameters = component.parameters or {}
+        defs = parameters.get("$defs") or {}
+        props = parameters.get("properties") or {}
         for param, schema in props.items():
-            if not isinstance(schema, dict) or schema.get("description"):
+            if not isinstance(schema, dict) or _described(schema, defs):
                 continue
             text = TOOL_PARAM_DESCRIPTIONS.get((component.name, param)) or PARAM_DESCRIPTIONS.get(param)
             if text:

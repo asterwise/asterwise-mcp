@@ -42,3 +42,31 @@ def test_vocabulary_has_no_unused_overrides() -> None:
     known = asyncio.run(_names())
     stale = [k for k in TOOL_PARAM_DESCRIPTIONS if k not in known]
     assert stale == [], f"overrides for parameters that no longer exist: {stale}"
+
+
+def test_no_false_undescribed_warning_for_model_parameters() -> None:
+    """describe_parameters must not report parameters whose description lives
+    on the referenced model ($ref), which is what clients actually receive."""
+    from param_docs import describe_parameters
+    from server import mcp
+
+    assert describe_parameters(mcp) == []
+
+
+def test_described_resolves_refs_and_unions() -> None:
+    from param_docs import _described
+
+    defs = {
+        "Birth": {"description": "Birth data.", "properties": {}},
+        "Bare": {"properties": {}},
+        "Loop": {"$ref": "#/$defs/Loop"},
+    }
+    assert _described({"description": "direct"}, defs)
+    assert _described({"$ref": "#/$defs/Birth"}, defs)
+    assert _described({"anyOf": [{"$ref": "#/$defs/Birth"}, {"type": "null"}]}, defs)
+    assert _described({"allOf": [{"description": "via allOf"}]}, defs)
+    assert not _described({"$ref": "#/$defs/Bare"}, defs)
+    assert not _described({"$ref": "#/$defs/Loop"}, defs)  # recursion guard
+    assert not _described({"type": "string"}, defs)
+    assert not _described({"description": "   "}, defs)
+    assert not _described(None, defs)
