@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import json
 import re
 import logging
@@ -255,6 +256,15 @@ async def require_api_key(ctx: Context | None = None) -> str:
         except Exception:
             pass
 
+    if not api_key:
+        # Quaternary: process environment. This is how stdio deployments
+        # (Glama hosting, a local `python stdio.py`) supply the key, since
+        # there are no per-request HTTP headers on that transport.
+        env_key = os.getenv("ASTERWISE_API_KEY", "").strip()
+        if env_key:
+            api_key = env_key
+            source = "env"
+
     if api_key:
         logger.debug(
             "require_api_key_result",
@@ -268,7 +278,8 @@ async def require_api_key(ctx: Context | None = None) -> str:
                 message=(
                     "No API key provided. "
                     "Pass X-API-Key header or "
-                    "Authorization: Bearer <token>. "
+                    "Authorization: Bearer <token>, "
+                    "or set ASTERWISE_API_KEY when running over stdio. "
                     "Get a free key at "
                     "asterwise.com/dashboard"
                 ),

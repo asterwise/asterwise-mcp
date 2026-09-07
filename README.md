@@ -90,6 +90,17 @@ MCP clients log a user in through the standard authorization-code flow with PKCE
 
 The server fetches metadata documents with SSRF protections (public addresses only, no redirects, 64 KB, 10 s) and caches them for the document's `Cache-Control: max-age` (60 s to 24 h, default 1 h). The consent page shows the host that published the document.
 
+## Run over stdio
+
+For hosts that speak stdio instead of HTTP (Glama hosted builds, a local Claude Desktop entry, quick tests):
+
+```bash
+pip install -r requirements.txt
+ASTERWISE_API_KEY=aw_your_key python stdio.py
+```
+
+Over stdio the key comes from `ASTERWISE_API_KEY`; the server starts and lists its tools without one, and tool calls need it. Logs go to stderr.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and set at least:
@@ -101,6 +112,7 @@ Copy `.env.example` to `.env` and set at least:
 | `MCP_SERVER_HOST` / `MCP_SERVER_PORT` | No | Bind address and port for the MCP HTTP server. |
 | `LOG_LEVEL` | No | Default `INFO`. |
 | `MCP_OAUTH_SECRET` | For OAuth | Shared with asterwise-api; verifies access tokens issued by its `/v1/oauth/token`. |
+| `ASTERWISE_API_KEY` | stdio only | Your Asterwise API key for `python stdio.py`; HTTP deployments take the key per request instead. |
 | `INTERNAL_API_TOKEN` | For OAuth client registration | Shared with asterwise-api; used when forwarding dynamic client registration. |
 | `FRONTEND_URL` | For `/authorize` | Where the browser is sent for sign-in and consent (e.g. `https://asterwise.com`). |
 | `OPENAI_APPS_CHALLENGE_TOKEN` | No | Served at `/.well-known/openai-apps-challenge` for directory verification. |
