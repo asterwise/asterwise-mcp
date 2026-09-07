@@ -11,6 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # .dockerignore keeps the venv, tests, docs, keys and env files out of this copy.
 COPY --chown=app:app . .
 
+# Upstream API; production overrides nothing here. Set so a hosted build (for
+# example on Glama) works out of the box: callers bring their own key per
+# request, so no secret is required for API-key mode.
+ENV ASTERWISE_API_BASE_URL=https://api.asterwise.com
+
 USER app
 EXPOSE 8080
 

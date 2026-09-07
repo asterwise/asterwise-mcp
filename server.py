@@ -111,6 +111,65 @@ _WWW_AUTHENTICATE_MCP = (
     'resource_metadata="https://mcp.asterwise.com/.well-known/oauth-protected-resource"'
 )
 
+# Lazy authentication (MCP authorization spec, "Required when the server asks"):
+# a client may open a session and read the tool catalogue without credentials;
+# only tools/call and the other data-bearing methods need a key. Tool
+# descriptions are already public through the static server card, so nothing
+# new is exposed, and directory scanners (Glama, Smithery) can inspect the
+# server without an OAuth round trip.
+MCP_PATH = "/mcp"
+PUBLIC_MCP_METHODS = frozenset(
+    {
+        "initialize",
+        "notifications/initialized",
+        "ping",
+        "tools/list",
+        "prompts/list",
+        "resources/list",
+        "resources/templates/list",
+    }
+)
+_PUBLIC_MCP_BODY_LIMIT = 64 * 1024
+
+
+def _public_mcp_methods_only(body: bytes) -> bool:
+    """True when every JSON-RPC message in ``body`` is a public method.
+
+    Fails closed: unparsable bodies, oversized bodies, batches that mix in a
+    tools/call, or messages without a method all return False.
+    """
+    if not body or len(body) > _PUBLIC_MCP_BODY_LIMIT:
+        return False
+    try:
+        parsed = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return False
+    messages = parsed if isinstance(parsed, list) else [parsed]
+    if not messages:
+        return False
+    for msg in messages:
+        if not isinstance(msg, dict):
+            return False
+        method = msg.get("method")
+        if not isinstance(method, str) or method not in PUBLIC_MCP_METHODS:
+            return False
+    return True
+
+
+async def _read_body(receive: Receive) -> tuple[bytes, list[dict]]:
+    """Drain the request body, returning it and the raw messages to replay."""
+    chunks: list[bytes] = []
+    messages: list[dict] = []
+    while True:
+        message = await receive()
+        messages.append(message)
+        if message["type"] != "http.request":
+            break
+        chunks.append(message.get("body", b""))
+        if not message.get("more_body", False):
+            break
+    return b"".join(chunks), messages
+
 
 class APIKeyASGIWrapper:
     """Bearer / X-API-Key → ContextVar; 401 when required auth is missing (pure ASGI)."""
@@ -149,6 +208,28 @@ class APIKeyASGIWrapper:
         xkey_present = bool(hdr.get("x-api-key", "").strip())
         if not api_key:
             api_key = hdr.get("x-api-key", "").strip() or None
+
+        if (
+            api_key is None
+            and path == MCP_PATH
+            and method == "POST"
+        ):
+            body, replay = await _read_body(receive)
+            if _public_mcp_methods_only(body):
+                queue = list(replay)
+
+                async def _replay() -> dict:
+                    if queue:
+                        return queue.pop(0)
+                    return await receive()
+
+                logger.debug("middleware_auth_public_mcp", extra={"path": path})
+                set_request_api_key(None)
+                try:
+                    await self.app(scope, _replay, send)
+                finally:
+                    set_request_api_key(None)
+                return
 
         if path not in EXEMPT_PATHS and method != "OPTIONS" and api_key is None:
             resp = JSONResponse(
