@@ -70,3 +70,62 @@ def test_described_resolves_refs_and_unions() -> None:
     assert not _described({"type": "string"}, defs)
     assert not _described({"description": "   "}, defs)
     assert not _described(None, defs)
+
+
+def test_no_description_contradicts_its_schema() -> None:
+    """A parameter the schema requires must not advertise a default, and a
+    tool's INPUT CONTRACT must not call an optional parameter required.
+    Glama's scan caught both classes; these are agent-breaking inaccuracies."""
+    import asyncio
+    import re as _re
+
+    from fastmcp import Client
+
+    from server import mcp
+
+    async def _tools():
+        async with Client(mcp) as c:
+            return await c.list_tools()
+
+    tools = asyncio.run(_tools())
+    promises_default, false_required = [], []
+    for t in tools:
+        schema = t.inputSchema or {}
+        required = set(schema.get("required") or ())
+        contract = ""
+        if t.description and "INPUT CONTRACT:" in t.description:
+            contract = t.description.split("INPUT CONTRACT:")[1].split("DO NOT CONFUSE")[0]
+        for name, prop in (schema.get("properties") or {}).items():
+            text = str((prop or {}).get("description") or "")
+            if name in required and _re.search(
+                r"Defaults?\s+to|when omitted|\(optional\)", text, _re.I
+            ):
+                promises_default.append((t.name, name))
+            if name not in required and _re.search(
+                rf"{_re.escape(name)}\s*[—:-]\s*Required", contract, _re.I
+            ):
+                false_required.append((t.name, name))
+    assert promises_default == [], f"required parameters advertising a default: {promises_default}"
+    assert false_required == [], f"optional parameters described as required: {false_required}"
+
+
+def test_domain_specific_name_parameters_are_not_described_as_a_person() -> None:
+    """`name` means a crystal or a dream symbol on these tools, not a person."""
+    import asyncio
+
+    from fastmcp import Client
+
+    from server import mcp
+
+    async def _tools():
+        async with Client(mcp) as c:
+            return {t.name: t for t in await c.list_tools()}
+
+    tools = asyncio.run(_tools())
+    for tool_name, expected in (
+        ("asterwise_get_crystal", "crystal"),
+        ("asterwise_get_dream_symbol", "dream symbol"),
+    ):
+        text = (tools[tool_name].inputSchema["properties"]["name"]["description"]).lower()
+        assert expected in text, f"{tool_name}: {text!r}"
+        assert "numerology" not in text, f"{tool_name} still uses the person-name text"

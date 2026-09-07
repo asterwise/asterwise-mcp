@@ -12,6 +12,7 @@ means something more specific in one tool.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 _DATE = "Date in YYYY-MM-DD format."
@@ -105,6 +106,14 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
     ("asterwise_get_western_planetary_return", "planet"): (
         "Planet whose return to compute, e.g. 'Jupiter' or 'Saturn'."
     ),
+    ("asterwise_get_crystal", "name"): (
+        "Crystal slug or display name, e.g. 'amethyst', 'blue-sapphire', "
+        "'Cat's Eye Chrysoberyl'."
+    ),
+    ("asterwise_get_dream_symbol", "name"): (
+        "Dream symbol slug or display name, e.g. 'snake', 'eagle', "
+        "'childhood-home', 'lotus'."
+    ),
     ("asterwise_get_crystal_by_planet", "planet"): (
         "Planet to find crystals for, e.g. 'Venus' or 'Saturn'."
     ),
@@ -171,6 +180,23 @@ def _described(schema: Any, defs: dict, seen: frozenset[str] = frozenset()) -> b
     return False
 
 
+_DEFAULT_CLAUSE = re.compile(
+    r"\s*(?:Defaults?\s+to\s+[^.]*\.|Omit\s+(?:to|if|when)\s+[^.]*\.)"
+)
+
+
+def _fit_to_schema(text: str, *, required: bool) -> str:
+    """Drop any promise of a default from a parameter the schema requires.
+
+    The shared vocabulary describes the common case, where these parameters
+    are optional. On tools that require them, keeping "Defaults to today when
+    omitted" tells an agent to omit a field the API rejects.
+    """
+    if not required:
+        return text
+    return _DEFAULT_CLAUSE.sub("", text).strip()
+
+
 def describe_parameters(mcp: Any) -> list[tuple[str, str]]:
     """Fill missing top-level parameter descriptions on every registered tool.
 
@@ -186,12 +212,13 @@ def describe_parameters(mcp: Any) -> list[tuple[str, str]]:
         parameters = component.parameters or {}
         defs = parameters.get("$defs") or {}
         props = parameters.get("properties") or {}
+        required = set(parameters.get("required") or ())
         for param, schema in props.items():
             if not isinstance(schema, dict) or _described(schema, defs):
                 continue
             text = TOOL_PARAM_DESCRIPTIONS.get((component.name, param)) or PARAM_DESCRIPTIONS.get(param)
             if text:
-                schema["description"] = text
+                schema["description"] = _fit_to_schema(text, required=param in required)
             else:
                 missing.append((component.name, param))
     return missing
