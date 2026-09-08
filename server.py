@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 from starlette.datastructures import Headers
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from context import set_request_api_key
@@ -88,6 +88,7 @@ EXEMPT_PATHS = frozenset(
     {
         "/",
         "/health",
+        "/robots.txt",
         "/.well-known/oauth-authorization-server",
         "/.well-known/oauth-authorization-server/mcp",
         "/.well-known/openid-configuration",
@@ -1188,6 +1189,25 @@ async def head_handler(request: Request) -> Response:
     )
 
 
+async def root_redirect(request: Request) -> Response:
+    """GET / has no MCP meaning; send humans (and crawlers) to the product page."""
+    _ = request
+    return RedirectResponse("https://asterwise.com/mcp/", status_code=301)
+
+
+_ROBOTS_TXT = "User-agent: *\nDisallow: /\n"
+
+
+async def robots_txt(request: Request) -> Response:
+    """
+    This host serves the MCP protocol and OAuth endpoints only; there is nothing
+    to index. Without this route the auth middleware answered robots.txt with
+    401, which Google treats as "no rules" and then crawls every path into 401s.
+    """
+    _ = request
+    return PlainTextResponse(_ROBOTS_TXT, headers={"Cache-Control": "public, max-age=86400"})
+
+
 # Public ASGI app — explicit custom Router first; everything else to FastMCP (no greedy Mount("/")).
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route, Router
@@ -1198,6 +1218,9 @@ _mcp_asgi = mcp.http_app(transport="streamable-http")
 _custom_route_keys = frozenset(
     {
         ("/", "HEAD"),
+        ("/", "GET"),
+        ("/robots.txt", "GET"),
+        ("/robots.txt", "HEAD"),
         ("/health", "GET"),
         ("/health", "HEAD"),
         ("/.well-known/oauth-authorization-server", "GET"),
@@ -1224,6 +1247,16 @@ _custom_routes = [
         "/",
         endpoint=head_handler,
         methods=["HEAD"],
+    ),
+    Route(
+        "/",
+        endpoint=root_redirect,
+        methods=["GET"],
+    ),
+    Route(
+        "/robots.txt",
+        endpoint=robots_txt,
+        methods=["GET", "HEAD"],
     ),
     Route(
         "/health",
