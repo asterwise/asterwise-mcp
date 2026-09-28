@@ -63,7 +63,7 @@ BEFORE: asterwise_geocode — when you only have a place name.
 AFTER: asterwise_get_panchanga — full timings for a chosen window's day.
 
 SECTION: INPUT CONTRACT
-request.activity (enum above), request.from_date and request.to_date (YYYY-MM-DD, at most 366 days apart), request.lat, request.lon, request.timezone (IANA). Optional: top_n (1-50, default 5), max_windows_per_day (default 1, so results spread across dates), participants (up to two, each with nakshatra and optional moon_rashi, or birth_date, birth_time, birth_latitude, birth_longitude, birth_timezone).
+request.activity (enum above), request.from_date and request.to_date (YYYY-MM-DD, at most 366 days apart), request.lat, request.lon, request.timezone (IANA). Optional: top_n (1-50, default 5), max_windows_per_day (default 1, so results spread across dates), participants (up to two, each with nakshatra and optional moon_rashi, or birth_date, birth_time, birth_lat, birth_lon, birth_timezone).
 
 SECTION: OUTPUT CONTRACT
 data.criteria: nakshatras, tithis, weekdays, preferred_lagnas, avoided_seasons, avoided_periods, daytime_only.
