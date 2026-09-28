@@ -40,7 +40,7 @@ jobs:
           JWT_SECRET: ci-only-jwt-secret-not-used-anywhere-0123456789
         run: python -m pytest -q
 
-      - name: Tool annotation audit (103 tools, titles + annotations)
+      - name: Tool annotation audit (104 tools, titles + annotations)
         env:
           ASTERWISE_API_BASE_URL: https://api.example.com
         run: python scripts/audit_tool_annotations.py

@@ -123,7 +123,7 @@ def register(mcp: FastMCP) -> None:
             readOnlyHint=True,
             destructiveHint=False,
             idempotentHint=True,
-            openWorldHint=True,
+            openWorldHint=False,
         ),
     )
     async def asterwise_geocode(
