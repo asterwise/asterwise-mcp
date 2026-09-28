@@ -21,6 +21,36 @@ from runtime import (
 )
 
 
+# Fields the REST response keeps only for older integrations: `date` is the
+# panchanga day and `start`/`end` are HH:MM on it, which reads as the wrong
+# night for a window after midnight. The tool shows the unambiguous fields.
+_MUHURTA_LEGACY_KEYS = (
+    "date", "start", "end", "choghadiya_type", "reason", "is_rahu_kaal",
+    "vara_number", "tithi", "tithi_number", "yoga", "yoga_number", "vara", "vara_lord",
+)
+
+
+def _clean_muhurta(payload: Any) -> Any:
+    """Rewrite each window around start_at/end_at and grouped panchanga fields."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+        return payload
+    windows = payload["data"].get("top_windows")
+    if not isinstance(windows, list):
+        return payload
+    cleaned = []
+    for w in windows:
+        if not isinstance(w, dict) or "start_at" not in w:
+            cleaned.append(w)
+            continue
+        out = {k: v for k, v in w.items() if k not in _MUHURTA_LEGACY_KEYS}
+        out["tithi"] = {"number": w.get("tithi_number"), "name": w.get("tithi"), "paksha": w.get("paksha")}
+        out.pop("paksha", None)
+        out["yoga"] = {"number": w.get("yoga_number"), "name": w.get("yoga")}
+        out["vara"] = {"number": w.get("vara_number"), "name": w.get("vara"), "lord": w.get("vara_lord")}
+        cleaned.append(out)
+    return {**payload, "data": {**payload["data"], "top_windows": cleaned}}
+
+
 def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_panchanga",
@@ -167,6 +197,7 @@ def register(mcp: FastMCP) -> None:
             data = await get_client().post(
                 "/v1/astro/muhurta", api_key, request.to_api_dict(), timeout=60.0
             )
+            data = _clean_muhurta(data)
             return format_tool_result(
                 data,
                 request.response_format,

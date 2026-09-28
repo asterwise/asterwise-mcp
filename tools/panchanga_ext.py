@@ -88,8 +88,9 @@ def register(mcp: FastMCP) -> None:
         categories: list[FestivalCategory] | None = Field(
             default=None,
             description=(
-                "Limit to these categories: festival, vrat, sankranti, eclipse, period. "
-                "Omit for all (about 180 entries); ['festival'] gives the named festivals only."
+                "Which entries to return: festival (default, about 50 named festivals), vrat "
+                "(Ekadashi, Pradosh, Sankashti, Purnima, Amavasya), sankranti, eclipse, period "
+                "(Adhik Maas, Pitru Paksha, Chaturmas, Navratri, Holashtak, Kharmas)."
             ),
         ),
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,

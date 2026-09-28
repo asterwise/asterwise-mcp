@@ -68,7 +68,7 @@ request.activity (enum above), request.from_date and request.to_date (YYYY-MM-DD
 SECTION: OUTPUT CONTRACT
 data.criteria: nakshatras, tithis, weekdays, preferred_lagnas, avoided_seasons, avoided_periods, daytime_only.
 data.excluded_minutes: minutes ruled out by reason. data.total_windows_found.
-data.top_windows[]: start, end (ISO local), duration_minutes, date (civil date of start), panchanga_day (sunrise date; differs after midnight), score, grade, tithi, nakshatra, yoga, karana, vara, lagna (for lagna-based activities), masa, choghadiya (everyday activities), is_abhijit, is_amrita_siddhi, is_sarvartha_siddhi, is_guru_pushya, is_ravi_pushya, reasons[], cautions[], tarabala[] and chandrabala[] (with participants).
+data.top_windows[]: start_at, end_at (ISO local), duration_minutes, civil_date (date of start), panchanga_day (sunrise date; differs after midnight), score, grade, tithi {number, name, paksha}, nakshatra, yoga, karana, vara {number, name, lord}, lagna (for lagna-based activities), masa, choghadiya, is_abhijit, is_amrita_siddhi, is_sarvartha_siddhi, is_guru_pushya, is_ravi_pushya, reasons[], cautions[], tarabala[] and chandrabala[] (with participants).
 
 SECTION: ERROR CONTRACT
 INVALID_PARAMS (local): unknown activity, bad dates, range over 366 days, participant without nakshatra or birth details. INTERNAL_ERROR: upstream failure.
@@ -87,7 +87,7 @@ BEFORE: asterwise_geocode — when you only have a place name.
 AFTER: asterwise_get_panchanga — the day's limbs and timings for a festival date.
 
 SECTION: INPUT CONTRACT
-year (1900-2100), lat, lon, timezone (IANA, default Asia/Kolkata). categories: optional list of festival, vrat, sankranti, eclipse, period; omit for all (about 180 entries — pass ["festival"] for a short list).
+year (1900-2100), lat, lon, timezone (IANA, default Asia/Kolkata). categories: optional list of festival, vrat, sankranti, eclipse, period; the default is ["festival"] (about 50 named festivals). Add "vrat" for every Ekadashi, Pradosh, Sankashti, Purnima and Amavasya, "period" for Adhik Maas, Pitru Paksha and Chaturmas, "eclipse" for eclipses.
 
 SECTION: OUTPUT CONTRACT
 data.festivals[] sorted by date: id, name, date, end_date (periods), type (solar, tithi, eclipse), category, description (the rule used), significance, masa {amanta, purnimanta, is_adhik}, paksha, tithi {number, name, start, end}, rule, observance_window {start, end} (puja window), note (when Bhadra or a short tithi moved the date), sankranti {rashi, moment}, eclipse {body, kind, greatest, visible_here, local}.

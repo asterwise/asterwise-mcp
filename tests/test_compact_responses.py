@@ -55,3 +55,24 @@ def test_two_level_dasha_is_small_in_both_formats():
 def test_markdown_renderer_handles_generic_payloads():
     md = structured_markdown("Title", {"a": 1, "b": [1, 2], "c": {"d": None}})
     assert md.startswith("## Title")
+
+
+def test_muhurta_windows_are_shown_without_the_legacy_fields():
+    from tools.panchanga import _clean_muhurta
+
+    raw = {"success": True, "data": {"top_windows": [{
+        "date": "2026-11-24", "start": "03:05", "end": "05:08", "score": 85,
+        "choghadiya": "Labh", "choghadiya_type": "auspicious", "yoga": "Shiva", "yoga_number": 20,
+        "vara": "Budhvar", "vara_number": 4, "vara_lord": "Mercury", "tithi": "Pratipada",
+        "tithi_number": 16, "paksha": "Krishna", "reason": "x", "is_rahu_kaal": False,
+        "start_at": "2026-11-25T03:05:00+05:30", "end_at": "2026-11-25T05:08:00+05:30",
+        "civil_date": "2026-11-25", "panchanga_day": "2026-11-24",
+    }]}}
+    w = _clean_muhurta(raw)["data"]["top_windows"][0]
+    assert "date" not in w and "start" not in w and "end" not in w and "reason" not in w
+    assert w["start_at"] == "2026-11-25T03:05:00+05:30"
+    assert w["civil_date"] == "2026-11-25" and w["panchanga_day"] == "2026-11-24"
+    assert w["tithi"] == {"number": 16, "name": "Pratipada", "paksha": "Krishna"}
+    assert w["vara"] == {"number": 4, "name": "Budhvar", "lord": "Mercury"}
+    assert w["yoga"] == {"number": 20, "name": "Shiva"}
+    assert w["choghadiya"] == "Labh"
