@@ -14,6 +14,8 @@ from urllib.parse import quote
 import httpx
 
 from errors import AsterwiseAPIError, map_http_status_to_message
+from auth import forwarded_client_ip_headers
+from context import get_request_client_ip
 
 logger = logging.getLogger("asterwise_mcp")
 
@@ -112,6 +114,9 @@ class AsterwiseClient:
             "User-Agent": "asterwise-mcp/1.0",
             "Accept": "application/json",
         }
+        # Tell the API who is really calling, signed, so its per-IP limits
+        # see the user and not this server's egress address.
+        headers.update(forwarded_client_ip_headers(get_request_client_ip()))
         last_error: BaseException | None = None
 
         logger.info(

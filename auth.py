@@ -218,3 +218,32 @@ def validate_and_get_key(headers: Mapping[str, str] | dict[str, str]) -> str:
             "Get a free key at asterwise.com/dashboard"
         )
     return result
+
+
+# --- forwarding the caller's address to the API -------------------------------
+# Every request this server makes to the API leaves from one egress address, so
+# the API's per-IP limits would put every MCP user in one bucket. The caller's
+# address travels in X-Asterwise-Client-IP with an HMAC keyed by the internal
+# token both services hold; the API accepts it only when the signature checks.
+
+CLIENT_IP_HEADER = "X-Asterwise-Client-IP"
+CLIENT_IP_SIGNATURE_HEADER = "X-Asterwise-Client-IP-Sig"
+
+
+def sign_client_ip(ip: str, secret: str) -> str:
+    import hmac
+
+    return hmac.new(secret.encode("utf-8"), ip.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def forwarded_client_ip_headers(ip: Optional[str]) -> dict[str, str]:
+    """Headers vouching for ``ip``, or nothing when there is no address or no
+    shared secret to sign it with (the API then keys on this server's address,
+    as before)."""
+    secret = os.getenv("INTERNAL_API_TOKEN", "").strip()
+    if not ip or ip == "unknown" or not secret:
+        return {}
+    return {
+        CLIENT_IP_HEADER: ip,
+        CLIENT_IP_SIGNATURE_HEADER: sign_client_ip(ip, secret),
+    }

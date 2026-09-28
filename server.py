@@ -19,7 +19,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from context import set_request_api_key
+from auth import forwarded_client_ip_headers
+from context import set_request_api_key, set_request_client_ip
 from middleware.security_headers import SecurityHeadersASGIWrapper
 
 load_dotenv()
@@ -191,6 +192,9 @@ class APIKeyASGIWrapper:
         )
 
         hdr = Headers(scope=scope)
+        # With --forwarded-allow-ips this is the real caller, not the platform proxy.
+        client = scope.get("client")
+        caller_ip = str(client[0]) if client and client[0] else None
         api_key: str | None = None
         auth_header = hdr.get("authorization", "")
         bearer_present = False
@@ -226,10 +230,12 @@ class APIKeyASGIWrapper:
 
                 logger.debug("middleware_auth_public_mcp", extra={"path": path})
                 set_request_api_key(None)
+                set_request_client_ip(None)
                 try:
                     await self.app(scope, _replay, send)
                 finally:
                     set_request_api_key(None)
+                    set_request_client_ip(None)
                 return
 
         if path not in EXEMPT_PATHS and method != "OPTIONS" and api_key is None:
@@ -253,6 +259,7 @@ class APIKeyASGIWrapper:
             return
 
         set_request_api_key(api_key)
+        set_request_client_ip(caller_ip)
         logger.debug(
             "middleware_auth",
             extra={
@@ -271,6 +278,7 @@ class APIKeyASGIWrapper:
             await self.app(scope, receive, send)
         finally:
             set_request_api_key(None)
+            set_request_client_ip(None)
 
 
 # OAuth token endpoint: max 10 requests per minute per IP (in-memory)
@@ -883,7 +891,7 @@ async def oauth_dynamic_client_register(request: Request) -> Response:
         resp = await _forward_upstream_json(
             "/v1/oauth/register",
             upstream_body,
-            extra_headers=hdrs,
+            extra_headers={**hdrs, **forwarded_client_ip_headers(client_ip)},
         )
         if resp.status_code == 503:
             return resp
@@ -1035,7 +1043,10 @@ async def oauth_token(request: Request) -> Response:
                         },
                         status_code=400,
                     )
-            return await _forward_upstream_json("/v1/oauth/token", dict(body))
+            return await _forward_upstream_json(
+                "/v1/oauth/token", dict(body),
+                extra_headers=forwarded_client_ip_headers(client_ip),
+            )
 
         if grant_type == "refresh_token":
             for k in ("refresh_token", "client_id"):
@@ -1050,7 +1061,10 @@ async def oauth_token(request: Request) -> Response:
                         },
                         status_code=400,
                     )
-            return await _forward_upstream_json("/v1/oauth/token", dict(body))
+            return await _forward_upstream_json(
+                "/v1/oauth/token", dict(body),
+                extra_headers=forwarded_client_ip_headers(client_ip),
+            )
 
         if grant_type != "client_credentials":
             return JSONResponse(
