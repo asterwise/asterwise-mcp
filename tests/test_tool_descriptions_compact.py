@@ -22,7 +22,7 @@ def _tools():
 
 def test_every_description_is_compact_and_links_to_docs():
     tools = _tools()
-    assert len(tools) == 103
+    assert len(tools) == 104
     for t in tools:
         assert len(t["description"]) <= MAX_DESCRIPTION_CHARS, (t["name"], len(t["description"]))
         assert tool_doc_url(t["name"]) in t["description"], t["name"]

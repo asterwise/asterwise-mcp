@@ -3,7 +3,7 @@
 [![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/asterwise/asterwise-mcp)
 [![Quality, license and maintenance score on Glama](https://glama.ai/mcp/servers/asterwise/asterwise-mcp/badges/score.svg)](https://glama.ai/mcp/servers/asterwise/asterwise-mcp)
 
-Astrology and divination calculations as MCP tools. **103 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking and Panchanga, with interpretations that follow classical Jyotish method. Every position is verified against an independent Swiss Ephemeris run ([asterwise.com/proof](https://asterwise.com/proof/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)) and checked against NASA JPL Horizons, median 0.046 arcseconds over 80 positions ([asterwise.com/accuracy](https://asterwise.com/accuracy/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)). How it compares with seven other astrology APIs, sourced and dated: [asterwise.com/compare](https://asterwise.com/compare/?utm_source=github&utm_medium=readme).
+Astrology and divination calculations as MCP tools. **104 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking and Panchanga, with interpretations that follow classical Jyotish method. Every position is verified against an independent Swiss Ephemeris run ([asterwise.com/proof](https://asterwise.com/proof/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)) and checked against NASA JPL Horizons, median 0.046 arcseconds over 80 positions ([asterwise.com/accuracy](https://asterwise.com/accuracy/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)). How it compares with seven other astrology APIs, sourced and dated: [asterwise.com/compare](https://asterwise.com/compare/?utm_source=github&utm_medium=readme).
 
 ## Quick Start (2 minutes)
 
@@ -118,9 +118,9 @@ Copy `.env.example` to `.env` and set at least:
 | `FRONTEND_URL` | For `/authorize` | Where the browser is sent for sign-in and consent (e.g. `https://asterwise.com`). |
 | `OPENAI_APPS_CHALLENGE_TOKEN` | No | Served at `/.well-known/openai-apps-challenge` for directory verification. |
 
-## Tools (103 total)
+## Tools (104 total)
 
-The MCP server exposes **103 tools** organized by Python module. The categorization reflects code organization; tools may serve multiple traditions (e.g. matchmaking includes both Sanskrit Dashakoot and Tamil Porutham methods).
+The MCP server exposes **104 tools** organized by Python module. The categorization reflects code organization; tools may serve multiple traditions (e.g. matchmaking includes both Sanskrit Dashakoot and Tamil Porutham methods).
 
 - **western** — 16 tools (chart, transits, returns, progressions)
 - **natal** — 13 tools (chart, dasha trees, ascendant systems)
@@ -128,7 +128,7 @@ The MCP server exposes **103 tools** organized by Python module. The categorizat
 - **tarot** — 9 tools (draws, spreads, suit references)
 - **vedic_reference** — 8 tools (nakshatra, planet nature, ayanamsha, classical reference)
 - **numerology_gaps** — 7 tools (expression, soul urge, personality, maturity, balance, karmic, personal cycles)
-- **panchanga** — 6 tools (panchanga, choghadiya, rahu kaal, hora)
+- **panchanga** — 6 tools (panchanga day with every limb and timing, monthly calendar, muhurta search, choghadiya, rahu kaal, hora)
 - **crystals** — 5 tools (list, by planet, recommendations, individual)
 - **dasha** — 5 tools (vimshottari, ashtottari, yogini, char, transits)
 - **matchmaking** — 5 tools (dashakoot, porutham, thirumana, papasamyam, compatibility)
@@ -137,7 +137,7 @@ The MCP server exposes **103 tools** organized by Python module. The categorizat
 - **angel_numbers** — 3 tools (today, personal, lookup)
 - **varshaphal** — 3 tools (annual chart, saham, harsha bala)
 - **dreams** — 2 tools (symbols, individual)
-- **panchanga_ext** — 2 tools (calendar, festivals, tamil)
+- **panchanga_ext** — 3 tools (festival and vrat calendar, tamil panchanga, geocode a place name)
 
 For the full tool list see [docs.asterwise.com](https://docs.asterwise.com) or the MCP server's tool listing endpoint.
 

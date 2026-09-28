@@ -399,14 +399,14 @@ mcp = FastMCP(
   You are connected to the Asterwise Astrology and Divination API — the most
   comprehensive structured astrology MCP available.
 
-  This server exposes 103 tools. All tools require an API key
+  This server exposes 104 tools. All tools require an API key
   obtained from asterwise.com.
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DOMAIN 1 — VEDIC ASTROLOGY (sidereal)
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   asterwise_get_natal_chart — full sidereal natal chart (planets, houses, drishti, arudhas, bhava cusps)
-  asterwise_get_divisional_chart — one or all 16 divisional charts (D1–D60); omit chart_type for all 16
+  asterwise_get_divisional_chart — one or all 16 divisional charts (D1–D60) with dignity, vargottama and houses from each varga lagna
   asterwise_get_chart_strength — Shadbala, Bhavbala, Vimshopaka scores
   asterwise_get_yogas — classical yoga detection (raja, dhana, mahapurusha, etc.)
   asterwise_get_doshas — 12 dosha analysis
@@ -425,14 +425,15 @@ mcp = FastMCP(
   asterwise_get_nakshatra_details — 27-nakshatra encyclopaedia
   asterwise_get_gemstone_recommendations — classical Ratna prescriptions
   asterwise_get_remedies — mantra, gem, and charity remedies
-  asterwise_get_panchanga — daily Panchanga (tithi, vara, nakshatra, yoga, karana)
-  asterwise_get_panchanga_calendar — monthly Panchanga calendar
-  asterwise_get_muhurta — auspicious timing search
+  asterwise_get_panchanga — the panchanga day: every tithi, nakshatra, yoga, karana with start/end, sunrise, moonrise, masa, samvat and all timings (Rahu Kaal, Abhijit, Brahma Muhurta, Varjyam, Bhadra ...)
+  asterwise_get_panchanga_calendar — monthly Panchanga calendar with kshaya/vriddhi tithis, masa and Bhadra
+  asterwise_get_muhurta — auspicious windows for 11 activities (exact ISO times, seasonal bans, optional Tarabala/Chandrabala)
   asterwise_get_choghadiya — 16-segment day Choghadiya
   asterwise_get_hora — 24-planetary Hora table
   asterwise_get_rahu_kaal — Rahu Kaal, Gulika Kaal, Yamaganda
-  asterwise_get_tamil_panchanga — Tamil panchanga: Rahu Kalam, Yamagandam, Kuligai, Emagandam, Nalla Neram, Tamil solar month
-  asterwise_get_festival_calendar — Hindu festival calendar for a year: 20 festivals computed astronomically (no hardcoded dates)
+  asterwise_get_tamil_panchanga — Tamil panchanga: Rahu Kalam, Yamagandam, Kuligai, Nalla Neram, Tamil solar month
+  asterwise_get_festival_calendar — Hindu festivals, vrats (Ekadashi, Pradosh, Sankashti ...), sankrantis, eclipses and periods (Adhik Maas, Pitru Paksha, Chaturmas) for a year
+  asterwise_geocode — place name to latitude, longitude and timezone for any tool
   asterwise_get_kp_chart — KP natal chart with sub-lords
   asterwise_get_kp_significators — KP house significator chains
   asterwise_get_kp_ruling_planets — instantaneous KP ruling planets
@@ -527,7 +528,8 @@ mcp = FastMCP(
   Western tools: always tropical zodiac. house_system defaults to placidus.
   Matchmaking: check Rajju and Vedha vetoes first. A failed veto overrides Guna score regardless of total.
   Birth data format: date=YYYY-MM-DD, time=HH:MM (24h local), lat/lon decimal degrees, timezone=IANA string.
-  If user gives a city name only: ask for coordinates. The API requires decimal degrees.
+  If user gives a city name only: call asterwise_geocode for its latitude, longitude and timezone.
+  Unknown birth time: omit time (never pass '00:00', which is read as midnight).
   All tools support response_format=json (structured) or response_format=markdown (human-readable).
   """,
     lifespan=lifespan,

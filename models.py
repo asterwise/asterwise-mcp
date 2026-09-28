@@ -266,11 +266,110 @@ class PanchangaCalendarInput(BaseModel):
         extra="forbid",
     )
 
-    year: int = Field(..., ge=1900, le=2100)
-    month: int = Field(..., ge=1, le=12)
-    lat: float = Field(..., ge=-90.0, le=90.0)
-    lon: float = Field(..., ge=-180.0, le=180.0)
+    year: int = Field(..., ge=1900, le=2100, description="Calendar year, 1900-2100.")
+    month: int = Field(..., ge=1, le=12, description="Month number 1-12.")
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees, north positive.")
+    lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees, east positive.")
+    timezone: str = Field(
+        default="Asia/Kolkata",
+        description="IANA timezone of the location, e.g. 'America/New_York'. Default: Asia/Kolkata.",
+    )
+    ayanamsa: AyanamsaType = Field(default=AyanamsaType.LAHIRI, description="Ayanamsa for nakshatra and yoga.")
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
+
+
+class MuhurtaActivity(str, Enum):
+    MARRIAGE = "marriage"
+    GRIHA_PRAVESH = "griha_pravesh"
+    BUSINESS = "business"
+    TRAVEL = "travel"
+    NAMING_CEREMONY = "naming_ceremony"
+    VEHICLE_PURCHASE = "vehicle_purchase"
+    PROPERTY_PURCHASE = "property_purchase"
+    MUNDAN = "mundan"
+    ANNAPRASHAN = "annaprashan"
+    UPANAYANA = "upanayana"
+    VIDYARAMBHA = "vidyarambha"
+
+
+class MuhurtaParticipantInput(BaseModel):
+    """A person whose Tarabala and Chandrabala must be favourable (e.g. bride or groom)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    label: str | None = Field(default=None, description="Name shown in the output, e.g. 'Bride'.")
+    nakshatra: str | None = Field(
+        default=None, description="Janma nakshatra name, e.g. 'Rohini'. Or give the birth fields instead."
+    )
+    moon_rashi: str | None = Field(
+        default=None, description="Janma rashi (Moon sign), e.g. 'Vrishabha' or 'Taurus'. Optional with nakshatra."
+    )
+    birth_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Birth date YYYY-MM-DD.")
+    birth_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$", description="Birth time HH:MM (24h).")
+    birth_lat: float | None = Field(default=None, ge=-90.0, le=90.0, description="Birth latitude.")
+    birth_lon: float | None = Field(default=None, ge=-180.0, le=180.0, description="Birth longitude.")
+    birth_timezone: str | None = Field(default=None, description="IANA timezone of the birth place.")
+
+    def to_api_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        if self.label:
+            out["label"] = self.label
+        if self.nakshatra:
+            out["nakshatra"] = self.nakshatra
+            if self.moon_rashi:
+                out["moon_rashi"] = self.moon_rashi
+            return out
+        out.update({
+            "birth_date": self.birth_date,
+            "birth_time": self.birth_time,
+            "birth_latitude": self.birth_lat,
+            "birth_longitude": self.birth_lon,
+            "birth_timezone": self.birth_timezone,
+        })
+        return out
+
+
+class MuhurtaInput(BaseModel):
+    """Muhurta search parameters."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    activity: MuhurtaActivity = Field(..., description="Activity to find a muhurta for.")
+    from_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Start of the search, YYYY-MM-DD (inclusive).")
+    to_date: str = Field(
+        ..., pattern=r"^\d{4}-\d{2}-\d{2}$",
+        description="End of the search, YYYY-MM-DD (inclusive), at most 366 days after from_date.",
+    )
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees, north positive.")
+    lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees, east positive.")
+    timezone: str = Field(default="Asia/Kolkata", description="IANA timezone of the location.")
+    ayanamsa: AyanamsaType = Field(default=AyanamsaType.LAHIRI, description="Ayanamsa for nakshatra and lagna.")
+    top_n: int = Field(default=5, ge=1, le=50, description="Number of windows to return (1-50).")
+    max_windows_per_day: int = Field(
+        default=1, ge=1, le=10, description="At most this many windows per day, so results spread across dates."
+    )
+    participants: list[MuhurtaParticipantInput] | None = Field(
+        default=None,
+        max_length=2,
+        description="Up to two people; adds Tarabala and Chandrabala (Naidhana or the 8th-house Moon rule a moment out).",
+    )
+    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
+
+    def to_api_dict(self) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "event_type": self.activity.value,
+            "from_date": self.from_date,
+            "to_date": self.to_date,
+            "latitude": self.lat,
+            "longitude": self.lon,
+            "timezone": self.timezone,
+            "ayanamsa": self.ayanamsa.value,
+            "top_n": self.top_n,
+            "max_windows_per_day": self.max_windows_per_day,
+        }
+        if self.participants:
+            body["participants"] = [p.to_api_dict() for p in self.participants]
+        return body
 
 
 class PrashnaInput(BaseModel):

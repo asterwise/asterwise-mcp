@@ -10,7 +10,8 @@ from fastmcp import Context, FastMCP
 import mcp.types as mcp_types
 
 from client import get_client
-from models import LocationInput, PanchangaCalendarInput
+from models import LocationInput, MuhurtaInput, PanchangaCalendarInput
+from tools import panchanga_texts as texts
 from runtime import (
     compact_description,
     tool_guard,
@@ -24,7 +25,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_panchanga",
         title="Panchanga",
-        description=compact_description("asterwise_get_panchanga", "Computes Panchanga elements for one calendar date at a geographic location and returns tithi, vara, nakshatra, yoga, karana, and end times in UTC.\n\nSECTION: WHAT THIS TOOL COVERS\nDerives classical Panchanga limbs from sidereal astronomy for the given date, latitude, longitude, and timezone — no birth time or natal chart. data.yoga here is the Panchanga Yoga (Sun+Moon nakshatra composite), wholly separate from natal yogas in asterwise_get_yogas. It does not score muhurta windows across ranges (asterwise_get_muhurta), list Choghadiya slices (asterwise_get_choghadiya), or monthly calendars (asterwise_get_panchanga_calendar).\n\nSECTION: WORKFLOW\nBEFORE: None — this tool is standalone.\nAFTER: asterwise_get_choghadiya — same-day slot quality for the location.\n\nSECTION: INPUT CONTRACT\ndate must be YYYY-MM-DD (Pydantic pattern on LocationInput). lat/lon bounds are validated locally. Upstream rejects calendar dates outside 1900–2100. timezone defaults to Asia/Kolkata when the caller leaves the default in LocationInput.\n\nSECTION: OUTPUT CONTRACT\ndata.tithi:\n  number (int — 1–30)\n  name (string)\n  paksha (string — 'Shukla' or 'Krishna')\n  degrees_elapsed (float)\n  degrees_remaining (float)\n  end_time (string — ISO UTC)\ndata.vara:\n  number (int — 1=Ravivar through 7=Shanivar)\n  name (string)\n  lord (string)\n  end_time (string)\ndata.nakshatra:\n  index (int — 0–26)\n  name (string)\n  pada (int — 1–4)\n  degrees_elapsed (float)\n  degrees_remaining (float)\n  end_time (string — ISO UTC)\ndata.yoga:\n  index (int — 0–26)\n  name (string)\n  is_inauspicious (bool)\n  degrees_elapsed (float)\n  end_time (string — ISO UTC)\ndata.karana:\n  number (int)\n  name (string)\n  degrees_elapsed (float)\n  degrees_remaining (float)\n  end_time (string — ISO UTC)\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — date not YYYY-MM-DD or invalid calendar day → MCP INVALID_PARAMS\n  — lat/lon outside allowed ranges → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — dates outside 1900–2100 surface as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Panchanga yoga is unrelated to asterwise_get_yogas natal combinations.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_yogas — natal chart yogas, not Panchanga Sun–Moon yoga.\nasterwise_get_panchanga_calendar — whole-month daily rows, not a single day."),
+        description=compact_description("asterwise_get_panchanga", texts.PANCHANGA),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -148,7 +149,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_muhurta",
         title="Muhurta",
-        description=compact_description("asterwise_get_muhurta", "Searches a date span for top-scoring muhurta windows for a named activity using Panchanga, Choghadiya, and classical siddhi flags at a location.\n\nSECTION: WHAT THIS TOOL COVERS\nEvaluates marriage, travel, griha_pravesh, business, education, medical, and vehicle_purchase (exact spellings upstream). Returns scored windows with tithi, nakshatra-related yoga name (Panchanga yoga, not natal yogas), vara, choghadiya metadata, boolean guards (rahu kaal, abhijit, amrita/sarvartha siddhi), and textual reasons. Unsupported activity strings are rejected upstream. It does not return a full month calendar (asterwise_get_panchanga_calendar) or only Choghadiya rows (asterwise_get_choghadiya).\n\nSECTION: WORKFLOW\nBEFORE: None — this tool is standalone.\nAFTER: asterwise_get_panchanga — drill into Panchanga limbs for a chosen winning date.\n\nSECTION: INPUT CONTRACT\nactivity must be one of the supported English slugs above — not validated locally; bad values become MCP INTERNAL_ERROR. from_date/to_date ordering and span rules are enforced upstream. Location coordinates reuse LocationInput validation for lat/lon/date pattern.\n\nSECTION: OUTPUT CONTRACT\ndata.event_type (string)\ndata.from_date (string)\ndata.to_date (string)\ndata.timezone (string)\ndata.ayanamsa (string)\ndata.total_windows_evaluated (int)\ndata.top_windows[] — each:\n  date (string — YYYY-MM-DD)\n  start (string — HH:MM local)\n  end (string — HH:MM local)\n  score (int — 0–100)\n  choghadiya (string)\n  choghadiya_type (string)\n  yoga (string — Panchanga yoga name)\n  vara (string)\n  vara_number (int — 1–7)\n  tithi (string)\n  tithi_number (int — 1–30)\n  is_rahu_kaal (bool)\n  is_abhijit (bool)\n  is_amrita_siddhi (bool)\n  is_sarvartha_siddhi (bool)\n  reason (string)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — Invalid LocationInput date/lat/lon → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — bad activity, range, or ordering surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Panchanga yoga names here are not asterwise_get_yogas natal yogas.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_choghadiya — enumerates all Choghadiya for one day without activity scoring across a span.\nasterwise_get_panchanga — single-day limb detail, not ranked muhurta search."),
+        description=compact_description("asterwise_get_muhurta", texts.MUHURTA),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -158,33 +159,23 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_muhurta(
         ctx: Context,
-        location: LocationInput,
-        activity: str,
-        from_date: str,
-        to_date: str,
+        request: MuhurtaInput,
     ) -> str:
         """Activity-specific muhurta."""
         async with tool_guard("asterwise_get_muhurta"):
             api_key = await require_api_key(ctx)
-            body = {
-                "event_type": activity,
-                "from_date": from_date,
-                "to_date": to_date,
-                "latitude": location.lat,
-                "longitude": location.lon,
-                "timezone": location.timezone,
-            }
-            rf = location.response_format
-            data = await get_client().post("/v1/astro/muhurta", api_key, body, timeout=10.0)
+            data = await get_client().post(
+                "/v1/astro/muhurta", api_key, request.to_api_dict(), timeout=60.0
+            )
             return format_tool_result(
                 data,
-                rf,
-                lambda d: structured_markdown(f"Muhurta — {activity}", d),
+                request.response_format,
+                lambda d: structured_markdown(f"Muhurta — {request.activity.value}", d),
             )
     @mcp.tool(
         name="asterwise_get_panchanga_calendar",
         title="Panchanga Calendar",
-        description=compact_description("asterwise_get_panchanga_calendar", "Returns one row per civil day for a calendar month at a location with condensed tithi, vara, nakshatra, yoga, karana, and rahu_kaal columns.\n\nSECTION: WHAT THIS TOOL COVERS\nMonth-wide Panchanga suitable for planners; each day includes ending times where applicable and local Rahu Kaal bounds. Year must be 1900–2100 and month 1–12 (Pydantic on PanchangaCalendarInput). It is not single-day detailed Panchanga (asterwise_get_panchanga) nor muhurta search (asterwise_get_muhurta).\n\nSECTION: WORKFLOW\nBEFORE: None — this tool is standalone.\nAFTER: asterwise_get_panchanga — expand any single day at full detail.\n\nSECTION: INPUT CONTRACT\nyear/month/lat/lon validated locally. Timezone handling follows upstream response fields (data.timezone echo).\n\nSECTION: OUTPUT CONTRACT\ndata.year (int)\ndata.month (int)\ndata.timezone (string)\ndata.ayanamsa (string)\ndata.days[] — 28–31 objects:\n  date (string — YYYY-MM-DD)\n  tithi — { name (string), number (int), paksha (string), end_time (string — ISO UTC) }\n  vara — { name (string), number (int), lord (string) }\n  nakshatra — { name (string), index (int), pada (int), end_time (string — ISO UTC) }\n  yoga — { name (string), index (int), is_inauspicious (bool), end_time (string — ISO UTC) }\n  karana — { name (string), number (int), end_time (string — ISO UTC) }\n  rahu_kaal — { start (string — HH:MM local), end (string — HH:MM local) }\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — year outside 1900–2100 → MCP INVALID_PARAMS\n  — month outside 1–12 → MCP INVALID_PARAMS\n  — lat/lon out of range → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — further rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Day count follows the civil month (28–31 entries).\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_panchanga — deep single-day Panchanga with degree fields, not a month grid.\nasterwise_get_muhurta — activity-ranked windows, not a passive calendar."),
+        description=compact_description("asterwise_get_panchanga_calendar", texts.PANCHANGA_CALENDAR),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -204,10 +195,12 @@ def register(mcp: FastMCP) -> None:
                 "month": calendar.month,
                 "latitude": calendar.lat,
                 "longitude": calendar.lon,
+                "timezone": calendar.timezone,
+                "ayanamsa": calendar.ayanamsa.value,
             }
             rf = calendar.response_format
             data = await get_client().get(
-                "/v1/astro/panchanga/calendar", api_key, params, timeout=10.0
+                "/v1/astro/panchanga/calendar", api_key, params, timeout=30.0
             )
             return format_tool_result(
                 data,

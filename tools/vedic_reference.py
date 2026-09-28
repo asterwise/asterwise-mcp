@@ -10,6 +10,7 @@ from pydantic import Field
 
 from client import get_client
 from models import BirthData, ResponseFormat
+from tools import panchanga_texts as texts
 from runtime import (
     compact_description,
     tool_guard,
@@ -322,50 +323,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_nakshatra_prediction",
         title="Nakshatra Prediction",
-        description=compact_description("asterwise_get_nakshatra_prediction", (
-            "Returns a personalised daily prediction using Tarabala and Chandrabala.\n\n"
-            "SECTION: WHAT THIS TOOL COVERS\n"
-            "Computes the individual's daily auspiciousness score by:\n"
-            "1. TARABALA: Counts from birth nakshatra to today's transit Moon nakshatra (inclusive). "
-            "The remainder mod 9 gives the Tara (1=Janma, 2=Sampat/Wealth, 3=Vipat/Danger, "
-            "4=Kshema/Prosperity, 5=Pratyak/Obstacle, 6=Sadhana/Achievement, "
-            "7=Naidhana/Destruction, 8=Mitra/Friend, 9=Ati-Mitra/Great Friend).\n"
-            "2. CHANDRABALA: Transit Moon's house from natal Moon (favorable in houses 1,3,6,7,10,11).\n"
-            "3. TRANSIT NAKSHATRA QUALITY: The type of today's Moon nakshatra "
-            "(Dhruva/Chara/Ugra/Tikshna/Kshipra/Mridu/Mishra) with auspicious and "
-            "inauspicious activities.\n"
-            "Combined daily score out of 4 with label (Excellent/Good/Moderate/Challenging).\n\n"
-            "SECTION: WORKFLOW\n"
-            "BEFORE: None — birth data computes everything needed.\n"
-            "AFTER: asterwise_get_panchanga — for full daily panchanga context.\n\n"
-            "SECTION: INPUT CONTRACT\n"
-            "birth — BirthData (date, time, lat, lon, timezone).\n"
-            "target_date (optional): YYYY-MM-DD. Defaults to today.\n\n"
-            "SECTION: OUTPUT CONTRACT\n"
-            "data.target_date (string)\n"
-            "data.birth_nakshatra{}: name (string), index (int 0-26)\n"
-            "data.natal_moon_sign_index (int 0-11)\n"
-            "data.transit_moon{}: nakshatra (string), nakshatra_index (int), rashi_index (int)\n"
-            "data.tarabala{}: tara_number (int 1-9), count_from_birth (int),\n"
-            "  name (string), meaning (string), is_favorable (bool),\n"
-            "  interpretation (string)\n"
-            "data.chandrabala{}: moon_house_from_natal (int 1-12),\n"
-            "  is_favorable (bool), favorable_houses[] (int array)\n"
-            "data.daily_score{}: score (int 0-4), max_score (4), label (string)\n"
-            "data.transit_nakshatra_quality{}: nakshatra (string), quality_type (string),\n"
-            "  english (string), auspicious_for[] (string array),\n"
-            "  inauspicious_for[] (string array)\n"
-            "data.nakshatra_activities{}: favorable[] (string array),\n"
-            "  unfavorable[] (string array)\n"
-            "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE — natal chart + ephemeris Moon position.\n\n"
-            "SECTION: ERROR CONTRACT\n"
-            "INVALID_PARAMS (local): BirthData Pydantic violations → MCP INVALID_PARAMS\n"
-            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
-            "SECTION: DO NOT CONFUSE WITH\n"
-            "asterwise_get_nakshatra_details — static nakshatra reference, not personalised prediction.\n"
-            "asterwise_get_panchanga — daily panchanga (tithi, yoga, karana), not Tarabala scoring.\n"
-            "asterwise_get_biorhythm — Western biorhythm cycles, not classical Vedic prediction."
-        )),
+        description=compact_description("asterwise_get_nakshatra_prediction", texts.NAKSHATRA_PREDICTION),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,

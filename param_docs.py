@@ -129,12 +129,6 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
     ("asterwise_get_horoscope", "period"): (
         "Horoscope period: daily, weekly, monthly or yearly."
     ),
-    ("asterwise_get_muhurta", "from_date"): (
-        "Start of the search window for auspicious times, YYYY-MM-DD."
-    ),
-    ("asterwise_get_muhurta", "to_date"): (
-        "End of the search window for auspicious times, YYYY-MM-DD."
-    ),
     ("asterwise_get_transits", "from_date"): (
         "Start of the window to list ingress and station events, YYYY-MM-DD."
     ),

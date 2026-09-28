@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from fastmcp import Context, FastMCP
 import mcp.types as mcp_types
+from pydantic import Field
 
 from client import get_client
 from models import ResponseFormat
+from tools import panchanga_texts as texts
 from runtime import (
     compact_description,
     tool_guard,
@@ -18,12 +21,20 @@ from runtime import (
 )
 
 
+class FestivalCategory(str, Enum):
+    FESTIVAL = "festival"
+    VRAT = "vrat"
+    SANKRANTI = "sankranti"
+    ECLIPSE = "eclipse"
+    PERIOD = "period"
+
+
 def register(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="asterwise_get_tamil_panchanga",
         title="Tamil Panchanga",
-        description=compact_description("asterwise_get_tamil_panchanga", "Returns Tamil-specific Panchanga for a date and location: all four inauspicious periods (Rahu Kalam, Yamagandam, Kuligai, Emagandam), Nalla Neram (auspicious daytime windows between inauspicious periods), and the Tamil solar month name based on the Sun's sidereal sign at sunrise.\n\nSECTION: WHAT THIS TOOL COVERS\nRahu Kalam, Yamagandam (Yamakanda), Kuligai (Gulika), and Emagandam divide the daytime into eight equal parts from sunrise to sunset following the Tamil weekday table. Nalla Neram is every gap between the four inauspicious periods — the auspicious windows left for commencing ventures. Tamil solar month follows the Sun's Lahiri sidereal sign at local sunrise (Chithirai when Sun is in Mesha, through Panguni when Sun is in Meena). This tool does not return Vedic Panchanga limbs (asterwise_get_panchanga) or the standard Rahu/Gulika/Yamaganda breakdown used in North Indian tradition (asterwise_get_rahu_kaal).\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_panchanga — for full Vedic five-limb panchanga of the same date.\n\nSECTION: INPUT CONTRACT\ndate: YYYY-MM-DD format.\nEither location (city name) OR latitude + longitude + timezone must be provided.\n\nSECTION: OUTPUT CONTRACT\ndata.date (string — YYYY-MM-DD)\ndata.sunrise (string — HH:MM local time)\ndata.sunset (string — HH:MM local time)\ndata.tamil_month (string — Tamil solar month name, e.g. 'Chithirai', 'Vaikasi')\ndata.rahu_kalam: start, end (HH:MM), duration_minutes (int), is_active (bool)\ndata.yamagandam: start, end (HH:MM), duration_minutes (int), is_active (bool)\ndata.kuligai: start, end (HH:MM), duration_minutes (int), is_active (bool)\ndata.emagandam: start, end (HH:MM), duration_minutes (int), is_active (bool)\ndata.nalla_neram: list of { start (HH:MM), end (HH:MM) } objects\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP — sunrise computation + lookup tables, no full natal chart.\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local): None — all validation upstream.\nINTERNAL_ERROR: Any upstream API failure or timeout → MCP INTERNAL_ERROR\nEdge cases:\n  — Polar latitudes where sunrise cannot be computed → MCP INTERNAL_ERROR.\n  — Emagandam part table: Sun=5, Mon=4, Tue=3, Wed=2, Thu=8, Fri=1, Sat=7.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_rahu_kaal — North Indian Rahu/Gulika/Yamaganda only; no Emagandam, Nalla Neram, or Tamil month.\nasterwise_get_panchanga — five Vedic limbs (tithi, vara, nakshatra, yoga, karana); not Tamil-specific periods."),
+        description=compact_description("asterwise_get_tamil_panchanga", texts.TAMIL_PANCHANGA),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -33,25 +44,21 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_tamil_panchanga(
         ctx: Context,
-        date: str,
+        date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date for the Tamil panchanga, YYYY-MM-DD."),
+        lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees, north positive."),
+        lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees, east positive."),
+        timezone: str = Field(default="Asia/Kolkata", description="IANA timezone of the location."),
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
-        location: str | None = None,
-        latitude: float | None = None,
-        longitude: float | None = None,
-        timezone: str | None = None,
     ) -> str:
         """Compute Tamil Panchanga for a date and location."""
         async with tool_guard("asterwise_get_tamil_panchanga"):
             api_key = await require_api_key(ctx)
-            params: dict[str, Any] = {"date": date}
-            if location:
-                params["location"] = location
-            if latitude is not None:
-                params["latitude"] = latitude
-            if longitude is not None:
-                params["longitude"] = longitude
-            if timezone:
-                params["timezone"] = timezone
+            params: dict[str, Any] = {
+                "date": date,
+                "latitude": lat,
+                "longitude": lon,
+                "timezone": timezone,
+            }
             data = await get_client().get(
                 "/v1/astro/panchanga/tamil", api_key, params, timeout=15.0
             )
@@ -60,10 +67,11 @@ def register(mcp: FastMCP) -> None:
                 response_format,
                 lambda d: structured_markdown("Tamil Panchanga", d),
             )
+
     @mcp.tool(
         name="asterwise_get_festival_calendar",
         title="Festival Calendar",
-        description=compact_description("asterwise_get_festival_calendar", "Computes all major Hindu festival dates for a given year and location. Returns 20 pan-Hindu festivals including solar sankrantis (Makar Sankranti, Vaisakhi) and tithi-based festivals (Diwali, Holi, Dussehra, Janmashtami, Ganesh Chaturthi, Ram Navami, and 12 others).\n\nSECTION: WHAT THIS TOOL COVERS\nAll dates are astronomically computed — no hardcoded calendar dates. Solar festivals (Makar Sankranti, Vaisakhi) use exact Swiss Ephemeris Sun ingress into Lahiri sidereal signs. Tithi festivals (all others) use Sun-Moon elongation at local sunrise: elongation = (moon_lon - sun_lon) % 360, tithi_index = int(elongation / 12), indices 0-14 = Shukla Paksha tithi 1-15, indices 15-29 = Krishna Paksha tithi 1-15. Location is required for sunrise-based tithi determination — the same astronomical event may fall on different calendar dates at different locations.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_panchanga — drill into full Panchanga detail for any specific festival date.\n\nSECTION: INPUT CONTRACT\nyear: integer 1900-2100.\nEither location (city name) OR latitude + longitude + timezone must be provided.\n\nSECTION: OUTPUT CONTRACT\ndata.year (int)\ndata.timezone (string — IANA timezone used)\ndata.total (int — number of festivals found)\ndata.festivals[] — chronologically sorted:\n  name (string — festival name)\n  date (string — YYYY-MM-DD)\n  type (string — 'solar' or 'tithi')\n  description (string — classical basis, e.g. which tithi of which lunar month)\n  significance (string — cultural and religious significance)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nSLOW_COMPUTE — scans all 365 days of the year per tithi festival (up to 20 date scans).\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local): None.\nINTERNAL_ERROR: Any upstream API failure or timeout → MCP INTERNAL_ERROR\nEdge cases:\n  — Sunrise-based tithi may differ by one day from printed almanac calendars (which use midnight or fixed-time rules).\n  — Rare years where a tithi is skipped may cause a festival to not be found (returns total < 20).\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_panchanga_calendar — full Panchanga for every day of a month; not festival-specific.\nasterwise_get_muhurta — finds auspicious windows for activities; not a festival calendar."),
+        description=compact_description("asterwise_get_festival_calendar", texts.FESTIVAL_CALENDAR),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -73,25 +81,30 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_festival_calendar(
         ctx: Context,
-        year: int,
+        year: int = Field(..., ge=1900, le=2100, description="Calendar year, e.g. 2026."),
+        lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees, north positive."),
+        lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees, east positive."),
+        timezone: str = Field(default="Asia/Kolkata", description="IANA timezone of the location."),
+        categories: list[FestivalCategory] | None = Field(
+            default=None,
+            description=(
+                "Limit to these categories: festival, vrat, sankranti, eclipse, period. "
+                "Omit for all (about 180 entries); ['festival'] gives the named festivals only."
+            ),
+        ),
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
-        location: str | None = None,
-        latitude: float | None = None,
-        longitude: float | None = None,
-        timezone: str | None = None,
     ) -> str:
-        """Compute Hindu festival calendar for a year and location."""
+        """Compute the Hindu festival calendar for a year and location."""
         async with tool_guard("asterwise_get_festival_calendar"):
             api_key = await require_api_key(ctx)
-            params: dict[str, Any] = {"year": year}
-            if location:
-                params["location"] = location
-            if latitude is not None:
-                params["latitude"] = latitude
-            if longitude is not None:
-                params["longitude"] = longitude
-            if timezone:
-                params["timezone"] = timezone
+            params: dict[str, Any] = {
+                "year": year,
+                "latitude": lat,
+                "longitude": lon,
+                "timezone": timezone,
+            }
+            if categories:
+                params["categories"] = ",".join(c.value for c in categories)
             data = await get_client().get(
                 "/v1/astro/panchanga/festivals", api_key, params, timeout=120.0
             )
@@ -99,4 +112,37 @@ def register(mcp: FastMCP) -> None:
                 data,
                 response_format,
                 lambda d: structured_markdown(f"Hindu Festival Calendar {year}", d),
+            )
+
+    @mcp.tool(
+        name="asterwise_geocode",
+        title="Geocode a place",
+        description=compact_description("asterwise_geocode", texts.GEOCODE),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
+    )
+    async def asterwise_geocode(
+        ctx: Context,
+        query: str = Field(..., min_length=2, description="Place name, e.g. 'Pune' or 'Fatehabad, Haryana'."),
+        limit: int = Field(default=5, ge=1, le=10, description="Maximum matches to return (1-10)."),
+        country: str | None = Field(
+            default=None, description="Optional ISO 3166 alpha-2 country code to narrow the search, e.g. 'in'."
+        ),
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+    ) -> str:
+        """Resolve a place name to latitude, longitude and timezone."""
+        async with tool_guard("asterwise_geocode"):
+            api_key = await require_api_key(ctx)
+            params: dict[str, Any] = {"q": query, "limit": limit}
+            if country:
+                params["country"] = country
+            data = await get_client().get("/v1/utils/geocode", api_key, params, timeout=15.0)
+            return format_tool_result(
+                data,
+                response_format,
+                lambda d: structured_markdown(f"Places matching '{query}'", d),
             )

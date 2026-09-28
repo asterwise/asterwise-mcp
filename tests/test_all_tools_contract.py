@@ -1,7 +1,7 @@
 """
 Safety net over every registered tool.
 
-For each of the 103 tools this builds a valid argument set from the tool's
+For each of the 104 tools this builds a valid argument set from the tool's
 own input schema, invokes it through an in-process FastMCP client with the
 upstream HTTP client replaced by a fake, and asserts the contract every tool
 shares:
@@ -157,7 +157,7 @@ TOOL_NAMES = [name for name, _ in TOOL_SPECS]
 
 
 def test_registry_has_the_documented_tool_count():
-    assert len(TOOL_SPECS) == 103
+    assert len(TOOL_SPECS) == 104
 
 
 async def _call(name: str, args: dict[str, Any], upstream: FakeUpstream, *, with_key: bool = True):

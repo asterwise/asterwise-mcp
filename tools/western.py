@@ -98,7 +98,7 @@ def register(mcp: FastMCP) -> None:
             "Edge cases:\n"
             "  — Polar latitudes (above ~65°N or below ~65°S) may cause Placidus house calculation "
             "failure; use whole_sign or equal house system for polar births.\n"
-            "  — time='00:00' accepted; lagna-sensitive results are unreliable for unknown birth times.\n\n"
+            "  — time is required; '00:00' is read as midnight, not as unknown, so ascendant and house results need a real birth time.\n\n"
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_get_natal_chart — Vedic sidereal chart using Lahiri ayanamsa; different zodiac, "
             "different house system, different planet set (9 grahas vs 10 tropical planets).\n"
