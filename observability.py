@@ -106,7 +106,9 @@ def wrap_asgi(app: Any) -> Any:
         return app
     from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
-    return SentryAsgiMiddleware(app)
+    # "url": the default names each transaction after an endpoint that plain
+    # ASGI apps do not have ("<unlabeled transaction>").
+    return SentryAsgiMiddleware(app, transaction_style="url")
 
 
 def tag_request(**tags: Any) -> None:
