@@ -8,6 +8,7 @@ import logging
 import os
 import time
 from urllib.parse import urlparse
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -178,6 +179,62 @@ def _public_mcp_methods_only(body: bytes) -> bool:
     return True
 
 
+def _mcp_messages(body: bytes) -> list[dict]:
+    """JSON-RPC messages in ``body`` for logging; [] when it is not parsable."""
+    if not body or len(body) > _PUBLIC_MCP_BODY_LIMIT:
+        return []
+    try:
+        parsed = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return []
+    messages = parsed if isinstance(parsed, list) else [parsed]
+    return [m for m in messages if isinstance(m, dict)]
+
+
+def _clip(value: Any, limit: int = 100) -> str | None:
+    return value.strip()[:limit] if isinstance(value, str) and value.strip() else None
+
+
+def _initialize_client(messages: list[dict]) -> dict[str, str | None] | None:
+    """clientInfo name/version and protocol version from an initialize request."""
+    for msg in messages:
+        if msg.get("method") != "initialize":
+            continue
+        params = msg.get("params") if isinstance(msg.get("params"), dict) else {}
+        info = params.get("clientInfo") if isinstance(params.get("clientInfo"), dict) else {}
+        return {
+            "client_name": _clip(info.get("name")),
+            "client_version": _clip(info.get("version")),
+            "protocol_version": _clip(params.get("protocolVersion"), 32),
+        }
+    return None
+
+
+# Which client opened each MCP session, so a later 401 on that session (a
+# tools/call from a client that connected anonymously and never signed in)
+# can be attributed. In-memory and bounded: attribution is best effort.
+_MCP_SESSION_CLIENTS: OrderedDict[str, dict[str, str | None]] = OrderedDict()
+_MCP_SESSION_CLIENTS_MAX = 10_000
+
+
+def _remember_session_client(session_id: str, client: dict[str, str | None]) -> None:
+    _MCP_SESSION_CLIENTS[session_id] = client
+    _MCP_SESSION_CLIENTS.move_to_end(session_id)
+    while len(_MCP_SESSION_CLIENTS) > _MCP_SESSION_CLIENTS_MAX:
+        _MCP_SESSION_CLIENTS.popitem(last=False)
+
+
+def _replaying_receive(replay: list[dict], receive: Receive) -> Receive:
+    queue = list(replay)
+
+    async def _receive() -> dict:
+        if queue:
+            return queue.pop(0)
+        return await receive()
+
+    return _receive
+
+
 async def _read_body(receive: Receive) -> tuple[bytes, list[dict]]:
     """Drain the request body, returning it and the raw messages to replay."""
     chunks: list[bytes] = []
@@ -198,6 +255,70 @@ class APIKeyASGIWrapper:
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
+
+    @staticmethod
+    def _log_initialize(
+        send: Send,
+        client: dict[str, str | None],
+        hdr: Headers,
+        *,
+        authenticated: bool,
+    ) -> Send:
+        """Wrap ``send`` to log one ``mcp_client_initialize`` line with the outcome.
+
+        Which clients connect, and whether with credentials, is how a client
+        that never starts OAuth (Cursor before e748e45) shows up in the logs.
+        """
+
+        async def _send(message: dict) -> None:
+            if message["type"] == "http.response.start":
+                resp_hdr = Headers(raw=message.get("headers", []))
+                session_id = resp_hdr.get("mcp-session-id")
+                if session_id:
+                    _remember_session_client(session_id, client)
+                logger.info(
+                    "mcp_client_initialize",
+                    extra={
+                        **client,
+                        "authenticated": authenticated,
+                        "status": message.get("status"),
+                        "user_agent": _clip(hdr.get("user-agent"), 200),
+                    },
+                )
+            await send(message)
+
+        return _send
+
+    @staticmethod
+    def _log_auth_challenge(
+        method: str,
+        body: bytes,
+        hdr: Headers,
+        init_client: dict[str, str | None] | None,
+    ) -> None:
+        """Log a 401 on /mcp with the client it belongs to.
+
+        A ``tools/call`` challenge on a session that connected anonymously is
+        the stuck-client signal: that client listed tools but never signed in.
+        """
+        session_id = hdr.get("mcp-session-id")
+        client = init_client or (_MCP_SESSION_CLIENTS.get(session_id) if session_id else None)
+        rpc_methods = [
+            m["method"][:64]
+            for m in _mcp_messages(body)
+            if isinstance(m.get("method"), str)
+        ][:5]
+        logger.info(
+            "mcp_auth_challenge",
+            extra={
+                **(client or {"client_name": None, "client_version": None, "protocol_version": None}),
+                "http_method": method,
+                "rpc_methods": rpc_methods,
+                "has_session": bool(session_id),
+                "session_client_known": client is not None,
+                "user_agent": _clip(hdr.get("user-agent"), 200),
+            },
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -234,31 +355,35 @@ class APIKeyASGIWrapper:
         if not api_key:
             api_key = hdr.get("x-api-key", "").strip() or None
 
+        body = b""
+        init_client: dict[str, str | None] | None = None
+        if path == MCP_PATH and method == "POST":
+            body, replay = await _read_body(receive)
+            receive = _replaying_receive(replay, receive)
+            messages = _mcp_messages(body)
+            init_client = _initialize_client(messages)
+        if init_client is not None:
+            send = self._log_initialize(send, init_client, hdr, authenticated=api_key is not None)
+
         if (
             api_key is None
             and path == MCP_PATH
             and method == "POST"
+            and _public_mcp_methods_only(body)
         ):
-            body, replay = await _read_body(receive)
-            if _public_mcp_methods_only(body):
-                queue = list(replay)
-
-                async def _replay() -> dict:
-                    if queue:
-                        return queue.pop(0)
-                    return await receive()
-
-                logger.debug("middleware_auth_public_mcp", extra={"path": path})
+            logger.debug("middleware_auth_public_mcp", extra={"path": path})
+            set_request_api_key(None)
+            set_request_client_ip(None)
+            try:
+                await self.app(scope, receive, send)
+            finally:
                 set_request_api_key(None)
                 set_request_client_ip(None)
-                try:
-                    await self.app(scope, _replay, send)
-                finally:
-                    set_request_api_key(None)
-                    set_request_client_ip(None)
-                return
+            return
 
         if path not in EXEMPT_PATHS and method != "OPTIONS" and api_key is None:
+            if path == MCP_PATH:
+                self._log_auth_challenge(method, body, hdr, init_client)
             resp = JSONResponse(
                 {
                     "error": "unauthorized",
