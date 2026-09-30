@@ -30,9 +30,23 @@ class TokenInvalidError(AuthError):
 
 
 class AsterwiseAPIError(AsterwiseMCPError):
-    """Upstream Asterwise API returned an error."""
+    """Upstream Asterwise API returned an error.
 
-    pass
+    status_code and api_request_id identify the failing API call; the id is
+    the API's X-Request-ID, searchable in its logs and Sentry.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        hint: str | None = None,
+        status_code: int | None = None,
+        api_request_id: str | None = None,
+    ) -> None:
+        super().__init__(message, hint=hint)
+        self.status_code = status_code
+        self.api_request_id = api_request_id
 
 
 def map_http_status_to_message(status_code: int, detail: str | None) -> str:

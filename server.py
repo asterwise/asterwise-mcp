@@ -30,6 +30,10 @@ from logging_config import configure_logging
 
 configure_logging()
 
+from observability import init_sentry, tag_request, wrap_asgi  # noqa: E402
+
+init_sentry()
+
 from auth import TOKEN_TTL, create_token, looks_like_jwt, resolve_bearer_token
 from client import get_client
 from errors import AsterwiseAPIError
@@ -364,6 +368,14 @@ class APIKeyASGIWrapper:
             init_client = _initialize_client(messages)
         if init_client is not None:
             send = self._log_initialize(send, init_client, hdr, authenticated=api_key is not None)
+        if path == MCP_PATH:
+            session_id = hdr.get("mcp-session-id")
+            known = init_client or (_MCP_SESSION_CLIENTS.get(session_id) if session_id else None) or {}
+            tag_request(
+                mcp_client=known.get("client_name"),
+                mcp_client_version=known.get("client_version"),
+                mcp_authenticated=api_key is not None,
+            )
 
         if (
             api_key is None
@@ -1527,7 +1539,7 @@ async def _dispatch_app(scope: Scope, receive: Receive, send: Send) -> None:
 
 
 # CORS outermost, then security headers, then API key auth, then dispatch.
-app = CORSMiddleware(
+app = wrap_asgi(CORSMiddleware(
     SecurityHeadersASGIWrapper(APIKeyASGIWrapper(_dispatch_app)),
     allow_origins=["*"],
     allow_methods=["GET", "HEAD", "POST", "OPTIONS", "DELETE"],
@@ -1540,7 +1552,7 @@ app = CORSMiddleware(
     ],
     expose_headers=["Mcp-Session-Id", "WWW-Authenticate"],
     allow_credentials=False,
-)
+))
 
 
 if __name__ == "__main__":

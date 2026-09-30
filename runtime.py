@@ -15,11 +15,16 @@ from mcp.shared.exceptions import McpError
 from mcp.types import INVALID_PARAMS, INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import ValidationError
 
+import httpx
+
 from auth import extract_api_key
-from errors import AsterwiseMCPError, TokenExpiredError, TokenInvalidError
+from errors import AsterwiseAPIError, AsterwiseMCPError, TokenExpiredError, TokenInvalidError
 from models import ResponseFormat
+from observability import HANDLED_LOGGER_NAME, capture_tool_failure
 
 logger = logging.getLogger("asterwise_mcp.runtime")
+# Stdout only: these lines sit next to an explicit, tagged Sentry capture.
+handled_logger = logging.getLogger(HANDLED_LOGGER_NAME)
 
 STANDARD_ANNOTATIONS = ToolAnnotations(
     readOnlyHint=True,
@@ -108,9 +113,18 @@ def raise_validation_error(exc: ValidationError) -> NoReturn:
 
 def unexpected_tool_error(tool_name: str, exc: BaseException) -> NoReturn:
     """Unexpected exception inside a tool handler (no stack / internal detail leak)."""
-    logger.exception(
+    upstream = isinstance(exc, (httpx.TimeoutException, httpx.ConnectError))
+    handled_logger.error(
         "unexpected_tool_error",
+        exc_info=exc,
         extra={"tool": tool_name, "error_type": type(exc).__name__},
+    )
+    capture_tool_failure(
+        tool_name,
+        exc,
+        failure="upstream" if upstream else "crash",
+        upstream_status=("timeout" if isinstance(exc, httpx.TimeoutException) else "connect_error")
+        if upstream else None,
     )
     tool_error(
         f"Unexpected error in {tool_name}. Retry the request or check status.asterwise.com."
@@ -152,6 +166,30 @@ def compact_description(tool_name: str, full: str) -> str:
     return "\n\n".join(kept)
 
 
+def _report_upstream_failure(tool_name: str, exc: AsterwiseMCPError) -> None:
+    """Report API failures that survived the retries; client errors stay quiet.
+
+    4xx (bad input, auth, rate limit) is the caller's to fix and is returned
+    to the model as a tool error. 5xx means the API itself failed.
+    """
+    if not isinstance(exc, AsterwiseAPIError):
+        return
+    status = exc.status_code
+    if status is not None and status < 500:
+        return
+    handled_logger.warning(
+        "upstream_api_error",
+        extra={"tool": tool_name, "status": status, "api_request_id": exc.api_request_id},
+    )
+    capture_tool_failure(
+        tool_name,
+        exc,
+        failure="upstream",
+        upstream_status=status,
+        api_request_id=exc.api_request_id,
+    )
+
+
 class _ToolGuard:
     """See tool_guard()."""
 
@@ -169,6 +207,7 @@ class _ToolGuard:
         if isinstance(exc, McpError):
             return False  # already a protocol error: propagate untouched
         if isinstance(exc, AsterwiseMCPError):
+            _report_upstream_failure(self.tool_name, exc)
             tool_error(str(exc))
         if isinstance(exc, ValidationError):
             raise_validation_error(exc)

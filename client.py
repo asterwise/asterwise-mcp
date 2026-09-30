@@ -75,10 +75,17 @@ class AsterwiseClient:
         if response.is_success:
             return
         detail: str | None = None
+        api_request_id = response.headers.get("X-Request-ID")
         try:
             body = response.json()
             if isinstance(body, dict):
+                api_request_id = api_request_id or body.get("request_id")
                 d = body.get("detail")
+                if d is None:
+                    # The API's error envelope: {"error_code", "message",
+                    # "details": [...], "request_id"}. Only "detail" was read,
+                    # so 422 messages reached the model without the field.
+                    d = body.get("details") or body.get("message")
                 if isinstance(d, str):
                     detail = d
                 elif isinstance(d, list):
@@ -96,7 +103,12 @@ class AsterwiseClient:
             if text:
                 detail = text[:500]
         msg = map_http_status_to_message(response.status_code, detail)
-        raise AsterwiseAPIError(msg, hint=msg)
+        raise AsterwiseAPIError(
+            msg,
+            hint=msg,
+            status_code=response.status_code,
+            api_request_id=api_request_id if isinstance(api_request_id, str) else None,
+        )
 
     async def _request_with_retry(
         self,
@@ -107,12 +119,15 @@ class AsterwiseClient:
         timeout: float,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        request_id = str(uuid.uuid4())[:8]
+        # Sent as X-Request-ID, so the API logs and tags the same id and one
+        # tool call can be followed across both services.
+        request_id = str(uuid.uuid4())
         start = time.perf_counter()
         headers = {
             "Authorization": f"Bearer {api_key}",
             "User-Agent": "asterwise-mcp/1.0",
             "Accept": "application/json",
+            "X-Request-ID": request_id,
         }
         # Tell the API who is really calling, signed, so its per-IP limits
         # see the user and not this server's egress address.
@@ -225,7 +240,9 @@ class AsterwiseClient:
                     await asyncio.sleep(delay)
                     continue
                 elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
-                logger.error(
+                # Warning: tool_guard reports the failure to Sentry once,
+                # tagged; an error here was a second, untagged event.
+                logger.warning(
                     "upstream_failure",
                     extra={
                         "request_id": request_id,
@@ -239,7 +256,9 @@ class AsterwiseClient:
 
             except Exception as e:
                 elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
-                logger.error(
+                # Warning: tool_guard reports the failure to Sentry once,
+                # tagged; an error here was a second, untagged event.
+                logger.warning(
                     "upstream_failure",
                     extra={
                         "request_id": request_id,
