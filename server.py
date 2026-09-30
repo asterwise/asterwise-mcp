@@ -133,12 +133,30 @@ PUBLIC_MCP_METHODS = frozenset(
 )
 _PUBLIC_MCP_BODY_LIMIT = 64 * 1024
 
+# Clients that decide whether to sign in from the initialize response alone.
+# If initialize succeeds anonymously they never start OAuth: Cursor then hits
+# the 401 on its GET stream and sticks at "Error - Unauthorized", and
+# `cursor-agent mcp login` reports success without a token. They get the 401
+# challenge on initialize, like any server without lazy auth. Matched on
+# clientInfo.name, lowercased: "cursor-vscode" (IDE) and "cursor" (CLI).
+OAUTH_ON_INITIALIZE_CLIENTS = frozenset({"cursor", "cursor-vscode"})
+
+
+def _requires_oauth_on_initialize(msg: dict) -> bool:
+    if msg.get("method") != "initialize":
+        return False
+    params = msg.get("params")
+    info = params.get("clientInfo") if isinstance(params, dict) else None
+    name = info.get("name") if isinstance(info, dict) else None
+    return isinstance(name, str) and name.strip().lower() in OAUTH_ON_INITIALIZE_CLIENTS
+
 
 def _public_mcp_methods_only(body: bytes) -> bool:
     """True when every JSON-RPC message in ``body`` is a public method.
 
     Fails closed: unparsable bodies, oversized bodies, batches that mix in a
-    tools/call, or messages without a method all return False.
+    tools/call, or messages without a method all return False. So does an
+    initialize from a client in OAUTH_ON_INITIALIZE_CLIENTS.
     """
     if not body or len(body) > _PUBLIC_MCP_BODY_LIMIT:
         return False
@@ -154,6 +172,8 @@ def _public_mcp_methods_only(body: bytes) -> bool:
             return False
         method = msg.get("method")
         if not isinstance(method, str) or method not in PUBLIC_MCP_METHODS:
+            return False
+        if _requires_oauth_on_initialize(msg):
             return False
     return True
 

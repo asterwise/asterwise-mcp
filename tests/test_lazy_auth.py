@@ -139,3 +139,51 @@ def test_public_method_predicate_edge_cases():
     assert not srv._public_mcp_methods_only(b"null")
     assert not srv._public_mcp_methods_only(b'"tools/list"')
     assert not srv._public_mcp_methods_only(_rpc("tools/list ").replace(b"tools/list ", b"tools/lis"))
+
+
+def _initialize(client_name):
+    return _rpc(
+        "initialize",
+        params={"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": client_name, "version": "1"}},
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client_name", ["cursor-vscode", "Cursor", " CURSOR "])
+async def test_cursor_initialize_gets_oauth_challenge(client_name):
+    # Cursor only starts OAuth when initialize itself is refused.
+    rec = _Recorder()
+    app = srv.APIKeyASGIWrapper(rec)
+    status, headers = await _run(app, _scope(), _initialize(client_name))
+    assert status == 401
+    assert "resource_metadata" in headers.get("www-authenticate", "")
+    assert not rec.called
+
+
+@pytest.mark.asyncio
+async def test_cursor_initialize_with_token_passes():
+    rec = _Recorder()
+    app = srv.APIKeyASGIWrapper(rec)
+    body = _initialize("cursor-vscode")
+    status, _ = await _run(app, _scope(headers={"X-API-Key": "aw_test_key"}), body)
+    assert status == 200 and rec.called and rec.body == body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client_name", ["claude-ai", "openai-mcp", "glama", "cursor-like", ""])
+async def test_other_clients_keep_anonymous_initialize(client_name):
+    rec = _Recorder()
+    app = srv.APIKeyASGIWrapper(rec)
+    status, _ = await _run(app, _scope(), _initialize(client_name))
+    assert status == 200 and rec.called
+
+
+def test_oauth_on_initialize_predicate_edge_cases():
+    assert not srv._public_mcp_methods_only(
+        json.dumps([json.loads(_initialize("cursor-vscode")), json.loads(_rpc("tools/list"))]).encode()
+    )
+    assert srv._public_mcp_methods_only(_rpc("initialize", params={"clientInfo": "cursor"}))
+    assert srv._public_mcp_methods_only(_rpc("initialize", params={"clientInfo": {"name": 5}}))
+    assert srv._public_mcp_methods_only(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": []}).encode())
+    # Only initialize is gated; a later anonymous tools/list is unaffected.
+    assert srv._public_mcp_methods_only(_rpc("tools/list", params={"clientInfo": {"name": "cursor"}}))
