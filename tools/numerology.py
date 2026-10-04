@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from fastmcp import Context, FastMCP
 
 
@@ -193,7 +195,7 @@ def register(mcp: FastMCP) -> None:
         """Lucky numbers."""
         async with tool_guard("asterwise_get_lucky_numbers"):
             api_key = await require_api_key(ctx)
-            data = await get_client().get(
+            data = await get_client().post(
                 "/v1/numerology/lucky-numbers",
                 api_key,
                 {"name": name, "date": date},
@@ -206,7 +208,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_personal_year",
         title="Personal Year",
-        description=compact_description("asterwise_get_personal_year", "Looks up the Personal Year theme for the current calendar cycle from a name and birth date using only month and day inputs server-side.\n\nSECTION: WHAT THIS TOOL COVERS\nEndpoint returns Personal Year data derived from birth month/day against the running calendar year on the server — there is no extra year argument in the tool schema. Expected response keys (pending live confirmation): personal_year_number (int), theme (string), interpretation (string), advice (string), favorable_actions[] (string array), challenges[] (string array). asterwise_get_numerology_profile leaves personal_year null; use this tool when Personal Year detail is required.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_numerology_profile — see other core numbers first.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nOnly name and date are submitted; the active calendar year is chosen upstream automatically.\n\nSECTION: OUTPUT CONTRACT\npersonal_year_number (int) — expected\ntheme (string) — expected\ninterpretation (string) — expected\nadvice (string) — expected\nfavorable_actions[] (string array) — expected\nchallenges[] (string array) — expected\n(Schema not yet confirmed from live response; fields above reflect tool design.)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Cannot request arbitrary calendar years via this tool — only the server-selected current year.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_numerology_profile — personal_year field there is null; this endpoint supplies the annual theme.\nasterwise_get_varshaphal — Vedic solar return, not Pythagorean Personal Year."),
+        description=compact_description("asterwise_get_personal_year", "Looks up the Personal Year theme for the current calendar year from a birth date (its month and day).\n\nSECTION: WHAT THIS TOOL COVERS\nEndpoint returns Personal Year data derived from birth month/day against the running calendar year on the server — there is no extra year argument in the tool schema. Response keys: year (int), personal_year_number (int), theme (string), interpretation (string), opportunities[] (string array), challenges[] (string array), advice (string). asterwise_get_numerology_profile leaves personal_year null; use this tool when Personal Year detail is required.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_numerology_profile — see other core numbers first.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nOnly the birth date is sent; name is optional and not used. The active calendar year is chosen upstream automatically.\n\nSECTION: OUTPUT CONTRACT\nyear (int — the calendar year interpreted)\npersonal_year_number (int)\ntheme (string)\ninterpretation (string)\nopportunities[] (string array)\nchallenges[] (string array)\nadvice (string)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Cannot request arbitrary calendar years via this tool — only the server-selected current year.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_numerology_profile — personal_year field there is null; this endpoint supplies the annual theme.\nasterwise_get_varshaphal — Vedic solar return, not Pythagorean Personal Year."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -216,17 +218,19 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_personal_year(
         ctx: Context,
-        name: str,
         date: str,
+        name: str | None = None,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Personal year."""
         async with tool_guard("asterwise_get_personal_year"):
             api_key = await require_api_key(ctx)
-            data = await get_client().get(
+            # Send the year explicitly: a body without it is cached upstream
+            # as "this year" and could outlive New Year.
+            data = await get_client().post(
                 "/v1/numerology/personal-year",
                 api_key,
-                {"name": name, "date": date},
+                {"date": date, "year": datetime.now(UTC).year},
             )
             return format_tool_result(
                 data,
@@ -268,7 +272,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_check_mobile_number",
         title="Mobile Number Check",
-        description=compact_description("asterwise_check_mobile_number", "Digit-strips a mobile string (keeping country code digits), reduces it with the owner's name and birth date, and returns harmonic scoring plus interpretive copy.\n\nSECTION: WHAT THIS TOOL COVERS\nAccepts formats like bare ten digits, plus-country-code with spaces or hyphens; all non-digits drop out before summation and country code digits count toward totals. Compares against owner numerology via upstream rules. Not for vehicle plates (asterwise_check_vehicle_number) or business names.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_numerology_profile — anchor Life Path before judging the line.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nFormatting noise is ignored; only digits contribute. Country code digits are included in the reduction sum.\n\nSECTION: OUTPUT CONTRACT\ndata.input (string — submitted number)\ndata.input_type (string — 'mobile')\ndata.total (int — sum of all retained digits)\ndata.single_digit (int — Pythagorean root, one through nine)\ndata.is_master (bool — true when total reduces to eleven, twenty-two, or thirty-three)\ndata.theme (string)\ndata.favourable_for[] (string array)\ndata.caution (string)\ndata.harmony_score (int — one through ten)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Plus signs and punctuation do not affect digit extraction.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_check_vehicle_number — plate digit rules, not SIM numbering.\nasterwise_get_business_name_analysis — letter Expression scan, not phone roots."),
+        description=compact_description("asterwise_check_mobile_number", "Digit-strips a mobile string (keeping country code digits), reduces the digits to a single number, and returns harmonic scoring plus interpretive copy.\n\nSECTION: WHAT THIS TOOL COVERS\nAccepts formats like bare ten digits, plus-country-code with spaces or hyphens; all non-digits drop out before summation and country code digits count toward totals. The result depends only on the digits; owner name and birth date are optional and not used. Not for vehicle plates (asterwise_check_vehicle_number) or business names.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_numerology_profile — anchor Life Path before judging the line.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nFormatting noise is ignored; only digits contribute. Country code digits are included in the reduction sum.\n\nSECTION: OUTPUT CONTRACT\ndata.input (string — submitted number)\ndata.input_type (string — 'mobile')\ndata.total (int — sum of all retained digits)\ndata.single_digit (int — Pythagorean root, one through nine)\ndata.is_master (bool — true when total reduces to eleven, twenty-two, or thirty-three)\ndata.theme (string)\ndata.favourable_for[] (string array)\ndata.caution (string)\ndata.harmony_score (int — one through ten)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Plus signs and punctuation do not affect digit extraction.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_check_vehicle_number — plate digit rules, not SIM numbering.\nasterwise_get_business_name_analysis — letter Expression scan, not phone roots."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -279,17 +283,17 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_check_mobile_number(
         ctx: Context,
         mobile_number: str,
-        name: str,
-        date: str,
+        name: str | None = None,
+        date: str | None = None,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Mobile number check."""
         async with tool_guard("asterwise_check_mobile_number"):
             api_key = await require_api_key(ctx)
-            data = await get_client().get(
+            data = await get_client().post(
                 "/v1/numerology/mobile-number",
                 api_key,
-                {"number": mobile_number, "name": name, "date": date},
+                {"number": mobile_number},
             )
             return format_tool_result(
                 data,
@@ -299,7 +303,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_check_vehicle_number",
         title="Vehicle Number Check",
-        description=compact_description("asterwise_check_vehicle_number", "Strips non-digits from a vehicle registration token, reduces the numeric run with owner name and birth date, and returns the same harmony schema as mobile analysis.\n\nSECTION: WHAT THIS TOOL COVERS\nHandles Indian pattern plates (e.g. MH01AB1234) and international variants; only digits feed totals. Produces vehicle-specific input_type. Does not analyse phone numbers (asterwise_check_mobile_number) or business names.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_numerology_profile — owner baseline.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nLetters and separators are ignored; reduction uses numeric digits only.\n\nSECTION: OUTPUT CONTRACT\ndata.input (string — submitted plate)\ndata.input_type (string — 'vehicle')\ndata.total (int — sum of numeric digits)\ndata.single_digit (int — root)\ndata.is_master (bool)\ndata.theme (string)\ndata.favourable_for[] (string array)\ndata.caution (string)\ndata.harmony_score (int — one through ten)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Alphabetic segments are decorative for numerology here — only digits matter.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_check_mobile_number — phone digit rules including country codes.\nasterwise_get_business_name_analysis — evaluates business Expression, not registration digits."),
+        description=compact_description("asterwise_check_vehicle_number", "Strips non-digits from a vehicle registration token, reduces the numeric run to a single number, and returns the same harmony schema as mobile analysis.\n\nSECTION: WHAT THIS TOOL COVERS\nHandles Indian pattern plates (e.g. MH01AB1234) and international variants; only digits feed totals. Produces vehicle-specific input_type. Does not analyse phone numbers (asterwise_check_mobile_number) or business names.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_numerology_profile — owner baseline.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nLetters and separators are ignored; reduction uses numeric digits only. Owner name and birth date are optional and not used.\n\nSECTION: OUTPUT CONTRACT\ndata.input (string — submitted plate)\ndata.input_type (string — 'vehicle')\ndata.total (int — sum of numeric digits)\ndata.single_digit (int — root)\ndata.is_master (bool)\ndata.theme (string)\ndata.favourable_for[] (string array)\ndata.caution (string)\ndata.harmony_score (int — one through ten)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Alphabetic segments are decorative for numerology here — only digits matter.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_check_mobile_number — phone digit rules including country codes.\nasterwise_get_business_name_analysis — evaluates business Expression, not registration digits."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -310,17 +314,17 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_check_vehicle_number(
         ctx: Context,
         vehicle_number: str,
-        name: str,
-        date: str,
+        name: str | None = None,
+        date: str | None = None,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Vehicle number check."""
         async with tool_guard("asterwise_check_vehicle_number"):
             api_key = await require_api_key(ctx)
-            data = await get_client().get(
+            data = await get_client().post(
                 "/v1/numerology/vehicle-number",
                 api_key,
-                {"number": vehicle_number, "name": name, "date": date},
+                {"number": vehicle_number},
             )
             return format_tool_result(
                 data,
