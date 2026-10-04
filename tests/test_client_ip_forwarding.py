@@ -149,3 +149,33 @@ async def test_tool_client_attaches_the_signed_address(monkeypatch) -> None:
     assert h[CLIENT_IP_HEADER] == "203.0.113.9"
     assert h[CLIENT_IP_SIGNATURE_HEADER] == sign_client_ip("203.0.113.9", "shared-secret")
     assert h["Authorization"] == "Bearer aw_key"
+
+
+async def test_asgi_wrapper_records_the_visitor_behind_cloudflare() -> None:
+    from server import APIKeyASGIWrapper
+
+    seen: dict[str, str | None] = {}
+
+    async def downstream(scope, receive, send):
+        seen["ip"] = get_request_client_ip()
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"ok"})
+
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/health",
+        "headers": [(b"x-api-key", b"aw_test_key_for_forwarding_1234567890"),
+                    (b"cf-connecting-ip", b"203.0.113.9")],
+        "client": ("172.69.4.10", 51234),  # a Cloudflare edge
+        "query_string": b"",
+    }
+
+    async def receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(_msg):
+        pass
+
+    await APIKeyASGIWrapper(downstream)(scope, receive, send)
+    assert seen["ip"] == "203.0.113.9"

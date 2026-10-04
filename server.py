@@ -21,7 +21,9 @@ from starlette.responses import JSONResponse, PlainTextResponse, RedirectRespons
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from auth import forwarded_client_ip_headers
+from client_address import caller_ip as visitor_ip
 from context import set_request_api_key, set_request_client_ip
+from middleware.body_limit import BodyLimitASGIWrapper
 from middleware.security_headers import SecurityHeadersASGIWrapper
 
 load_dotenv()
@@ -337,9 +339,10 @@ class APIKeyASGIWrapper:
         )
 
         hdr = Headers(scope=scope)
-        # With --forwarded-allow-ips this is the real caller, not the platform proxy.
+        # The platform proxy's peer (--forwarded-allow-ips), or behind
+        # Cloudflare the visitor Cloudflare reports (client_address.py).
         client = scope.get("client")
-        caller_ip = str(client[0]) if client and client[0] else None
+        caller_ip = visitor_ip(str(client[0]) if client and client[0] else None, hdr)
         api_key: str | None = None
         auth_header = hdr.get("authorization", "")
         bearer_present = False
@@ -932,7 +935,7 @@ async def openai_apps_challenge(request: Request) -> Response:
 
 async def oauth_dynamic_client_register(request: Request) -> Response:
     """RFC 7591-style dynamic client registration (proxied to asterwise-api)."""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = visitor_ip(request.client.host if request.client else None, request.headers) or "unknown"
     if not _oauth_rate_allow(client_ip):
         return JSONResponse(
             {
@@ -1145,7 +1148,7 @@ async def oauth_revoke(request: Request) -> Response:
 
 async def oauth_token(request: Request) -> Response:
     """OAuth token: client_credentials (local JWT) or proxy auth_code / refresh to API."""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = visitor_ip(request.client.host if request.client else None, request.headers) or "unknown"
     if not _oauth_rate_allow(client_ip):
         return JSONResponse(
             {
@@ -1540,9 +1543,10 @@ async def _dispatch_app(scope: Scope, receive: Receive, send: Send) -> None:
     await _mcp_asgi(scope, receive, send)
 
 
-# CORS outermost, then security headers, then API key auth, then dispatch.
+# CORS outermost, then security headers, then the body limit (before anything
+# reads a body), then API key auth, then dispatch.
 app = wrap_asgi(CORSMiddleware(
-    SecurityHeadersASGIWrapper(APIKeyASGIWrapper(_dispatch_app)),
+    SecurityHeadersASGIWrapper(BodyLimitASGIWrapper(APIKeyASGIWrapper(_dispatch_app))),
     allow_origins=["*"],
     allow_methods=["GET", "HEAD", "POST", "OPTIONS", "DELETE"],
     allow_headers=[
