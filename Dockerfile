@@ -24,4 +24,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 
 # --forwarded-allow-ips: the service is only reachable through the platform proxy,
 # so X-Forwarded-For is trustworthy and per-IP OAuth rate limiting needs it.
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080", "--forwarded-allow-ips", "*"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080", "--forwarded-allow-ips", "*", "--no-access-log"]

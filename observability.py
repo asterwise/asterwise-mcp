@@ -15,8 +15,13 @@ What is sent:
 What is never sent:
 - Request bodies: JSON-RPC bodies carry the tool arguments, which are birth
   data (max_request_body_size="never").
-- Frame locals, extras and breadcrumb data under SCRUB_DENYLIST keys.
-- Authorization / X-API-Key headers and cookies (send_default_pii=False).
+- Stack-frame variables (include_local_variables=False): tool arguments and
+  keys sit in them under any name.
+- Query values, on errors and transactions; query strings of the calls this
+  server makes to the API (GET tools put birth data and phone numbers
+  there) in spans and breadcrumbs.
+- Request headers outside SAFE_HEADERS (credentials, cookies, client IPs).
+- Extras and breadcrumb data under SCRUB_DENYLIST keys.
 - Client input errors (4xx from the API, invalid parameters).
 """
 
@@ -40,6 +45,86 @@ SCRUB_DENYLIST: list[str] = [
     "location", "latitude", "longitude", "lat", "lon", "lng", "birth_lat", "birth_lon",
     "person1", "person2", "partner", "boy", "girl", "arguments", "params", "body", "json",
 ]
+
+# Request headers kept on events; every other header is dropped.
+SAFE_HEADERS = frozenset({
+    "accept", "accept-encoding", "content-length", "content-type", "host",
+    "user-agent", "mcp-protocol-version", "mcp-session-id", "x-request-id",
+})
+FILTERED = "[Filtered]"
+
+_URL_DATA_KEYS = ("url", "http.url", "http.request.url")
+_QUERY_DATA_KEYS = ("http.query", "http.fragment", "url.query")
+
+
+def strip_query(url: Any) -> Any:
+    if not isinstance(url, str):
+        return url
+    return url.split("?", 1)[0].split("#", 1)[0]
+
+
+def _mask_query_string(qs: Any) -> Any:
+    """Keys stay (they show what a request carried); values never do."""
+    if not isinstance(qs, str) or not qs:
+        return qs
+    from urllib.parse import parse_qsl, urlencode
+
+    return urlencode([(k, FILTERED) for k, _ in parse_qsl(qs, keep_blank_values=True)])
+
+
+def _scrub_url_data(data: Any) -> None:
+    if not isinstance(data, dict):
+        return
+    for key in _URL_DATA_KEYS:
+        if key in data:
+            data[key] = strip_query(data[key])
+    for key in _QUERY_DATA_KEYS:
+        data.pop(key, None)
+
+
+def scrub_request(event: dict[str, Any]) -> dict[str, Any]:
+    request = event.get("request")
+    if isinstance(request, dict):
+        request.pop("data", None)
+        request.pop("cookies", None)
+        request.pop("env", None)
+        if "query_string" in request:
+            request["query_string"] = _mask_query_string(request["query_string"])
+        if "url" in request:
+            request["url"] = strip_query(request["url"])
+        headers = request.get("headers")
+        if isinstance(headers, dict):
+            request["headers"] = {
+                k: v for k, v in headers.items()
+                if isinstance(k, str) and k.lower() in SAFE_HEADERS
+            }
+    return event
+
+
+def scrub_transaction(event: dict[str, Any], hint: Any = None) -> dict[str, Any]:
+    scrub_request(event)
+    for span in event.get("spans") or []:
+        if isinstance(span, dict):
+            _scrub_url_data(span.get("data"))
+            description = span.get("description")
+            if isinstance(description, str) and "?" in description:
+                span["description"] = strip_query(description)
+    trace = (event.get("contexts") or {}).get("trace")
+    if isinstance(trace, dict):
+        _scrub_url_data(trace.get("data"))
+    return event
+
+
+def scrub_breadcrumb(crumb: dict[str, Any], hint: Any = None) -> dict[str, Any]:
+    _scrub_url_data(crumb.get("data"))
+    if isinstance(crumb.get("message"), str) and "?" in crumb["message"]:
+        crumb["message"] = strip_query(crumb["message"])
+    return crumb
+
+
+def _before_send(event: dict[str, Any], hint: Any = None) -> dict[str, Any]:
+    return scrub_request(event)
+
 
 _UNTRACED_PREFIXES = ("/health", "/.well-known/", "/robots.txt", "/favicon.ico", "/server-card")
 TRACES_SAMPLE_RATE = 0.2
@@ -85,8 +170,12 @@ def init_sentry() -> bool:
             StarletteIntegration(failed_request_status_codes=set()),
         ],
         send_default_pii=False,
+        include_local_variables=False,
         max_request_body_size="never",
         event_scrubber=EventScrubber(denylist=SCRUB_DENYLIST, recursive=True),
+        before_send=_before_send,
+        before_send_transaction=scrub_transaction,
+        before_breadcrumb=scrub_breadcrumb,
         traces_sampler=traces_sampler,
         max_breadcrumbs=50,
     )

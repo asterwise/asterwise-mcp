@@ -118,9 +118,11 @@ class _Capture(Transport):
     def __init__(self, options=None):
         super().__init__(options)
         self.events = []
+        self.raw: list[str] = []
 
     def capture_envelope(self, envelope):
         self.events += [i.payload.json for i in envelope.items if i.type == "event"]
+        self.raw.append(envelope.serialize().decode("utf-8", "replace"))
 
 
 @pytest.fixture
@@ -152,11 +154,10 @@ def test_tool_failure_event_is_tagged_and_scrubbed(live_sentry):
     assert event["tags"]["tool"] == "asterwise_get_natal_chart"
     assert event["tags"]["component"] == "mcp"
     frames = event["exception"]["values"][0]["stacktrace"]["frames"]
-    local_vars = next(f["vars"] for f in frames if f.get("function") == "call_tool")
-    assert local_vars["birth"] == "[Filtered]"
-    # No frame variable anywhere carries the value (source context lines,
-    # i.e. this test's own literal, are code, not data).
-    assert all("1990-05-17" not in repr(f.get("vars", {})) for f in frames)
+    assert any(f.get("function") == "call_tool" for f in frames)
+    # Frame variables are not sent at all: tool arguments sit in them under
+    # any name. (Source context lines, i.e. this test's own literal, are code.)
+    assert not any("vars" in f for f in frames)
     assert "request" not in event or not event["request"].get("data")
 
 
@@ -181,3 +182,38 @@ def test_disabled_without_dsn(monkeypatch):
     app = object()
     assert observability.wrap_asgi(app) is app
     observability.tag_request(mcp_client="cursor")  # no-op, no error
+
+
+@pytest.mark.asyncio
+async def test_upstream_call_query_never_reaches_sentry(live_sentry, monkeypatch):
+    """GET tools put birth data and phone numbers in the API call's query
+    string; the httpx integration records it on spans and breadcrumbs."""
+    monkeypatch.setattr(observability, "TRACES_SAMPLE_RATE", 1.0)
+    birth_date = "-".join(["1987", "06", "05"])
+    phone = "98765" + "43210"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"success": False, "error": "internal_error",
+                                         "message": "boom", "details": [], "request_id": "rid-x-12345678"})
+
+    client = AsterwiseClient()
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://api.test")
+    client._client = lambda: http  # type: ignore[method-assign]
+    monkeypatch.setattr("client.BASE_DELAY", 0, raising=False)
+    monkeypatch.setattr("client.MAX_DELAY", 0, raising=False)
+
+    with sentry_sdk.start_transaction(name="tools/call", op="mcp.tool"):
+        try:
+            await client.get("/v1/numerology/life-path", "aw_key", params={"date": birth_date, "number": phone})
+        except AsterwiseAPIError as exc:
+            observability.capture_tool_failure("asterwise_get_life_path", exc, failure="upstream", upstream_status=500)
+    sentry_sdk.flush()
+
+    sent = "\n".join(live_sentry.raw)
+    assert "life-path" in sent  # the call itself was recorded
+    assert birth_date not in sent
+    assert phone not in sent
+
+
+def test_frame_variables_are_never_sent(live_sentry):
+    assert sentry_sdk.get_client().options["include_local_variables"] is False
