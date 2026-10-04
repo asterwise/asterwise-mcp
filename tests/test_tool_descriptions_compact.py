@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 
 from fastmcp import Client
 
@@ -38,3 +39,14 @@ def test_tools_list_total_size_is_bounded():
 def test_response_format_is_optional_everywhere():
     for t in _tools():
         assert "response_format" not in t["inputSchema"].get("required", []), t["name"]
+
+
+def test_no_doubled_words_in_tool_text():
+    # "the classical classical Vimshottari timeline" shipped on the dasha
+    # tool and its docs page until 2026-10-04.
+    doubled = re.compile(r"\b([A-Za-z]{2,})\s+\1\b", re.IGNORECASE)
+    texts = dict(FULL_TOOL_DESCRIPTIONS)
+    for t in _tools():
+        texts[f"{t['name']} (schema)"] = json.dumps(t["inputSchema"])
+    found = {name: m.group(0) for name, text in texts.items() if (m := doubled.search(text))}
+    assert found == {}
