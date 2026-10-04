@@ -1268,8 +1268,10 @@ async def oauth_token(request: Request) -> Response:
             )
 
         try:
+            # The key's own record: the one account endpoint an API key may
+            # call (account management needs a dashboard sign-in).
             await get_client().get(
-                "/v1/account",
+                "/v1/keys/me",
                 client_id,
                 timeout=10.0,
             )

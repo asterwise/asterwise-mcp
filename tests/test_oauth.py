@@ -142,6 +142,9 @@ class TestOAuthEndpoint:
         assert body["scope"] == "asterwise:read"
         assert len(body["access_token"].split(".")) == 3
         mock_upstream_get.get.assert_called()
+        # Validated against the key's own record; /v1/account needs a
+        # dashboard sign-in and refuses API keys.
+        assert mock_upstream_get.get.call_args.args[0] == "/v1/keys/me"
 
     async def test_client_credentials_accepts_form_urlencoded(
         self,
