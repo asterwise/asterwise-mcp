@@ -50,3 +50,43 @@ def test_no_doubled_words_in_tool_text():
         texts[f"{t['name']} (schema)"] = json.dumps(t["inputSchema"])
     found = {name: m.group(0) for name, text in texts.items() if (m := doubled.search(text))}
     assert found == {}
+
+
+def _section(text: str, name: str) -> str:
+    m = re.search(r"SECTION: " + name + r"\n(.*?)(?=\nSECTION: |\Z)", text, re.S)
+    return m.group(1) if m else ""
+
+
+def _input_names(schema: dict) -> set[str]:
+    names = set(schema.get("properties", {}))
+    for prop in schema.get("properties", {}).values():
+        names |= set(prop.get("properties", {}))  # fields inside birth, person1, ...
+    for definition in schema.get("$defs", {}).values():
+        names |= set(definition.get("properties", {}))
+    return names
+
+
+def test_output_contract_lines_name_their_field():
+    # "(string — methodology note)" with no field name shipped on the Saham
+    # and Harsha Bala tools until 2026-10-05; the API returns no such field.
+    unnamed = re.compile(r"^\s*\((string|int|float|bool|array|object)\b")
+    found = [
+        (name, line)
+        for name, text in FULL_TOOL_DESCRIPTIONS.items()
+        for line in _section(text, "OUTPUT CONTRACT").splitlines()
+        if unnamed.match(line)
+    ]
+    assert found == []
+
+
+def test_input_contract_names_real_parameters():
+    # The Saham and Harsha Bala tools documented "target_year (required int)"
+    # while the tool parameter is year (sent upstream as target_year).
+    found = []
+    for t in _tools():
+        allowed = _input_names(t["inputSchema"])
+        for line in _section(FULL_TOOL_DESCRIPTIONS[t["name"]], "INPUT CONTRACT").splitlines():
+            m = re.match(r"\s*([a-z_][a-z0-9_]*) \((required|optional)", line)
+            if m and m.group(1) not in allowed:
+                found.append((t["name"], m.group(1)))
+    assert found == []
