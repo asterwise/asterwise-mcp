@@ -130,7 +130,6 @@ class BirthData(BaseModel):
         return payload
 
 
-
 class TimedBirthData(BirthData):
     """Birth data for tools that need the exact birth time.
 
@@ -146,6 +145,7 @@ class TimedBirthData(BirthData):
         ),
         pattern=r"^\d{2}:\d{2}$",
     )
+
 
 class WesternBirthData(BaseModel):
     """Birth data for Western astrology tools (tropical zodiac)."""

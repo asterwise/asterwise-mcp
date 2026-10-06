@@ -384,10 +384,12 @@ def register(mcp: FastMCP) -> None:
             if house_number is not None:
                 # The API returns all twelve houses (it has no house filter);
                 # keep the requested one, and planet_significators for context.
-                houses = data.get("data", {}).get("significators", {})
-                data["data"]["significators"] = {
-                    k: v for k, v in houses.items() if str(k) == str(house_number)
-                }
+                payload = data.get("data") if isinstance(data, dict) else None
+                houses = payload.get("significators") if isinstance(payload, dict) else None
+                if isinstance(houses, dict):
+                    payload["significators"] = {
+                        k: v for k, v in houses.items() if str(k) == str(house_number)
+                    }
             return format_tool_result(
                 data,
                 response_format,
