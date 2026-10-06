@@ -151,3 +151,13 @@ def test_prashna_sends_the_moment_the_question_was_asked():
     assert (body["target_date"], body["target_time"], body["target_timezone"]) == ("2026-03-25", "12:00", "Asia/Kolkata")
     _call("asterwise_get_prashna_chart", {"prashna": {**prashna, "timezone": "Europe/London"}}, upstream)
     assert upstream.calls[1][2]["target_timezone"] == "Europe/London"
+
+
+def test_tool_docs_parameter_tables_have_one_line_per_row():
+    """A multi-line description inside a cell ended the row and broke the
+    table on the docs pages (2026-10-06)."""
+    from scripts.export_tool_docs import schema_table
+
+    for name, schema in _tools().items():
+        rows = schema_table(schema).split("\n")
+        assert all(r.startswith("|") and r.endswith("|") for r in rows), name
