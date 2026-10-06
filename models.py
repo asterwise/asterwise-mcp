@@ -130,6 +130,23 @@ class BirthData(BaseModel):
         return payload
 
 
+class TimedBirthData(BirthData):
+    """Birth data for tools that need the exact birth time.
+
+    Their API endpoints have no sunrise fallback and reject a request without
+    a time, so the time is required here instead of failing upstream."""
+
+    time: str = Field(
+        ...,
+        description=(
+            "Birth time HH:MM (24h), e.g. '06:45'. Required: this tool has no sunrise "
+            "fallback. If the user doesn't know it, say so rather than guessing; never "
+            "pass '00:00' for unknown."
+        ),
+        pattern=r"^\d{2}:\d{2}$",
+    )
+
+
 class WesternBirthData(BaseModel):
     """Birth data for Western astrology tools (tropical zodiac)."""
 
@@ -382,8 +399,20 @@ class PrashnaInput(BaseModel):
     )
 
     question: str = Field(..., min_length=1)
-    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
-    time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    date: str = Field(
+        ...,
+        description="Date the question was asked, YYYY-MM-DD, local to `timezone`.",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
+    time: str = Field(
+        ...,
+        description="Time the question was asked, HH:MM (24h), local to `timezone`.",
+        pattern=r"^\d{2}:\d{2}$",
+    )
+    timezone: str = Field(
+        default="Asia/Kolkata",
+        description="IANA timezone of date and time, e.g. 'Asia/Kolkata', 'Europe/London'. Default: Asia/Kolkata",
+    )
     lat: float = Field(..., ge=-90.0, le=90.0)
     lon: float = Field(..., ge=-180.0, le=180.0)
     ayanamsa: AyanamsaType = Field(default=AyanamsaType.LAHIRI)
@@ -441,9 +470,14 @@ def birth_dict(b: BirthData) -> dict[str, Any]:
 
 def prashna_dict(p: PrashnaInput) -> dict[str, Any]:
     """Serialize PrashnaInput for the API (BirthInput-style location + question)."""
+    # Until 2026-10-06 date and time were validated here but never sent, so the
+    # API cast every chart for the current moment.
     return {
         "latitude": p.lat,
         "longitude": p.lon,
         "question": p.question,
+        "target_date": p.date,
+        "target_time": p.time,
+        "target_timezone": p.timezone,
         "ayanamsa": p.ayanamsa.value,
     }

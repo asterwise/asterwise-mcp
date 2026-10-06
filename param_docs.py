@@ -90,6 +90,10 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
 }
 
 TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
+    ("asterwise_get_business_name_analysis", "date"): (
+        "Not used: the analysis depends only on the business name. Omit it; "
+        "it is accepted only so older calls keep working."
+    ),
     ("asterwise_get_tamil_panchanga", "date"): "Date for the Tamil panchanga, YYYY-MM-DD.",
     ("asterwise_get_ayanamsha", "date"): (
         "Date to compute the ayanamsha for, YYYY-MM-DD. Defaults to today."

@@ -334,7 +334,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_business_name_analysis",
         title="Business Name Analysis",
-        description=compact_description("asterwise_get_business_name_analysis", "Reduces a business name to Expression and root digits against a founder birth date and returns thematic suitability lists plus a harmony score.\n\nSECTION: WHAT THIS TOOL COVERS\nAllows numerals and punctuation in the brand string — non-letters drop before letter-value reduction. Returns business-facing favourable domains, caution copy, and scoring. Not personal spelling optimisation (asterwise_get_name_correction) nor vehicle or phone checks.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_name_correction — if the entity is a person, not a brand.\n\nSECTION: INPUT CONTRACT\nSpecial characters and digits are acceptable; reduction strips non-letters per upstream rules. No local validation on name or date.\n\nSECTION: OUTPUT CONTRACT\ndata.input (string — business name as submitted)\ndata.input_type (string — 'business_name')\ndata.expression_number (int — compound before reduction)\ndata.single_digit (int — reduced root; equals expression_number for master totals eleven, twenty-two, thirty-three)\ndata.is_master (bool)\ndata.theme (string)\ndata.favourable_for[] (string array — suitable domains)\ndata.caution (string)\ndata.harmony_score (int — one through ten)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Brand strings with emojis or digits still flow through upstream stripping rules.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_name_correction — personal spelling alternatives, not corporate Expression scoring.\nasterwise_check_mobile_number — numeric line analysis, not brand letters."),
+        description=compact_description("asterwise_get_business_name_analysis", "Reduces a business name to Expression and root digits and returns thematic suitability lists plus a harmony score. Uses the name only; no founder birth date is involved.\n\nSECTION: WHAT THIS TOOL COVERS\nAllows numerals and punctuation in the brand string — non-letters drop before letter-value reduction. Returns business-facing favourable domains, caution copy, and scoring. Not personal spelling optimisation (asterwise_get_name_correction) nor vehicle or phone checks.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_name_correction — if the entity is a person, not a brand.\n\nSECTION: INPUT CONTRACT\nbusiness_name (required): special characters and digits are acceptable; reduction strips non-letters per upstream rules. date: not used; omit it (accepted only so older calls keep working).\n\nSECTION: OUTPUT CONTRACT\ndata.input (string — business name as submitted)\ndata.input_type (string — 'business_name')\ndata.expression_number (int — compound before reduction)\ndata.single_digit (int — reduced root; equals expression_number for master totals eleven, twenty-two, thirty-three)\ndata.is_master (bool)\ndata.theme (string)\ndata.favourable_for[] (string array — suitable domains)\ndata.caution (string)\ndata.harmony_score (int — one through ten)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Brand strings with emojis or digits still flow through upstream stripping rules.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_name_correction — personal spelling alternatives, not corporate Expression scoring.\nasterwise_check_mobile_number — numeric line analysis, not brand letters."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -345,16 +345,20 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_business_name_analysis(
         ctx: Context,
         business_name: str,
-        date: str,
+        date: str | None = None,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Business name."""
+        # `date` is accepted so older calls keep working; the analysis uses
+        # only the name (the API has no date input). POST keeps the name out
+        # of the URL.
+        del date
         async with tool_guard("asterwise_get_business_name_analysis"):
             api_key = await require_api_key(ctx)
-            data = await get_client().get(
+            data = await get_client().post(
                 "/v1/numerology/business-name",
                 api_key,
-                {"name": business_name, "date": date},
+                {"name": business_name},
             )
             return format_tool_result(
                 data,

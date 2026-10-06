@@ -697,7 +697,7 @@ mcp = FastMCP(
   Matchmaking: check Rajju and Vedha vetoes first. A failed veto overrides Guna score regardless of total.
   Birth data format: date=YYYY-MM-DD, time=HH:MM (24h local), lat/lon decimal degrees, timezone=IANA string.
   If user gives a city name only: call asterwise_geocode for its latitude, longitude and timezone.
-  Unknown birth time: omit time (never pass '00:00', which is read as midnight).
+  Unknown birth time: omit time where it is optional (never pass '00:00', which is read as midnight). Tools that need the exact time mark time as required: ask the user instead of guessing.
   All tools support response_format=json (structured) or response_format=markdown (human-readable).
   """,
     lifespan=lifespan,

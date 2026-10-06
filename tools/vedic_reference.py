@@ -9,7 +9,7 @@ import mcp.types as mcp_types
 from pydantic import Field
 
 from client import get_client
-from models import BirthData, ResponseFormat
+from models import ResponseFormat, TimedBirthData
 from tools import panchanga_texts as texts
 from runtime import (
     compact_description,
@@ -333,7 +333,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_nakshatra_prediction(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: Optional[str] = Field(
             default=None,
@@ -407,7 +407,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_pitra_dosha(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Standalone Pitru Dosha analysis — all five classical combinations."""
@@ -475,7 +475,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_ghat_chakra(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Ghat Chakra — four Ghatak timing parameters from Janma Rasi."""

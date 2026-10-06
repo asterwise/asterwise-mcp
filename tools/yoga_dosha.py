@@ -8,7 +8,7 @@ from fastmcp import Context, FastMCP
 import mcp.types as mcp_types
 
 from client import get_client
-from models import BirthData, ResponseFormat
+from models import BirthData, ResponseFormat, TimedBirthData
 from runtime import (
     compact_description,
     tool_guard,
@@ -82,7 +82,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_remedies(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Classical-style remedies."""
@@ -107,7 +107,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_gemstone_recommendations(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Gemstones."""

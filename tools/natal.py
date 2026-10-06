@@ -15,6 +15,7 @@ from models import (
     DivisionalChartType,
     PrashnaInput,
     ResponseFormat,
+    TimedBirthData,
     prashna_dict,
 )
 from tools import panchanga_texts as texts
@@ -22,6 +23,7 @@ from runtime import (
     compact_description,
     tool_guard,
     format_tool_result,
+    invalid_params,
     require_api_key,
     structured_markdown,
 )
@@ -167,7 +169,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_special_ascendants(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Atmakaraka and Ishta Devata (two API calls)."""
@@ -331,7 +333,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_kp_chart",
         title="KP Chart",
-        description=compact_description("asterwise_get_kp_chart", "Builds a KP natal chart with sub-lords on grahas and twelve cusps from BirthData using the KP ayanamsa in the response.\n\nSECTION: WHAT THIS TOOL COVERS\nKrishnamurti Paddhati charting: lagna row, planet rows with nakshatra_index and sub_lord, house_cusps with matching lords. Recommend BirthData.ayanamsa='kp' for coherent physics — any enum value is accepted locally and forwarded. Accurate birth time matters; midnight placeholder yields unreliable sub-lords for event timing. Not radix (asterwise_get_natal_chart) nor prashna (asterwise_get_prashna_chart).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — cross-check birth record before trusting sub-lords.\nAFTER: asterwise_get_kp_significators — house-level significator chains.\n\nSECTION: INPUT CONTRACT\nayanamsa choice is not forced locally — mismatched settings still post to upstream. Unknown birth time: omit time (a sunrise chart is cast and birth_time_provided=false); never pass time='00:00' for unknown, which is read as midnight.\n\nSECTION: OUTPUT CONTRACT\ndata.ayanamsa (string — 'kp')\ndata.lagna:\n  rashi (string)\n  rashi_index (int)\n  longitude (float)\n  nakshatra_lord (string)\n  sub_lord (string)\ndata.planets{} — Sun..Ketu:\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  degree (float)\n  is_retrograde (bool)\n  house (int)\n  nakshatra_index (int — 0–26)\n  nakshatra_lord (string)\n  sub_lord (string)\ndata.house_cusps{} — keys '1'..'12':\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  nakshatra_lord (string)\n  sub_lord (string)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — BirthData Pydantic only.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Sub-lord chains degrade when true birth time unknown.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — classical bundle without KP sub-lords.\nasterwise_get_kp_ruling_planets — live moment rulers, not natal cusps."),
+        description=compact_description("asterwise_get_kp_chart", "Builds a KP natal chart with sub-lords on grahas and twelve cusps from BirthData using the KP ayanamsa in the response.\n\nSECTION: WHAT THIS TOOL COVERS\nKrishnamurti Paddhati charting: lagna row, planet rows with nakshatra_index and sub_lord, house_cusps with matching lords. Recommend BirthData.ayanamsa='kp' for coherent physics — any enum value is accepted locally and forwarded. Accurate birth time matters; midnight placeholder yields unreliable sub-lords for event timing. Not radix (asterwise_get_natal_chart) nor prashna (asterwise_get_prashna_chart).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — cross-check birth record before trusting sub-lords.\nAFTER: asterwise_get_kp_significators — house-level significator chains.\n\nSECTION: INPUT CONTRACT\nayanamsa choice is not forced locally — mismatched settings still post to upstream. Birth time is required: this tool has no sunrise fallback. If the user doesn't know it, say so rather than guessing; never pass time='00:00' for unknown.\n\nSECTION: OUTPUT CONTRACT\ndata.ayanamsa (string — 'kp')\ndata.lagna:\n  rashi (string)\n  rashi_index (int)\n  longitude (float)\n  nakshatra_lord (string)\n  sub_lord (string)\ndata.planets{} — Sun..Ketu:\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  degree (float)\n  is_retrograde (bool)\n  house (int)\n  nakshatra_index (int — 0–26)\n  nakshatra_lord (string)\n  sub_lord (string)\ndata.house_cusps{} — keys '1'..'12':\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  nakshatra_lord (string)\n  sub_lord (string)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — BirthData Pydantic only.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Sub-lord chains degrade when true birth time unknown.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — classical bundle without KP sub-lords.\nasterwise_get_kp_ruling_planets — live moment rulers, not natal cusps."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -341,7 +343,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_kp_chart(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """KP chart."""
@@ -357,7 +359,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_kp_significators",
         title="KP Significators",
-        description=compact_description("asterwise_get_kp_significators", "Computes KP significator chains for all houses or one optional house from BirthData and returns house tables plus planet-tier reverse indexes.\n\nSECTION: WHAT THIS TOOL COVERS\nFor each house string key '1'..'12', lists sign_lord, occupants, nakshatra lord chains, and unions; planet_significators{} exposes tiered house lists per graha. Optional house_number filters upstream when provided. Out-of-range house integers are not validated locally — upstream handles errors as MCP INTERNAL_ERROR. Requires same birth tuple as asterwise_get_kp_chart for coherent analysis.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_kp_chart — establish cusps before significators.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nhouse_number optional int; omit for all twelve. Values outside 1..12 are validated upstream only.\n\nSECTION: OUTPUT CONTRACT\ndata.ayanamsa (string — 'kp')\ndata.significators{} — keys '1'..'12':\n  house (int)\n  sign_lord (string)\n  occupants[] (string array)\n  nak_of_occupants[] (string array)\n  nak_of_lord[] (string array)\n  all_significators[] (string array)\ndata.planet_significators{} — per planet:\n  tier1_houses[] (int array)\n  tier2_houses[] (int array)\n  tier3_houses[] (int array)\n  tier4_houses[] (int array)\n  all_significators[] (int array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — house_number not bounds-checked here.\n\nINVALID_PARAMS (upstream):\n  — None — invalid house indices surface as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Filtering to one house still returns planet_significators{} for context.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_kp_chart — cusps and sub-lords, not tiered significator unions.\nasterwise_get_natal_chart — classical drishti matrices differ from KP significator tiers."),
+        description=compact_description("asterwise_get_kp_significators", "Computes KP significator chains for all houses or one optional house from BirthData and returns house tables plus planet-tier reverse indexes.\n\nSECTION: WHAT THIS TOOL COVERS\nFor each house string key '1'..'12', lists sign_lord, occupants, nakshatra lord chains, and unions; planet_significators{} exposes tiered house lists per graha. Optional house_number keeps that one house in significators{} (the server returns all twelve; the tool filters). Values outside 1..12 are refused locally as MCP INVALID_PARAMS. Requires same birth tuple as asterwise_get_kp_chart for coherent analysis.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_kp_chart — establish cusps before significators.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nhouse_number optional int 1..12; omit for all twelve.\n\nSECTION: OUTPUT CONTRACT\ndata.ayanamsa (string — 'kp')\ndata.significators{} — keys '1'..'12':\n  house (int)\n  sign_lord (string)\n  occupants[] (string array)\n  nak_of_occupants[] (string array)\n  nak_of_lord[] (string array)\n  all_significators[] (string array)\ndata.planet_significators{} — per planet:\n  tier1_houses[] (int array)\n  tier2_houses[] (int array)\n  tier3_houses[] (int array)\n  tier4_houses[] (int array)\n  all_significators[] (int array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — house_number outside 1..12.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Filtering to one house still returns planet_significators{} for context.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_kp_chart — cusps and sub-lords, not tiered significator unions.\nasterwise_get_natal_chart — classical drishti matrices differ from KP significator tiers."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -367,17 +369,27 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_kp_significators(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         house_number: int | None = None
     ) -> str:
         """KP significators."""
         async with tool_guard("asterwise_get_kp_significators"):
             api_key = await require_api_key(ctx)
-            body: dict[str, Any] = birth.to_api_dict()
+            if house_number is not None and not 1 <= house_number <= 12:
+                invalid_params("house_number must be between 1 and 12, or omitted for all houses.")
+            data = await get_client().post(
+                "/v1/astro/kp/significators", api_key, birth.to_api_dict(), timeout=20.0
+            )
             if house_number is not None:
-                body["house_number"] = house_number
-            data = await get_client().post("/v1/astro/kp/significators", api_key, body, timeout=20.0)
+                # The API returns all twelve houses (it has no house filter);
+                # keep the requested one, and planet_significators for context.
+                payload = data.get("data") if isinstance(data, dict) else None
+                houses = payload.get("significators") if isinstance(payload, dict) else None
+                if isinstance(houses, dict):
+                    payload["significators"] = {
+                        k: v for k, v in houses.items() if str(k) == str(house_number)
+                    }
             return format_tool_result(
                 data,
                 response_format,
