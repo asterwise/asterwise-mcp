@@ -45,9 +45,12 @@ def _birth_schema(schema: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def test_time_is_required_exactly_on_the_tools_whose_endpoint_needs_it():
+    import inspect
+
     from models import BirthData, TimedBirthData
 
-    vedic = {BirthData.__doc__.strip(), TimedBirthData.__doc__.strip()}
+    # cleandoc, as pydantic does: Python 3.13 dedents __doc__, 3.12 does not.
+    vedic = {inspect.cleandoc(BirthData.__doc__), inspect.cleandoc(TimedBirthData.__doc__)}
     with_birth = {
         name: b for name, s in _tools().items()
         if (b := _birth_schema(s)) and b.get("description", "").strip() in vedic
