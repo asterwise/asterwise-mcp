@@ -136,3 +136,15 @@ def test_business_name_needs_no_date_and_sends_the_name_in_the_body():
                   {"business_name": "Asterwise Labs", "date": "1990-06-15"}, upstream)
     assert not again.is_error
     assert upstream.calls[-1][2] == {"name": "Asterwise Labs"}
+
+
+def test_prashna_sends_the_moment_the_question_was_asked():
+    """date and time were required but never sent until 2026-10-06, so every
+    chart was cast for the current moment."""
+    upstream = _Upstream({"success": True, "data": {"query_utc": "x"}})
+    prashna = {"question": "career", "date": "2026-03-25", "time": "12:00", "lat": 19.076, "lon": 72.8777}
+    assert not _call("asterwise_get_prashna_chart", {"prashna": prashna}, upstream).is_error
+    body = upstream.calls[0][2]
+    assert (body["target_date"], body["target_time"], body["target_timezone"]) == ("2026-03-25", "12:00", "Asia/Kolkata")
+    _call("asterwise_get_prashna_chart", {"prashna": {**prashna, "timezone": "Europe/London"}}, upstream)
+    assert upstream.calls[1][2]["target_timezone"] == "Europe/London"

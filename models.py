@@ -399,8 +399,20 @@ class PrashnaInput(BaseModel):
     )
 
     question: str = Field(..., min_length=1)
-    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
-    time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    date: str = Field(
+        ...,
+        description="Date the question was asked, YYYY-MM-DD, local to `timezone`.",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
+    time: str = Field(
+        ...,
+        description="Time the question was asked, HH:MM (24h), local to `timezone`.",
+        pattern=r"^\d{2}:\d{2}$",
+    )
+    timezone: str = Field(
+        default="Asia/Kolkata",
+        description="IANA timezone of date and time, e.g. 'Asia/Kolkata', 'Europe/London'. Default: Asia/Kolkata",
+    )
     lat: float = Field(..., ge=-90.0, le=90.0)
     lon: float = Field(..., ge=-180.0, le=180.0)
     ayanamsa: AyanamsaType = Field(default=AyanamsaType.LAHIRI)
@@ -458,9 +470,14 @@ def birth_dict(b: BirthData) -> dict[str, Any]:
 
 def prashna_dict(p: PrashnaInput) -> dict[str, Any]:
     """Serialize PrashnaInput for the API (BirthInput-style location + question)."""
+    # Until 2026-10-06 date and time were validated here but never sent, so the
+    # API cast every chart for the current moment.
     return {
         "latitude": p.lat,
         "longitude": p.lon,
         "question": p.question,
+        "target_date": p.date,
+        "target_time": p.time,
+        "target_timezone": p.timezone,
         "ayanamsa": p.ayanamsa.value,
     }
