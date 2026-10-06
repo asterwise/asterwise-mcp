@@ -130,6 +130,23 @@ class BirthData(BaseModel):
         return payload
 
 
+
+class TimedBirthData(BirthData):
+    """Birth data for tools that need the exact birth time.
+
+    Their API endpoints have no sunrise fallback and reject a request without
+    a time, so the time is required here instead of failing upstream."""
+
+    time: str = Field(
+        ...,
+        description=(
+            "Birth time HH:MM (24h), e.g. '06:45'. Required: this tool has no sunrise "
+            "fallback. If the user doesn't know it, say so rather than guessing; never "
+            "pass '00:00' for unknown."
+        ),
+        pattern=r"^\d{2}:\d{2}$",
+    )
+
 class WesternBirthData(BaseModel):
     """Birth data for Western astrology tools (tropical zodiac)."""
 

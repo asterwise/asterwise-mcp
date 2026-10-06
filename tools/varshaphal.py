@@ -6,7 +6,7 @@ from fastmcp import Context, FastMCP
 import mcp.types as mcp_types
 
 from client import get_client
-from models import BirthData, ResponseFormat
+from models import ResponseFormat, TimedBirthData
 from runtime import (
     compact_description,
     tool_guard,
@@ -30,7 +30,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_varshaphal(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         year: int,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
@@ -57,7 +57,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_varshaphal_saham(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         year: int,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
@@ -86,7 +86,7 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_varshaphal_harsha_bala(
         ctx: Context,
-        birth: BirthData,
+        birth: TimedBirthData,
         year: int,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
