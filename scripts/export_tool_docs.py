@@ -79,7 +79,10 @@ def schema_table(schema: dict) -> str:
         if "properties" in p:
             inner = ", ".join(f"`{k}`{'*' if k in set(p.get('required', [])) else ''}" for k in p["properties"])
             desc = (desc + " Fields: " + inner).strip()
-        rows.append(f"| `{name}` | {typ} | {'yes' if name in required else 'no'} | {_mdx_escape(desc)} |")
+        # One table row per parameter: a line break or pipe inside a cell
+        # (multi-line model docstrings) would end the row and break the table.
+        cell = " ".join(desc.split()).replace("|", "\\|")
+        rows.append(f"| `{name}` | {typ} | {'yes' if name in required else 'no'} | {_mdx_escape(cell)} |")
     return "\n".join(rows)
 
 

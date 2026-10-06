@@ -131,10 +131,10 @@ class BirthData(BaseModel):
 
 
 class TimedBirthData(BirthData):
-    """Birth data for tools that need the exact birth time.
+    """Birth data for tools that need the exact birth time (no sunrise fallback)."""
 
-    Their API endpoints have no sunrise fallback and reject a request without
-    a time, so the time is required here instead of failing upstream."""
+    # Their API endpoints reject a request without a time, so it is required
+    # here instead of failing upstream as INTERNAL_ERROR.
 
     time: str = Field(
         ...,
