@@ -90,6 +90,22 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
 }
 
 TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
+    ("asterwise_check_mobile_number", "name"): (
+        "Not used: the analysis depends only on the digits. Omit it; "
+        "it is accepted only so older calls keep working."
+    ),
+    ("asterwise_check_mobile_number", "date"): (
+        "Not used: the analysis depends only on the digits. Omit it; "
+        "it is accepted only so older calls keep working."
+    ),
+    ("asterwise_check_vehicle_number", "name"): (
+        "Not used: the analysis depends only on the digits. Omit it; "
+        "it is accepted only so older calls keep working."
+    ),
+    ("asterwise_check_vehicle_number", "date"): (
+        "Not used: the analysis depends only on the digits. Omit it; "
+        "it is accepted only so older calls keep working."
+    ),
     ("asterwise_get_business_name_analysis", "date"): (
         "Not used: the analysis depends only on the business name. Omit it; "
         "it is accepted only so older calls keep working."
