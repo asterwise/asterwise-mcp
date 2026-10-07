@@ -161,3 +161,30 @@ def test_tool_docs_parameter_tables_have_one_line_per_row():
     for name, schema in _tools().items():
         rows = schema_table(schema).split("\n")
         assert all(r.startswith("|") and r.endswith("|") for r in rows), name
+
+
+def test_mobile_and_vehicle_send_only_the_number_and_say_name_and_date_are_unused():
+    tools = _tools()
+    for tool, arg, value, path in (
+        ("asterwise_check_mobile_number", "mobile_number", "9876543210", "/v1/numerology/mobile-number"),
+        ("asterwise_check_vehicle_number", "vehicle_number", "MH12AB1234", "/v1/numerology/vehicle-number"),
+    ):
+        for param in ("name", "date"):
+            assert tools[tool]["properties"][param]["description"].startswith("Not used")
+        upstream = _Upstream({"success": True, "data": {}})
+        _call(tool, {arg: value, "name": "Asha", "date": "1990-06-15"}, upstream)
+        assert upstream.calls == [("POST", path, {"number": value})]
+
+
+def test_varshaphal_output_contract_names_the_fields_the_api_returns():
+    """Checked against a live /v1/astro/varshaphal response on 2026-10-07."""
+    import tools.varshaphal as v
+
+    src = open(v.__file__, encoding="utf-8").read()
+    start = src.index('compact_description("asterwise_get_varshaphal", ')
+    text = src[start:src.index('"),', start)]
+    for field in ("election_fallback", "moon_election", "tajika_aspect_houses_matched",
+                  "aspect_house_from_lagna", "matched_standard_angles", "age_years (int"):
+        assert field in text, field
+    for phantom in ("election_used_strongest_without_aspect", "pending_components_note", "structure per upstream"):
+        assert phantom not in text, phantom

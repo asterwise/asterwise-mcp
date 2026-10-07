@@ -288,6 +288,9 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Mobile number check."""
+        # name and date are accepted so older calls keep working; the API
+        # analyses only the digits.
+        del name, date
         async with tool_guard("asterwise_check_mobile_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
@@ -319,6 +322,9 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Vehicle number check."""
+        # name and date are accepted so older calls keep working; the API
+        # analyses only the digits.
+        del name, date
         async with tool_guard("asterwise_check_vehicle_number"):
             api_key = await require_api_key(ctx)
             data = await get_client().post(
