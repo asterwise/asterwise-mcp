@@ -1,0 +1,26 @@
+{
+  "name": "asterwise",
+  "displayName": "Asterwise astrology API",
+  "version": "1.0.1",
+  "description": "104 read-only astrology, numerology and tarot tools from the Asterwise API: Vedic and Western natal charts, Vimshottari dasha, kundli matching, panchanga, transits. Remote MCP server over OAuth 2.1; free Sandbox plan, no key to paste.",
+  "author": {
+    "name": "Asterwise Labs Private Limited",
+    "email": "support@asterwise.com",
+    "url": "https://asterwise.com"
+  },
+  "homepage": "https://asterwise.com/mcp/",
+  "repository": "https://github.com/asterwise/asterwise-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "astrology",
+    "vedic",
+    "jyotish",
+    "kundli",
+    "panchang",
+    "numerology",
+    "tarot",
+    "api"
+  ],
+  "logo": "assets/logo.svg"
+}
