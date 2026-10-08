@@ -604,7 +604,7 @@ mcp = FastMCP(
   asterwise_geocode — place name to latitude, longitude and timezone for any tool
   asterwise_get_kp_chart — KP natal chart with sub-lords
   asterwise_get_kp_significators — KP house significator chains
-  asterwise_get_kp_ruling_planets — instantaneous KP ruling planets
+  asterwise_get_kp_ruling_planets — KP ruling planets now or at a given local date and time
   asterwise_get_lal_kitab_chart — Lal Kitab chart and Rin analysis
   asterwise_get_lal_kitab_remedies — Lal Kitab totkas
   asterwise_get_prashna_chart — Prashna (horary) chart
@@ -653,18 +653,18 @@ mcp = FastMCP(
   asterwise_get_lo_shu_grid — Lo Shu magic square from birth digits
   asterwise_get_name_correction — spelling harmony scoring
   asterwise_get_lucky_numbers — numerology lucky number set
-  asterwise_get_number_meaning — dictionary entry for any number 1-33
+  asterwise_get_number_meaning — dictionary entry for 1-9 and master numbers 11, 22, 33
   asterwise_check_mobile_number — phone number harmony analysis
   asterwise_check_vehicle_number — vehicle plate digit analysis
   asterwise_get_business_name_analysis — business name Expression scoring
-  asterwise_get_angel_number_today — today's collective angel number from the current date
+  asterwise_get_angel_number_today — today's collective angel number (UTC, a given timezone, or a given date)
   asterwise_get_angel_number — lookup a specific angel number sequence (111, 444, 999, 1111, etc.)
   asterwise_get_angel_number_personal — personal angel number from birth date Life Path
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   CRYSTALS
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  asterwise_get_crystals — complete crystal database: 50 crystals with Vedic and Western planetary assignments
+  asterwise_get_crystals — complete crystal database: 54 crystals with Vedic and Western planetary assignments
   asterwise_get_crystal — single crystal lookup by slug or name
   asterwise_get_crystal_by_planet — crystals filtered by Vedic planet (Navaratna first)
   asterwise_get_crystal_recommendations — crystal recommendations by zodiac sign, chakra, or intention
