@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 
 class AsterwiseMCPError(Exception):
     """Base error for this server."""
@@ -60,8 +62,29 @@ _INPUT_ERROR_CODES = frozenset({
 })
 
 
+# Some validation_error 422s are still about the sky: KP inside the polar
+# circles has no Placidus cusps. The API marks those items so a client can
+# tell them from a malformed request.
+_SKY_SIDE_ISSUES = frozenset({"no_quadrant_houses_at_this_latitude"})
+
+
+def details_are_sky_side(details: Any) -> bool:
+    """True when any error detail says the input itself was fine."""
+    if not isinstance(details, list):
+        return False
+    return any(
+        isinstance(item, dict)
+        and (item.get("issue") in _SKY_SIDE_ISSUES or item.get("input_format_ok") is True)
+        for item in details
+    )
+
+
 def map_http_status_to_message(
-    status_code: int, detail: str | None, error_code: str | None = None
+    status_code: int,
+    detail: str | None,
+    error_code: str | None = None,
+    *,
+    sky_side: bool = False,
 ) -> str:
     """Map HTTP status codes to actionable messages for LLM clients."""
     if status_code == 401:
@@ -70,7 +93,7 @@ def map_http_status_to_message(
             "Send a valid key via the X-API-Key header or a Bearer token from POST /oauth/token."
         )
     if status_code == 422:
-        if error_code is not None and error_code not in _INPUT_ERROR_CODES:
+        if sky_side or (error_code is not None and error_code not in _INPUT_ERROR_CODES):
             return (
                 f"The Asterwise API could not compute this ({error_code}): "
                 f"{(detail or 'no further detail').rstrip('.')}. The inputs are well-formed; "

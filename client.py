@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import httpx
 
-from errors import AsterwiseAPIError, map_http_status_to_message
+from errors import AsterwiseAPIError, details_are_sky_side, map_http_status_to_message
 from auth import forwarded_client_ip_headers
 from context import get_request_client_ip
 
@@ -110,6 +110,7 @@ class AsterwiseClient:
             return
         detail: str | None = None
         error_code: str | None = None
+        sky_side = False
         api_request_id = response.headers.get("X-Request-ID")
         try:
             body = response.json()
@@ -117,6 +118,7 @@ class AsterwiseClient:
                 api_request_id = api_request_id or body.get("request_id")
                 if isinstance(body.get("error"), str):
                     error_code = body["error"]
+                sky_side = details_are_sky_side(body.get("details"))
                 d = body.get("detail")
                 if d is not None:
                     detail = _render_details(d)
@@ -133,7 +135,9 @@ class AsterwiseClient:
             text = response.text
             if text:
                 detail = text[:500]
-        msg = map_http_status_to_message(response.status_code, detail, error_code)
+        msg = map_http_status_to_message(
+            response.status_code, detail, error_code, sky_side=sky_side
+        )
         raise AsterwiseAPIError(
             msg,
             hint=msg,
