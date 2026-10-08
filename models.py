@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+_DATE_SHAPE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _parse_date(v: str, example: str = "") -> datetime:
+    """Parse YYYY-MM-DD, telling a wrong format apart from a date that does not exist."""
+    if not isinstance(v, str) or not _DATE_SHAPE.fullmatch(v):
+        raise ValueError(f"date must be YYYY-MM-DD. Got: {v!r}{example}")
+    try:
+        return datetime.strptime(v, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(f"date {v!r} does not exist in the calendar") from None
 
 
 class AyanamsaType(str, Enum):
@@ -85,12 +99,7 @@ class BirthData(BaseModel):
     @field_validator("date")
     @classmethod
     def validate_date(cls, v: str) -> str:
-        try:
-            parsed = datetime.strptime(v, "%Y-%m-%d")
-        except ValueError:
-            raise ValueError(
-                f"date must be YYYY-MM-DD. Got: {v!r}. Example: '1985-11-12'"
-            ) from None
+        parsed = _parse_date(v, ". Example: '1985-11-12'")
         parsed_d = parsed.date()
         if parsed_d.year < 1800:
             raise ValueError(f"date year must be 1800 or later. Got: {parsed_d.year}")
@@ -193,12 +202,7 @@ class WesternBirthData(BaseModel):
     @field_validator("date")
     @classmethod
     def validate_date(cls, v: str) -> str:
-        try:
-            parsed = datetime.strptime(v, "%Y-%m-%d")
-        except ValueError:
-            raise ValueError(
-                f"date must be YYYY-MM-DD. Got: {v!r}"
-            ) from None
+        parsed = _parse_date(v)
         if parsed.year < 1800:
             raise ValueError(f"date year must be 1800 or later.")
         return v
@@ -267,10 +271,7 @@ class LocationInput(BaseModel):
     @field_validator("date")
     @classmethod
     def validate_date(cls, v: str) -> str:
-        try:
-            datetime.strptime(v, "%Y-%m-%d")
-        except ValueError:
-            raise ValueError(f"date must be YYYY-MM-DD. Got: {v!r}") from None
+        _parse_date(v)
         return v
 
 
@@ -421,10 +422,7 @@ class PrashnaInput(BaseModel):
     @field_validator("date")
     @classmethod
     def validate_date(cls, v: str) -> str:
-        try:
-            datetime.strptime(v, "%Y-%m-%d")
-        except ValueError:
-            raise ValueError(f"date must be YYYY-MM-DD format. Got: {v!r}") from None
+        _parse_date(v)
         return v
 
     @field_validator("time")

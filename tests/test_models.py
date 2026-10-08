@@ -46,6 +46,13 @@ class TestBirthData:
         msg = str(exc.value)
         assert "date" in msg and ("pattern" in msg.lower() or "YYYY-MM-DD" in msg)
 
+    def test_impossible_date_says_it_does_not_exist(self) -> None:
+        # 1990-02-30 has the right shape; the error must not claim it is badly formatted.
+        with pytest.raises(ValidationError) as exc:
+            BirthData(date="1990-02-30", time="06:45", lat=0.0, lon=0.0)
+        msg = str(exc.value)
+        assert "does not exist" in msg and "must be YYYY-MM-DD" not in msg
+
     def test_invalid_time_format_rejected(self) -> None:
         with pytest.raises(ValidationError) as exc:
             BirthData(date="1985-11-12", time="6:45am", lat=0.0, lon=0.0)
@@ -170,7 +177,7 @@ class TestWesternBirthData:
         assert d["name"] == "Chart"
 
     def test_invalid_date_validator(self) -> None:
-        with pytest.raises(ValidationError, match="YYYY-MM-DD"):
+        with pytest.raises(ValidationError, match="does not exist"):
             WesternBirthData(date="1985-13-40", time="06:45", lat=0.0, lon=0.0)
 
     def test_year_before_1800_rejected(self) -> None:
