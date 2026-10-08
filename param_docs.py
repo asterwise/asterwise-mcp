@@ -118,7 +118,19 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "Date for the moon phase, YYYY-MM-DD. Defaults to today."
     ),
     ("asterwise_get_varshaphal", "year"): (
-        "Year of the solar return to compute, four digits, e.g. 2026."
+        "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "
+        "in that year (in UTC it can fall a day either side, or on 31 Dec for a 1 Jan "
+        "birthday). Must not be before the birth year."
+    ),
+    ("asterwise_get_varshaphal_saham", "year"): (
+        "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "
+        "in that year (in UTC it can fall a day either side, or on 31 Dec for a 1 Jan "
+        "birthday). Must not be before the birth year."
+    ),
+    ("asterwise_get_varshaphal_harsha_bala", "year"): (
+        "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "
+        "in that year (in UTC it can fall a day either side, or on 31 Dec for a 1 Jan "
+        "birthday). Must not be before the birth year."
     ),
     ("asterwise_get_angel_number_personal", "name"): (
         "Person's name, used to personalise the angel number reading."
