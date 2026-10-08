@@ -215,8 +215,8 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "or in timezone. Overrides timezone."
     ),
     ("asterwise_get_char_dasha", "cycles"): (
-        "Char Dasha cycles to return, 1-3 (default 1). Cycle 2 runs the same signs for "
-        "12 minus their first-cycle years; cycle 3 repeats cycle 1 (K.N. Rao)."
+        "Char Dasha cycles to return, 1-3 (default 1). Every further cycle repeats the "
+        "first cycle's signs, order and years (K.N. Rao)."
     ),
     ("asterwise_get_ashtottari_dasha", "levels"): (
         "Depth of the Ashtottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "

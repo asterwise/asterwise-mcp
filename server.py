@@ -619,7 +619,7 @@ mcp = FastMCP(
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DOMAIN 2 — WESTERN ASTROLOGY (tropical)
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  asterwise_get_western_natal — tropical natal chart (10 planets, dignities, aspects, elements)
+  asterwise_get_western_natal — tropical natal chart (10 planets, dignities incl. Lilly essential-dignity scores, aspects, elements)
   asterwise_get_western_aspects — aspect grid from raw longitudes
   asterwise_get_western_moon_phase — lunar phase for any date
   asterwise_get_western_moon_calendar — monthly lunar phase calendar
