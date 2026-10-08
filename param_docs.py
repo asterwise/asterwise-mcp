@@ -163,6 +163,26 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "Depth of the Vimshottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
         "(default), 3 Pratyantar, 4 Sookshma, 5 Prana (much larger payload)."
     ),
+    ("asterwise_get_kp_ruling_planets", "target_date"): (
+        "Local date of the moment to judge, YYYY-MM-DD. Without target_time, "
+        "12:00 local is used. Omit both date and time for the current instant."
+    ),
+    ("asterwise_get_kp_ruling_planets", "target_time"): (
+        "Local time of the moment to judge, HH:MM (24-hour). Without target_date, "
+        "that time today. Omit both date and time for the current instant."
+    ),
+    ("asterwise_get_kp_ruling_planets", "target_timezone"): (
+        "IANA time zone for target_date and target_time, e.g. 'Asia/Kolkata'. "
+        "Defaults to the zone at lat/lon."
+    ),
+    ("asterwise_get_angel_number_today", "date"): (
+        "Date to compute the angel number for, YYYY-MM-DD. Overrides timezone. "
+        "Omit for today."
+    ),
+    ("asterwise_get_angel_number_today", "timezone"): (
+        "IANA time zone whose current date counts as today, e.g. 'Asia/Kolkata'. "
+        "Defaults to UTC; ignored when date is given."
+    ),
     ("asterwise_get_ashtottari_dasha", "levels"): (
         "Depth of the Ashtottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
         "(default), 3 Pratyantar, 4 Sookshma, 5 Prana."

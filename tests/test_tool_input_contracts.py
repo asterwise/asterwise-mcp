@@ -188,3 +188,37 @@ def test_varshaphal_output_contract_names_the_fields_the_api_returns():
         assert field in text, field
     for phantom in ("election_used_strongest_without_aspect", "pending_components_note", "structure per upstream"):
         assert phantom not in text, phantom
+
+
+def test_kp_ruling_planets_forwards_the_moment_only_when_given():
+    """The API takes target_date, target_time and target_timezone (2026-10-08);
+    without them it judges the current instant."""
+    upstream = _Upstream({"success": True, "data": {"target_utc": "x"}})
+    assert not _call("asterwise_get_kp_ruling_planets", {"lat": 19.076, "lon": 72.8777}, upstream).is_error
+    assert upstream.calls[0] == ("POST", "/v1/astro/kp/ruling-planets", {"lat": 19.076, "lon": 72.8777})
+    args = {"lat": 19.076, "lon": 72.8777, "target_date": "2026-10-08",
+            "target_time": "09:30", "target_timezone": "Asia/Kolkata"}
+    assert not _call("asterwise_get_kp_ruling_planets", args, upstream).is_error
+    assert upstream.calls[1][2] == args
+    _call("asterwise_get_kp_ruling_planets", {"lat": 1.0, "lon": 2.0, "target_time": "18:00"}, upstream)
+    assert upstream.calls[2][2] == {"lat": 1.0, "lon": 2.0, "target_time": "18:00"}
+
+
+def test_kp_ruling_planets_refuses_a_malformed_date_or_time_before_calling_the_api():
+    upstream = _Upstream({"success": True, "data": {}})
+    for bad in ({"target_date": "08-10-2026"}, {"target_time": "9.30pm"}):
+        result = _call("asterwise_get_kp_ruling_planets", {"lat": 1.0, "lon": 2.0, **bad}, upstream)
+        assert result.is_error, bad
+    assert upstream.calls == []
+
+
+def test_angel_number_today_forwards_date_and_timezone_as_query_params():
+    upstream = _Upstream({"success": True, "data": {"angel_number": "999"}})
+    assert not _call("asterwise_get_angel_number_today", {}, upstream).is_error
+    assert upstream.calls[0] == ("GET", "/v1/numerology/angel/today", {})
+    _call("asterwise_get_angel_number_today", {"timezone": "Asia/Kolkata"}, upstream)
+    assert upstream.calls[1][2] == {"timezone": "Asia/Kolkata"}
+    _call("asterwise_get_angel_number_today", {"date": "2026-10-08", "timezone": "UTC"}, upstream)
+    assert upstream.calls[2][2] == {"date": "2026-10-08", "timezone": "UTC"}
+    bad = _call("asterwise_get_angel_number_today", {"date": "tomorrow"}, upstream)
+    assert bad.is_error and len(upstream.calls) == 3
