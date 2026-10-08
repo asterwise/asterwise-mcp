@@ -36,3 +36,15 @@ def test_remedies_markdown_shows_page_and_condition():
     assert "Give wheat. (when: Saturn in 3) — p.392" in md
     assert "Saturn in house 1" in md
     assert "Item 1" not in md and "sunrise chart" not in md
+
+
+def test_tropical_is_refused_before_the_api_call():
+    import pytest
+    from mcp.shared.exceptions import McpError
+    from models import BirthData
+    from tools.natal import _lk_reject_tropical
+
+    with pytest.raises(McpError, match="sidereal"):
+        _lk_reject_tropical(BirthData(date="2000-08-25", time="12:00", lat=28.6, lon=77.2, ayanamsa="tropical"))
+    for a in ("lahiri", "raman", "kp"):
+        _lk_reject_tropical(BirthData(date="2000-08-25", time="12:00", lat=28.6, lon=77.2, ayanamsa=a))
