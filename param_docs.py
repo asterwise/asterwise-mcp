@@ -163,6 +163,10 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "Depth of the Vimshottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
         "(default), 3 Pratyantar, 4 Sookshma, 5 Prana (much larger payload)."
     ),
+    ("asterwise_get_ashtottari_dasha", "levels"): (
+        "Depth of the Ashtottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
+        "(default), 3 Pratyantar, 4 Sookshma, 5 Prana."
+    ),
 }
 
 
