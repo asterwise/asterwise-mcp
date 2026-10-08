@@ -154,7 +154,7 @@ asterwise_get_panchanga — daily panchanga (tithi, yoga, karana), not Tarabala.
 DIVISIONAL_CHART = """Computes divisional (varga) charts from BirthData; pass chart_type for one varga, or omit chart_type for all sixteen. Each planet in each varga comes with its dignity there and whether it is vargottama; with a known birth time, each chart also has its own lagna, every planet's whole-sign house from that lagna, and a houses table.
 
 SECTION: WHAT THIS TOOL COVERS
-Charts: D1, D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45, D60 (D30 omits Sun and Moon by convention). dignity (exalted, debilitated, own_sign, friendly, neutral, enemy) is given for the seven classical planets; is_vargottama means the same sign as in D1. Does not return Shadbala (asterwise_get_chart_strength) or graha drishti (asterwise_get_natal_chart).
+Charts: D1, D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45, D60. D30 uses the BPHS odd/even Trimshamsa table and places every body, Sun and Moon included; D60 counts from the planet's own sign (Jagannatha Hora defaults). dignity (exalted, debilitated, own_sign, friendly, neutral, enemy) is given for the seven classical planets; is_vargottama means the same sign as in D1. Does not return Shadbala (asterwise_get_chart_strength) or graha drishti (asterwise_get_natal_chart).
 
 SECTION: WORKFLOW
 BEFORE: RECOMMENDED — asterwise_get_natal_chart — anchor D1 before reading higher vargas.
