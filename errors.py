@@ -73,7 +73,7 @@ def map_http_status_to_message(
         if error_code is not None and error_code not in _INPUT_ERROR_CODES:
             return (
                 f"The Asterwise API could not compute this ({error_code}): "
-                f"{detail or 'no further detail'}. The inputs are well-formed; "
+                f"{(detail or 'no further detail').rstrip('.')}. The inputs are well-formed; "
                 "retrying with the same values will give the same answer."
             )
         extra = f" Details: {detail}" if detail else ""

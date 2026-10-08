@@ -55,7 +55,7 @@ def _render_details(details: Any) -> str | None:
             parts.append(str(item))
             continue
         if "msg" in item or "loc" in item:
-            loc = ".".join(str(p) for p in item.get("loc", ()) if p != "body")
+            loc = ".".join(str(p) for p in item.get("loc", ()) if p not in ("body", "query", "path"))
             msg = str(item.get("msg", ""))
             parts.append(f"{loc}: {msg}" if loc else msg)
             continue
