@@ -115,7 +115,13 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "Date to compute the ayanamsha for, YYYY-MM-DD. Defaults to today."
     ),
     ("asterwise_get_western_moon_phase", "date"): (
-        "Date for the moon phase, YYYY-MM-DD. Defaults to today."
+        "Date for the moon phase, YYYY-MM-DD (years 1-3000). Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_moon_calendar", "year"): (
+        "Four-digit year, 1-3000. Defaults to the current year (UTC)."
+    ),
+    ("asterwise_get_western_moon_calendar", "month"): (
+        "Month number 1-12. Defaults to the current month (UTC)."
     ),
     ("asterwise_get_varshaphal", "year"): (
         "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "

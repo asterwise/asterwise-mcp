@@ -80,7 +80,7 @@ asterwise_get_panchanga — one day's limbs and timings."""
 FESTIVAL_CALENDAR = """Hindu festivals, vrats, sankrantis, eclipses and periods for a year at a location. Each lunar festival is fixed by its lunar month (amanta, with Adhik months found from new moons and sankrantis), its tithi, and the part of the day the tithi must hold (sunrise, forenoon, Madhyahna, Aparahna, Pradosh, Nishita, moonrise), with the classical tie-breaks when a tithi spans two days, Bhadra rules for Holika Dahan and Raksha Bandhan, and the Smarta Ekadashi rule. Checked against Drik Panchang (New Delhi).
 
 SECTION: WHAT THIS TOOL COVERS
-Categories: festival (about 50: Diwali, Holi, Dussehra, Janmashtami, Karva Chauth, Govardhan, Chhath, Chaitra Navratri ...), vrat (every Ekadashi, Pradosh, Sankashti Chaturthi, Masik Shivaratri, Purnima, the Purnima vrat day (purnima_vrat: Purnima at moonrise, else sunrise), Amavasya), sankranti (12 solar ingresses), eclipse (with local visibility and contact times), period (Adhik Maas, Chaturmas, Pitru Paksha, both Navratris, Holashtak, Kharmas). Dates depend on the location's sunrise and sunset.
+Categories: festival (about 50: Diwali, Holi, Dussehra, Janmashtami, Karva Chauth, Govardhan, Chhath, Chaitra Navratri ...), vrat (every Ekadashi, Pradosh, Sankashti Chaturthi, Masik Shivaratri, Purnima, the Purnima vrat (fast) day — Purnima at Madhyahna, often the day before — Amavasya), sankranti (12 solar ingresses), eclipse (with local visibility and contact times), period (Adhik Maas, Chaturmas, Pitru Paksha, both Navratris, Holashtak, Kharmas). Dates depend on the location's sunrise and sunset.
 
 SECTION: WORKFLOW
 BEFORE: asterwise_geocode — when you only have a place name.
@@ -90,7 +90,7 @@ SECTION: INPUT CONTRACT
 year (1900-2100), lat, lon, timezone (IANA, default Asia/Kolkata). categories: optional list of festival, vrat, sankranti, eclipse, period; the default is ["festival"] (about 50 named festivals). Add "vrat" for every Ekadashi, Pradosh, Sankashti, Purnima and Amavasya, "period" for Adhik Maas, Pitru Paksha and Chaturmas, "eclipse" for eclipses.
 
 SECTION: OUTPUT CONTRACT
-data.festivals[] sorted by date: id, name, date, end_date (periods), type (solar, tithi, eclipse), category, description (the rule used), significance, masa {amanta, purnimanta, is_adhik}, paksha, tithi {number, name, start, end}, rule (part of the day that decided, or day_after for Holi, which has no observance_window), observance_window {start, end} (puja window), note (when Bhadra or a short tithi moved the date), sankranti {rashi, moment}, eclipse {body, kind, greatest, visible_here, local}.
+data.festivals[] sorted by date: id, name, date, end_date (periods), type (solar, tithi, eclipse), category, description (the rule used), significance, masa {amanta, purnimanta, is_adhik}, paksha, tithi {number, name, start, end}, rule (part of the day that decided, or day_after for Holi, which has no observance_window), observance_window {start, end} (puja window; for moonrise rules such as Karva Chauth and Sankashti, the moonrise at which the fast is broken), tithi_at_moonrise (moonrise rules: whether the tithi still runs at that moonrise), note (when Bhadra or a short tithi moved the date), sankranti {rashi, moment}, eclipse {body, kind, greatest, visible_here, local}.
 
 SECTION: ERROR CONTRACT
 INVALID_PARAMS (local): bad year or coordinates, unknown category. INTERNAL_ERROR: upstream failure.
