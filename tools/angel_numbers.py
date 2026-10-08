@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
+from pydantic import Field
 import mcp.types as mcp_types
 
 from client import get_client, safe_segment
@@ -23,7 +24,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_angel_number_today",
         title="Angel Number Today",
-        description=compact_description("asterwise_get_angel_number_today", "Returns today's angel number computed from the current date. All digits of the date are summed and reduced to a single digit (1-9), then the triple sequence of that digit is returned (e.g. digit 9 → angel number 999).\n\nSECTION: WHAT THIS TOOL COVERS\nAngel numbers are repeated digit sequences interpreted as synchronistic messages in modern spiritual practice. The daily angel number is the same for all callers on the same date — it is a collective daily energy, not personal. Returns the angel number sequence, its theme, primary message, actionable guidance, and associated life areas. Life Path 3 → 333 (creative expression). Today's digit is derived from the date's digit sum.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_angel_number_personal — for a personalised angel number from birth date.\n\nSECTION: INPUT CONTRACT\nNo required parameters — today's date is used automatically.\n\nSECTION: OUTPUT CONTRACT\ndata.date (string — YYYY-MM-DD)\ndata.daily_digit (int — reduced digit 1-9)\ndata.angel_number (string — e.g. '999')\ndata.number (string — same as angel_number)\ndata.theme (string)\ndata.message (string)\ndata.guidance (string)\ndata.areas[] (string array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON. response_format=markdown renders a human-readable report. Both return identical data.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP — pure math, no ephemeris.\n\nSECTION: ERROR CONTRACT\nINTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_angel_number — lookup for a specific number sequence by value.\nasterwise_get_angel_number_personal — personalised number from birth date Life Path."),
+        description=compact_description("asterwise_get_angel_number_today", "Returns the angel number for today (UTC, or the caller's timezone) or for a given date. All digits of the date are summed and reduced to a single digit (1-9), then the triple sequence of that digit is returned (e.g. digit 9 → angel number 999).\n\nSECTION: WHAT THIS TOOL COVERS\nAngel numbers are repeated digit sequences interpreted as synchronistic messages in modern spiritual practice. The daily angel number is the same for all callers on the same date — it is a collective daily energy, not personal. Returns the angel number sequence, its theme, primary message, actionable guidance, and associated life areas. Life Path 3 → 333 (creative expression). Today's digit is derived from the date's digit sum.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_angel_number_personal — for a personalised angel number from birth date.\n\nSECTION: INPUT CONTRACT\ndate (optional YYYY-MM-DD) or timezone (optional IANA, e.g. Asia/Kolkata); without either, today is the current UTC date. date overrides timezone.\n\nSECTION: OUTPUT CONTRACT\ndata.date (string — YYYY-MM-DD, the date used)\ndata.timezone (string — zone whose current date was used; omitted when date is given)\ndata.daily_digit (int — reduced digit 1-9)\ndata.angel_number (string — e.g. '999')\ndata.number (string — same as angel_number)\ndata.theme (string)\ndata.message (string)\ndata.guidance (string)\ndata.areas[] (string array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON. response_format=markdown renders a human-readable report. Both return identical data.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP — pure math, no ephemeris.\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local): date not YYYY-MM-DD (schema pattern) → MCP INVALID_PARAMS.\nINVALID_PARAMS (upstream): unknown timezone → 422 validation_error, surfaces as MCP INTERNAL_ERROR with the API message.\nINTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_angel_number — lookup for a specific number sequence by value.\nasterwise_get_angel_number_personal — personalised number from birth date Life Path."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -34,12 +35,21 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_angel_number_today(
         ctx: Context,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        timezone: Optional[str] = None,
     ) -> str:
         """Get today's angel number."""
         async with tool_guard("asterwise_get_angel_number_today"):
             api_key = await require_api_key(ctx)
+            # Without either, the API uses the current UTC date; date wins
+            # over timezone.
+            params: dict[str, Any] = {}
+            if date is not None:
+                params["date"] = date
+            if timezone is not None:
+                params["timezone"] = timezone
             data = await get_client().get(
-                "/v1/numerology/angel/today", api_key, timeout=10.0
+                "/v1/numerology/angel/today", api_key, params, timeout=10.0
             )
             return format_tool_result(
                 data,
@@ -49,7 +59,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_angel_number",
         title="Angel Number",
-        description=compact_description("asterwise_get_angel_number", "Lookup the meaning of a specific angel number by its sequence. Supported: 000, 111–999 (single repeating digit), 911, 1010, 1111, 1122, 1212, 1234, 2222–9999 (double repeating digit).\n\nSECTION: WHAT THIS TOOL COVERS\nReturns the theme, primary message, actionable guidance, and associated life areas for a specific angel number sequence. Each sequence carries distinct meaning in modern numerological tradition. 111 = manifestation portal. 444 = angelic protection. 999 = cycle completion. 1111 = awakening gateway. 555 = transformation in progress. Pass the number as a string exactly as it appears (e.g. '444' not 444).\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nnumber: string — the angel number sequence to look up. Examples: '111', '444', '1111', '911'.\n\nSECTION: OUTPUT CONTRACT\ndata.number (string)\ndata.theme (string)\ndata.message (string)\ndata.guidance (string)\ndata.areas[] (string array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json — structured JSON. response_format=markdown — human-readable. Both return identical data.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (upstream): Unsupported number → 404, surfaces as MCP INTERNAL_ERROR.\nINTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_angel_number_today — today's collective daily angel number.\nasterwise_get_angel_number_personal — personal angel number from birth date.\nasterwise_get_number_meaning — Pythagorean numerology meaning for 1–33; different tradition."),
+        description=compact_description("asterwise_get_angel_number", "Lookup the meaning of a specific angel number by its sequence. Supported: 000, 111–999 (single repeating digit), 911, 1010, 1111, 1122, 1212, 1234, 2222–9999 (double repeating digit).\n\nSECTION: WHAT THIS TOOL COVERS\nReturns the theme, primary message, actionable guidance, and associated life areas for a specific angel number sequence. Each sequence carries distinct meaning in modern numerological tradition. 111 = manifestation portal. 444 = angelic protection. 999 = cycle completion. 1111 = awakening gateway. 555 = transformation in progress. Pass the number as a string exactly as it appears (e.g. '444' not 444).\n\nSECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nnumber: string — the angel number sequence to look up. Examples: '111', '444', '1111', '911'.\n\nSECTION: OUTPUT CONTRACT\ndata.number (string)\ndata.theme (string)\ndata.message (string)\ndata.guidance (string)\ndata.areas[] (string array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json — structured JSON. response_format=markdown — human-readable. Both return identical data.\n\nSECTION: COMPUTE CLASS\nFAST_LOOKUP\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (upstream): Unsupported number → 404, surfaces as MCP INTERNAL_ERROR.\nINTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_angel_number_today — today's collective daily angel number.\nasterwise_get_angel_number_personal — personal angel number from birth date.\nasterwise_get_number_meaning — Pythagorean numerology meaning for 1–9 and master numbers 11, 22, 33; different tradition."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,

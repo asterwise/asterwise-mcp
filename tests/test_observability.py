@@ -58,7 +58,28 @@ async def test_api_envelope_validation_details_reach_the_model():
     with pytest.raises(AsterwiseAPIError) as info:
         await _client_with(handler).post("/v1/astro/natal", "aw_key", {})
     assert "invalid date" in str(info.value)
+    assert "birth.date" in str(info.value)
     assert info.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_route_check_details_keep_the_message_and_field():
+    # Route checks send {"field", "issue", "allowed_*"} items, which have no
+    # loc/msg; they used to render as empty strings and drop the message.
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(422, json={
+            "success": False, "error": "invalid_request_body",
+            "message": "Invalid moon sign: 'foo'. Use English names (e.g. libra, aries).",
+            "details": [{"field": "moon_sign", "issue": "invalid_value",
+                         "allowed_english": ["aries", "taurus", "gemini"]}],
+            "request_id": "rid-422-sign",
+        })
+
+    with pytest.raises(AsterwiseAPIError) as info:
+        await _client_with(handler).get("/v1/horoscope/daily/foo", "aw_key")
+    text = str(info.value)
+    assert "Invalid moon sign: 'foo'" in text
+    assert "moon_sign: invalid_value (allowed: aries, taurus, gemini)" in text
 
 
 # ---- tool_guard reporting --------------------------------------------------
@@ -217,3 +238,47 @@ async def test_upstream_call_query_never_reaches_sentry(live_sentry, monkeypatch
 
 def test_frame_variables_are_never_sent(live_sentry):
     assert sentry_sdk.get_client().options["include_local_variables"] is False
+
+
+@pytest.mark.asyncio
+async def test_polar_kp_refusal_is_sky_side_not_a_field_to_fix():
+    """KP inside the polar circles: validation_error, but the details say the
+    input format is fine (API round 2, 2026-10-08)."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(422, json={
+            "success": False, "error": "validation_error",
+            "message": (
+                "The birth details are valid; this is not an input-format problem. "
+                "KP needs Placidus house cusps, which do not exist at this latitude "
+                "for this birth date and time (inside the polar circles, beyond about "
+                "66.5° north or south). KP charts and significators cannot be calculated here."
+            ),
+            "details": [{
+                "loc": ["body", "latitude"],
+                "msg": "No Placidus house cusps exist at this latitude for this date and time; the input itself is valid.",
+                "type": "no_quadrant_houses_at_this_latitude",
+                "field": "latitude",
+                "issue": "no_quadrant_houses_at_this_latitude",
+                "input_format_ok": True,
+                "house_system": "placidus",
+            }],
+            "request_id": "rid-422-polar",
+        })
+
+    with pytest.raises(AsterwiseAPIError) as info:
+        await _client_with(handler).post("/v1/astro/kp/chart", "aw_key", {})
+    text = str(info.value)
+    assert "Fix the field" not in text
+    assert "The inputs are well-formed" in text
+    assert "cannot be calculated here" in text
+
+
+def test_sky_side_details_need_the_issue_or_input_format_ok():
+    from errors import details_are_sky_side
+
+    assert details_are_sky_side([{"issue": "no_quadrant_houses_at_this_latitude"}])
+    assert details_are_sky_side([{"field": "x", "input_format_ok": True}])
+    assert not details_are_sky_side([{"field": "date", "issue": "invalid_value"}])
+    assert not details_are_sky_side([{"input_format_ok": False}])
+    assert not details_are_sky_side("latitude")
+    assert not details_are_sky_side(None)

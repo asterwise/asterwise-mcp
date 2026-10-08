@@ -115,10 +115,28 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "Date to compute the ayanamsha for, YYYY-MM-DD. Defaults to today."
     ),
     ("asterwise_get_western_moon_phase", "date"): (
-        "Date for the moon phase, YYYY-MM-DD. Defaults to today."
+        "Date for the moon phase, YYYY-MM-DD (years 1-3000). Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_moon_calendar", "year"): (
+        "Four-digit year, 1-3000. Defaults to the current year (UTC)."
+    ),
+    ("asterwise_get_western_moon_calendar", "month"): (
+        "Month number 1-12. Defaults to the current month (UTC)."
     ),
     ("asterwise_get_varshaphal", "year"): (
-        "Year of the solar return to compute, four digits, e.g. 2026."
+        "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "
+        "in that year (in UTC it can fall a day either side, or on 31 Dec for a 1 Jan "
+        "birthday). Must not be before the birth year."
+    ),
+    ("asterwise_get_varshaphal_saham", "year"): (
+        "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "
+        "in that year (in UTC it can fall a day either side, or on 31 Dec for a 1 Jan "
+        "birthday). Must not be before the birth year."
+    ),
+    ("asterwise_get_varshaphal_harsha_bala", "year"): (
+        "Varshaphal year, four digits, e.g. 2026: the solar return nearest the birthday "
+        "in that year (in UTC it can fall a day either side, or on 31 Dec for a 1 Jan "
+        "birthday). Must not be before the birth year."
     ),
     ("asterwise_get_angel_number_personal", "name"): (
         "Person's name, used to personalise the angel number reading."
@@ -162,6 +180,47 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
     ("asterwise_get_dasha", "levels"): (
         "Depth of the Vimshottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
         "(default), 3 Pratyantar, 4 Sookshma, 5 Prana (much larger payload)."
+    ),
+    ("asterwise_get_kp_ruling_planets", "target_date"): (
+        "Local date of the moment to judge, YYYY-MM-DD. Without target_time, "
+        "12:00 local is used. Omit both date and time for the current instant."
+    ),
+    ("asterwise_get_kp_ruling_planets", "target_time"): (
+        "Local time of the moment to judge, HH:MM (24-hour). Without target_date, "
+        "that time today. Omit both date and time for the current instant."
+    ),
+    ("asterwise_get_kp_ruling_planets", "target_timezone"): (
+        "IANA time zone for target_date and target_time, e.g. 'Asia/Kolkata'. "
+        "Defaults to the zone at lat/lon."
+    ),
+    ("asterwise_get_angel_number_today", "date"): (
+        "Date to compute the angel number for, YYYY-MM-DD. Overrides timezone. "
+        "Omit for today."
+    ),
+    ("asterwise_get_angel_number_today", "timezone"): (
+        "IANA time zone whose current date counts as today, e.g. 'Asia/Kolkata'. "
+        "Defaults to UTC; ignored when date is given."
+    ),
+    ("asterwise_check_mobile_number", "country"): (
+        "Country of the number as ISO 3166 alpha-2, e.g. 'IN', 'US', 'CN'. Used only "
+        "when the number has no '+'/'00' prefix: it is then read as dialled in that "
+        "country and the country code is left out of the sum."
+    ),
+    ("asterwise_get_tarot_card_of_the_day", "timezone"): (
+        "IANA time zone (or ±HH:MM) whose current date counts as today, e.g. "
+        "'Asia/Kolkata'. Defaults to UTC; ignored when date is given."
+    ),
+    ("asterwise_get_tarot_card_of_the_day", "date"): (
+        "Date to get the card for, YYYY-MM-DD. Defaults to today's date in UTC, "
+        "or in timezone. Overrides timezone."
+    ),
+    ("asterwise_get_char_dasha", "cycles"): (
+        "Char Dasha cycles to return, 1-3 (default 1). Cycle 2 runs the same signs for "
+        "12 minus their first-cycle years; cycle 3 repeats cycle 1 (K.N. Rao)."
+    ),
+    ("asterwise_get_ashtottari_dasha", "levels"): (
+        "Depth of the Ashtottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
+        "(default), 3 Pratyantar, 4 Sookshma, 5 Prana."
     ),
 }
 

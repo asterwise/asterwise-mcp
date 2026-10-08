@@ -188,3 +188,80 @@ def test_varshaphal_output_contract_names_the_fields_the_api_returns():
         assert field in text, field
     for phantom in ("election_used_strongest_without_aspect", "pending_components_note", "structure per upstream"):
         assert phantom not in text, phantom
+
+
+def test_kp_ruling_planets_forwards_the_moment_only_when_given():
+    """The API takes target_date, target_time and target_timezone (2026-10-08);
+    without them it judges the current instant."""
+    upstream = _Upstream({"success": True, "data": {"target_utc": "x"}})
+    assert not _call("asterwise_get_kp_ruling_planets", {"lat": 19.076, "lon": 72.8777}, upstream).is_error
+    assert upstream.calls[0] == ("POST", "/v1/astro/kp/ruling-planets", {"lat": 19.076, "lon": 72.8777})
+    args = {"lat": 19.076, "lon": 72.8777, "target_date": "2026-10-08",
+            "target_time": "09:30", "target_timezone": "Asia/Kolkata"}
+    assert not _call("asterwise_get_kp_ruling_planets", args, upstream).is_error
+    assert upstream.calls[1][2] == args
+    _call("asterwise_get_kp_ruling_planets", {"lat": 1.0, "lon": 2.0, "target_time": "18:00"}, upstream)
+    assert upstream.calls[2][2] == {"lat": 1.0, "lon": 2.0, "target_time": "18:00"}
+
+
+def test_kp_ruling_planets_refuses_a_malformed_date_or_time_before_calling_the_api():
+    upstream = _Upstream({"success": True, "data": {}})
+    for bad in ({"target_date": "08-10-2026"}, {"target_time": "9.30pm"}):
+        result = _call("asterwise_get_kp_ruling_planets", {"lat": 1.0, "lon": 2.0, **bad}, upstream)
+        assert result.is_error, bad
+    assert upstream.calls == []
+
+
+def test_angel_number_today_forwards_date_and_timezone_as_query_params():
+    upstream = _Upstream({"success": True, "data": {"angel_number": "999"}})
+    assert not _call("asterwise_get_angel_number_today", {}, upstream).is_error
+    assert upstream.calls[0] == ("GET", "/v1/numerology/angel/today", {})
+    _call("asterwise_get_angel_number_today", {"timezone": "Asia/Kolkata"}, upstream)
+    assert upstream.calls[1][2] == {"timezone": "Asia/Kolkata"}
+    _call("asterwise_get_angel_number_today", {"date": "2026-10-08", "timezone": "UTC"}, upstream)
+    assert upstream.calls[2][2] == {"date": "2026-10-08", "timezone": "UTC"}
+    bad = _call("asterwise_get_angel_number_today", {"date": "tomorrow"}, upstream)
+    assert bad.is_error and len(upstream.calls) == 3
+
+
+def test_number_meaning_accepts_only_the_numbers_the_api_has_meanings_for():
+    """The API answers 1-9, 11, 22 and 33; anything else is a 422 (2026-10-08)."""
+    upstream = _Upstream({"success": True, "data": {"number": 7}})
+    for n in (1, 9, 11, 22, 33):
+        assert not _call("asterwise_get_number_meaning", {"number": n}, upstream).is_error, n
+    assert [c[1] for c in upstream.calls][-1] == "/v1/numerology/meaning/33"
+    calls = len(upstream.calls)
+    for n in (0, 10, 12, 21, 34):
+        result = _call("asterwise_get_number_meaning", {"number": n}, upstream)
+        assert result.is_error and "master number" in result.content[0].text, n
+    assert len(upstream.calls) == calls
+
+
+def test_mobile_number_forwards_country_only_when_given():
+    upstream = _Upstream({"success": True, "data": {}})
+    _call("asterwise_check_mobile_number", {"mobile_number": "14155552671", "country": "US"}, upstream)
+    assert upstream.calls[0] == ("POST", "/v1/numerology/mobile-number",
+                                 {"number": "14155552671", "country": "US"})
+    _call("asterwise_check_mobile_number", {"mobile_number": "14155552671"}, upstream)
+    assert upstream.calls[1][2] == {"number": "14155552671"}
+    bad = _call("asterwise_check_mobile_number", {"mobile_number": "1", "country": "USA"}, upstream)
+    assert bad.is_error and len(upstream.calls) == 2
+
+
+def test_tarot_card_of_the_day_forwards_timezone_as_a_query_param():
+    upstream = _Upstream({"success": True, "data": {"date": "2026-10-08"}})
+    _call("asterwise_get_tarot_card_of_the_day", {"timezone": "Asia/Kolkata"}, upstream)
+    assert upstream.calls[0] == ("GET", "/v1/tarot/card-of-the-day",
+                                 {"allow_reversed": False, "timezone": "Asia/Kolkata"})
+    _call("asterwise_get_tarot_card_of_the_day", {}, upstream)
+    assert upstream.calls[1][2] == {"allow_reversed": False}
+
+
+def test_char_dasha_forwards_cycles_only_when_given_and_checks_the_range():
+    upstream = _Upstream({"success": True, "data": {"periods": []}})
+    _call("asterwise_get_char_dasha", {"birth": BIRTH}, upstream)
+    assert "cycles" not in upstream.calls[0][2]
+    _call("asterwise_get_char_dasha", {"birth": BIRTH, "cycles": 2}, upstream)
+    assert upstream.calls[1][2]["cycles"] == 2
+    bad = _call("asterwise_get_char_dasha", {"birth": BIRTH, "cycles": 4}, upstream)
+    assert bad.is_error and "cycles" in bad.content[0].text and len(upstream.calls) == 2

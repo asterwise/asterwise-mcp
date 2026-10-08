@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import httpx
 
-from errors import AsterwiseAPIError, map_http_status_to_message
+from errors import AsterwiseAPIError, details_are_sky_side, map_http_status_to_message
 from auth import forwarded_client_ip_headers
 from context import get_request_client_ip
 
@@ -34,6 +34,40 @@ def safe_segment(value: str) -> str:
 
 # Backward compatibility
 _safe_path_segment = safe_segment
+
+_MAX_ALLOWED_SHOWN = 15
+
+
+def _render_details(details: Any) -> str | None:
+    """One line per error detail, in either shape the API sends.
+
+    Request validation sends Pydantic items ({"loc", "msg"}); route checks
+    send {"field", "issue", "allowed…"}. An item with neither used to render
+    as an empty string, which hid the field from the model.
+    """
+    if isinstance(details, str):
+        return details or None
+    if not isinstance(details, list) or not details:
+        return None
+    parts: list[str] = []
+    for item in details:
+        if not isinstance(item, dict):
+            parts.append(str(item))
+            continue
+        if "msg" in item or "loc" in item:
+            loc = ".".join(str(p) for p in item.get("loc", ()) if p not in ("body", "query", "path"))
+            msg = str(item.get("msg", ""))
+            parts.append(f"{loc}: {msg}" if loc else msg)
+            continue
+        text = ": ".join(str(item[k]) for k in ("field", "issue") if item.get(k))
+        for key, value in item.items():
+            if key.startswith("allowed") and isinstance(value, list):
+                shown = ", ".join(str(v) for v in value[:_MAX_ALLOWED_SHOWN])
+                more = "…" if len(value) > _MAX_ALLOWED_SHOWN else ""
+                text += f" (allowed: {shown}{more})"
+                break
+        parts.append(text or str(item))
+    return "; ".join(p for p in parts if p) or None
 
 
 class AsterwiseClient:
@@ -75,34 +109,35 @@ class AsterwiseClient:
         if response.is_success:
             return
         detail: str | None = None
+        error_code: str | None = None
+        sky_side = False
         api_request_id = response.headers.get("X-Request-ID")
         try:
             body = response.json()
             if isinstance(body, dict):
                 api_request_id = api_request_id or body.get("request_id")
+                if isinstance(body.get("error"), str):
+                    error_code = body["error"]
+                sky_side = details_are_sky_side(body.get("details"))
                 d = body.get("detail")
-                if d is None:
-                    # The API's error envelope: {"error_code", "message",
-                    # "details": [...], "request_id"}. Only "detail" was read,
-                    # so 422 messages reached the model without the field.
-                    d = body.get("details") or body.get("message")
-                if isinstance(d, str):
-                    detail = d
-                elif isinstance(d, list):
-                    parts = []
-                    for item in d:
-                        if isinstance(item, dict):
-                            loc = item.get("loc", ())
-                            msg = item.get("msg", "")
-                            parts.append(f"{loc}: {msg}" if loc else str(msg))
-                        else:
-                            parts.append(str(item))
-                    detail = "; ".join(parts) if parts else str(d)
+                if d is not None:
+                    detail = _render_details(d)
+                else:
+                    # The API's error envelope: {"error", "message",
+                    # "details": [...], "request_id"}. The message carries
+                    # the explanation and the details name the field, so the
+                    # model gets both.
+                    message = body.get("message")
+                    rendered = _render_details(body.get("details"))
+                    parts = [p for p in (message, rendered) if isinstance(p, str) and p]
+                    detail = " — ".join(parts) or None
         except Exception:
             text = response.text
             if text:
                 detail = text[:500]
-        msg = map_http_status_to_message(response.status_code, detail)
+        msg = map_http_status_to_message(
+            response.status_code, detail, error_code, sky_side=sky_side
+        )
         raise AsterwiseAPIError(
             msg,
             hint=msg,
