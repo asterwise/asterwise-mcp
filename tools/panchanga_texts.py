@@ -181,7 +181,7 @@ asterwise_get_chart_strength — varga-based strength scores, not placements."""
 GEOCODE = """Turns a place name into latitude, longitude and IANA timezone for the other tools, which all take lat, lon and timezone.
 
 SECTION: WHAT THIS TOOL COVERS
-Searches OpenStreetMap (Nominatim) place names and returns up to `limit` matches, each with a label, city, state, country, latitude, longitude and timezone. Repeat matches for one place (same city, state and country within 25 km) are listed once. When several places share a name, ambiguous is true: pick one, or narrow with a comma ('Fatehabad, Haryana') or country ('in', 'us').
+Searches OpenStreetMap (Nominatim) place names and returns up to `limit` matches, each with a label, city, state, country, latitude, longitude and timezone. Repeat matches for one place (same city, state and country within 5 km) are listed once. When several places share a name, ambiguous is true: pick one, or narrow with a comma ('Fatehabad, Haryana') or country ('in', 'us').
 
 SECTION: WORKFLOW
 BEFORE: None.
