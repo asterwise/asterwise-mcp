@@ -183,6 +183,19 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "IANA time zone whose current date counts as today, e.g. 'Asia/Kolkata'. "
         "Defaults to UTC; ignored when date is given."
     ),
+    ("asterwise_check_mobile_number", "country"): (
+        "Country of the number as ISO 3166 alpha-2, e.g. 'IN', 'US', 'CN'. Used only "
+        "when the number has no '+'/'00' prefix: it is then read as dialled in that "
+        "country and the country code is left out of the sum."
+    ),
+    ("asterwise_get_tarot_card_of_the_day", "timezone"): (
+        "IANA time zone (or ±HH:MM) whose current date counts as today, e.g. "
+        "'Asia/Kolkata'. Defaults to UTC; ignored when date is given."
+    ),
+    ("asterwise_get_tarot_card_of_the_day", "date"): (
+        "Date to get the card for, YYYY-MM-DD. Defaults to today's date in UTC, "
+        "or in timezone. Overrides timezone."
+    ),
     ("asterwise_get_ashtottari_dasha", "levels"): (
         "Depth of the Ashtottari tree, 1-5: 1 = Mahadasha only, 2 adds Antardasha "
         "(default), 3 Pratyantar, 4 Sookshma, 5 Prana."

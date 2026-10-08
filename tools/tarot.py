@@ -278,13 +278,15 @@ def register(mcp: FastMCP) -> None:
             "BEFORE: None — standalone.\n"
             "AFTER: asterwise_get_tarot_three_card_spread — for deeper daily reading context.\n\n"
             "SECTION: INPUT CONTRACT\n"
-            "date (optional string YYYY-MM-DD) — Date to get the card for. Defaults to today.\n"
+            "date (optional string YYYY-MM-DD) — Date to get the card for. Defaults to today's date in UTC, or in timezone. Overrides timezone.\n"
             "  Example: '2026-05-01'\n"
             "allow_reversed (optional bool) — Default: false.\n"
             "  When true: reversed state is also deterministic (seeded by date+'_rev').\n"
-            "  When false: card is always upright regardless of date.\n\n"
+            "  When false: card is always upright regardless of date.\n"
+            "timezone (optional, IANA or ±HH:MM, e.g. 'Asia/Kolkata') — zone whose current date is today. Default: UTC.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
             "data.date (string — YYYY-MM-DD, the date this card represents)\n"
+            "data.timezone (string — zone whose current date was used; absent when date is given)\n"
             "data.card — full card object (same shape as asterwise_get_tarot_card)\n"
             "data.is_reversed (bool)\n"
             "data.active_meaning (string — upright_meaning when not reversed, reversed_meaning when reversed)\n"
@@ -296,6 +298,7 @@ def register(mcp: FastMCP) -> None:
             "FAST_LOOKUP — deterministic, no randomness.\n\n"
             "SECTION: ERROR CONTRACT\n"
             "INVALID_PARAMS (local): None — date is validated upstream.\n"
+            "INVALID_PARAMS (upstream): bad date or unknown timezone → 422 validation_error, surfaces as MCP INTERNAL_ERROR with the API message.\n"
             "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
             "SECTION: DO NOT CONFUSE WITH\n"
             "asterwise_draw_tarot_cards — random draw, different every call.\n"
@@ -311,6 +314,7 @@ def register(mcp: FastMCP) -> None:
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         date: str | None = None,
         allow_reversed: bool = False,
+        timezone: str | None = None,
     ) -> str:
         """Daily tarot card (deterministic by date)."""
         async with tool_guard("asterwise_get_tarot_card_of_the_day"):
@@ -318,6 +322,9 @@ def register(mcp: FastMCP) -> None:
             params: dict = {"allow_reversed": allow_reversed}
             if date:
                 params["date"] = date
+            # Without date or timezone the API uses the current UTC date.
+            if timezone:
+                params["timezone"] = timezone
             data = await get_client().get(
                 "/v1/tarot/card-of-the-day", api_key, params, timeout=10.0
             )

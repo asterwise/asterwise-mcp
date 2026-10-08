@@ -235,3 +235,23 @@ def test_number_meaning_accepts_only_the_numbers_the_api_has_meanings_for():
         result = _call("asterwise_get_number_meaning", {"number": n}, upstream)
         assert result.is_error and "master number" in result.content[0].text, n
     assert len(upstream.calls) == calls
+
+
+def test_mobile_number_forwards_country_only_when_given():
+    upstream = _Upstream({"success": True, "data": {}})
+    _call("asterwise_check_mobile_number", {"mobile_number": "14155552671", "country": "US"}, upstream)
+    assert upstream.calls[0] == ("POST", "/v1/numerology/mobile-number",
+                                 {"number": "14155552671", "country": "US"})
+    _call("asterwise_check_mobile_number", {"mobile_number": "14155552671"}, upstream)
+    assert upstream.calls[1][2] == {"number": "14155552671"}
+    bad = _call("asterwise_check_mobile_number", {"mobile_number": "1", "country": "USA"}, upstream)
+    assert bad.is_error and len(upstream.calls) == 2
+
+
+def test_tarot_card_of_the_day_forwards_timezone_as_a_query_param():
+    upstream = _Upstream({"success": True, "data": {"date": "2026-10-08"}})
+    _call("asterwise_get_tarot_card_of_the_day", {"timezone": "Asia/Kolkata"}, upstream)
+    assert upstream.calls[0] == ("GET", "/v1/tarot/card-of-the-day",
+                                 {"allow_reversed": False, "timezone": "Asia/Kolkata"})
+    _call("asterwise_get_tarot_card_of_the_day", {}, upstream)
+    assert upstream.calls[1][2] == {"allow_reversed": False}
