@@ -222,3 +222,16 @@ def test_angel_number_today_forwards_date_and_timezone_as_query_params():
     assert upstream.calls[2][2] == {"date": "2026-10-08", "timezone": "UTC"}
     bad = _call("asterwise_get_angel_number_today", {"date": "tomorrow"}, upstream)
     assert bad.is_error and len(upstream.calls) == 3
+
+
+def test_number_meaning_accepts_only_the_numbers_the_api_has_meanings_for():
+    """The API answers 1-9, 11, 22 and 33; anything else is a 422 (2026-10-08)."""
+    upstream = _Upstream({"success": True, "data": {"number": 7}})
+    for n in (1, 9, 11, 22, 33):
+        assert not _call("asterwise_get_number_meaning", {"number": n}, upstream).is_error, n
+    assert [c[1] for c in upstream.calls][-1] == "/v1/numerology/meaning/33"
+    calls = len(upstream.calls)
+    for n in (0, 10, 12, 21, 34):
+        result = _call("asterwise_get_number_meaning", {"number": n}, upstream)
+        assert result.is_error and "master number" in result.content[0].text, n
+    assert len(upstream.calls) == calls
