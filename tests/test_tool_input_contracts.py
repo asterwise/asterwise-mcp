@@ -255,3 +255,13 @@ def test_tarot_card_of_the_day_forwards_timezone_as_a_query_param():
                                  {"allow_reversed": False, "timezone": "Asia/Kolkata"})
     _call("asterwise_get_tarot_card_of_the_day", {}, upstream)
     assert upstream.calls[1][2] == {"allow_reversed": False}
+
+
+def test_char_dasha_forwards_cycles_only_when_given_and_checks_the_range():
+    upstream = _Upstream({"success": True, "data": {"periods": []}})
+    _call("asterwise_get_char_dasha", {"birth": BIRTH}, upstream)
+    assert "cycles" not in upstream.calls[0][2]
+    _call("asterwise_get_char_dasha", {"birth": BIRTH, "cycles": 2}, upstream)
+    assert upstream.calls[1][2]["cycles"] == 2
+    bad = _call("asterwise_get_char_dasha", {"birth": BIRTH, "cycles": 4}, upstream)
+    assert bad.is_error and "cycles" in bad.content[0].text and len(upstream.calls) == 2
