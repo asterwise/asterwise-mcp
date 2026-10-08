@@ -29,6 +29,76 @@ from runtime import (
 )
 
 
+def _lk_payload(data: dict[str, Any]) -> dict[str, Any]:
+    inner = data.get("data")
+    return inner if isinstance(inner, dict) else data
+
+
+def _lk_time_note(d: dict[str, Any]) -> list[str]:
+    if d.get("birth_time_provided") is False:
+        return ["> No birth time given: a sunrise chart was used, so the lagna and every house are approximate.", ""]
+    return []
+
+
+def _lk_chart_md(data: dict[str, Any]) -> str:
+    d = _lk_payload(data)
+    asc = d.get("ascendant") or {}
+    lines = ["## Lal Kitab chart", ""]
+    lines += _lk_time_note(d)
+    lines.append(f"Lagna: {asc.get('rashi', '—')} ({asc.get('longitude', '—')}°), read as house 1. Ayanamsa: {d.get('ayanamsa', 'lahiri')}.")
+    lines += ["", "| Planet | House | Sign | Pakka ghar | Uchcha | Neecha | Effect | Malefic because |",
+              "|---|---|---|---|---|---|---|---|"]
+    for name, p in (d.get("planets") or {}).items():
+        why = "; ".join(p.get("malefic_reasons") or []) or "—"
+        lines.append(
+            f"| {name} | {p.get('lk_house')} | {p.get('rashi')} | {'yes' if p.get('pucca_ghar') else 'no'} "
+            f"| {'yes' if p.get('uchcha') else 'no'} | {'yes' if p.get('neecha') else 'no'} | {p.get('effect')} | {why} |"
+        )
+    rin = d.get("rin_analysis") or {}
+    lines += ["", "### Debts (rin)", ""]
+    found = rin.get("rin_remedies") or []
+    if not found:
+        lines.append("None indicated.")
+    for r in found:
+        where = ", ".join(f"{f['planet']} in {f['house']}" for f in r.get("found") or [])
+        lines.append(f"- **{r.get('name')}** ({where}): {r.get('remedy')} — {r.get('source')}")
+    if rin.get("not_evaluated"):
+        lines += ["", f"_{rin['not_evaluated']}_"]
+    return "\n".join(lines)
+
+
+def _lk_remedies_md(data: dict[str, Any]) -> str:
+    d = _lk_payload(data)
+    lines = ["## Lal Kitab remedies", ""]
+    lines += _lk_time_note(d)
+    entries = d.get("remedies") or []
+    if not entries:
+        lines.append("No planet needs a remedy.")
+    for e in entries:
+        why = "; ".join(e.get("malefic_reasons") or [])
+        lines += ["", f"### {e.get('planet')} in house {e.get('lk_house')}", f"Why: {why}", ""]
+        items = e.get("remedies") or []
+        if not items:
+            lines.append("- The book gives no remedy for this placement.")
+        for it in items:
+            cond = f" (when: {it['condition']})" if it.get("condition") else ""
+            note = f" [{it['note']}]" if it.get("note") else ""
+            lines.append(f"- {it.get('type')}: {it.get('action')}{cond} — p.{it.get('page')}{note}")
+    nr = d.get("not_remediable") or []
+    if nr:
+        lines += ["", "### Malefic but fixed (Lal Kitab says remedies cannot change these)", ""]
+        for e in nr:
+            lines.append(f"- {e.get('planet')} in house {e.get('lk_house')}: {'; '.join(e.get('reasons') or [])}")
+    rins = d.get("rin_remedies") or []
+    if rins:
+        lines += ["", "### Debt (rin) remedies", ""]
+        for r in rins:
+            lines.append(f"- **{r.get('name')}**: {r.get('remedy')} — {r.get('source')}")
+    if d.get("sources"):
+        lines += ["", "Sources: " + "; ".join(d["sources"])]
+    return "\n".join(lines)
+
+
 def _natal_table_md(data: dict[str, Any]) -> str:
     planets = data.get("planets") or data.get("positions")
     if planets is None and isinstance(data.get("chart"), dict):
@@ -277,7 +347,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_lal_kitab_chart",
         title="Lal Kitab Chart",
-        description=compact_description("asterwise_get_lal_kitab_chart", "Produces the Lal Kitab house and planet schema plus Rin (debt) flags from BirthData using Lal Kitab placement rules. Lal Kitab uses a distinct astrological system from standard Vedic computation, with its own house-based remedies.\n\nSECTION: WHAT THIS TOOL COVERS\nReturns data.system 'lal_kitab', ayanamsa, planets{} with lk_house and pucca/kachcha flags, twelve houses{} with occupants and significations, and rin_analysis with boolean debts, active_rins[], and rin_remedies[] rows. Do not merge these houses with asterwise_get_natal_chart Bhava Chalit without explicit user intent — frameworks differ.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone for Lal Kitab queries.\nAFTER: asterwise_get_lal_kitab_remedies — practical totkas aligned to this chart.\n\nSECTION: INPUT CONTRACT\nBirthData global contract; mixing interpretive systems in prose is a caller concern, not validated here.\n\nSECTION: OUTPUT CONTRACT\ndata.system (string — 'lal_kitab')\ndata.ayanamsa (string)\ndata.planets{} — Sun..Ketu:\n  longitude (float)\n  rashi_index (int)\n  rashi (string)\n  lk_house (int — 1–12)\n  house_lord (string)\n  is_retrograde (bool)\n  pucca_ghar (bool)\n  kachcha_ghar (bool)\n  uchcha (bool)\n  neecha (bool)\n  pucca_house (int)\n  kachcha_house (int)\ndata.houses{} — keys '1'..'12':\n  house (int)\n  rashi_index (int)\n  rashi (string)\n  lord (string)\n  occupants[] (string array)\n  signification (string)\n  has_benefic (bool)\n  has_malefic (bool)\ndata.rin_analysis:\n  pitru_rin, matru_rin, bhai_rin, stri_rin, dev_rin (bool)\n  active_rins[] (string array)\n  rin_remedies[] — { rin (string), planet (string), totka (string) }\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — BirthData Pydantic only.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Lal Kitab houses are not interchangeable with cusps.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — classical radix, not Lal Kitab lk_house logic.\nasterwise_get_lal_kitab_remedies — remedy list without full chart geometry."),
+        description=compact_description("asterwise_get_lal_kitab_chart", "Produces a Lal Kitab chart from BirthData following the 1952 Lal Kitab: houses counted from the Vedic lagna, the lagna house read as house 1 (Aries). Returns planets with pakka ghar, uchcha/neecha, fixed or doubtful effect and malefic reasons, the twelve houses, and the nine Lal Kitab debts (rin).\n\nSECTION: WHAT THIS TOOL COVERS\nReturns data.ascendant, planets{} with lk_house and Lal Kitab flags, houses{} with the Lal Kitab sign (house N = sign N), the actual birth sign, occupants and the 1952 house title, and rin_analysis with nine debt booleans, active_rins[] and rin_remedies[]. Every table cites the 1952 text (Goswami & Vashisth translation page numbers). Do not merge these houses with asterwise_get_natal_chart Bhava Chalit without explicit user intent.\n\nSECTION: WORKFLOW\nBEFORE: None — standalone for Lal Kitab queries.\nAFTER: asterwise_get_lal_kitab_remedies — remedies for the planets that need them.\n\nSECTION: INPUT CONTRACT\nBirthData global contract. ayanamsa is ignored: Lal Kitab always uses Lahiri (data.ayanamsa is 'lahiri'). Unknown birth time: omit time (a sunrise chart is cast and birth_time_provided=false); houses are then approximate.\n\nSECTION: OUTPUT CONTRACT\ndata.system (string — 'lal_kitab')\ndata.ayanamsa (string — always 'lahiri')\ndata.birth_time_provided (bool)\ndata.ascendant — { longitude (float), rashi_index (int 0-11), rashi (string) } — the sign that becomes house 1\ndata.planets{} — Sun..Ketu:\n  longitude (float), rashi_index (int), rashi (string)\n  lk_house (int — 1–12, counted from the lagna)\n  house_lord (string — lord of the sign Lal Kitab reads in that house)\n  is_retrograde (bool)\n  pucca_ghar (bool), pucca_houses[] (int array)\n  uchcha (bool), neecha (bool), uchcha_houses[], neecha_houses[] (int arrays)\n  effect (string — 'fixed' or 'doubtful'; only doubtful effects can be remedied)\n  companion_planets[] (string array)\n  malefic_reasons[] (string array — empty when not malefic)\ndata.houses{} — keys '1'..'12':\n  house (int), rashi_index (int — house-1), rashi (string), lord (string)\n  birth_rashi_index (int), birth_rashi (string) — the actual sign in that house\n  pucca_ghar_of[] (string array), occupants[] (string array), signification (string — 1952 house title)\ndata.rin_analysis:\n  pitru_rin, swayam_rin, matru_rin, stri_rin, rishtedar_rin, behan_rin, zalimana_rin, ajanma_rin, dev_rin (bool)\n  active_rins[] (string array)\n  rin_remedies[] — { rin, name, planet, houses[], found[] { planet, house }, remedy, source }\n  rule, not_evaluated, remedy_rules (strings)\ndata.sources[] (string array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json returns the complete response as indented JSON. response_format=markdown renders a planet table and the debts with their remedies; use json for the full data.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — BirthData violations (date that is badly formatted or does not exist, time, lat/lon) → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Lal Kitab houses are whole-sign houses from the lagna, not cusps.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — classical radix, not Lal Kitab rules.\nasterwise_get_lal_kitab_remedies — remedies only, for the planets that need them."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -300,12 +370,12 @@ def register(mcp: FastMCP) -> None:
             return format_tool_result(
                 data,
                 response_format,
-                lambda d: structured_markdown("Lal Kitab chart", d),
+                _lk_chart_md,
             )
     @mcp.tool(
         name="asterwise_get_lal_kitab_remedies",
         title="Lal Kitab Remedies",
-        description=compact_description("asterwise_get_lal_kitab_remedies", "Lists Lal Kitab style totkas per stressed planet from BirthData with priority tiers and typed action rows (remedy, donation, keep, avoid).\n\nSECTION: WHAT THIS TOOL COVERS\nOutputs data.system, ayanamsa, and remedies[] entries tying planets to lk context and nested remedies[] instructions. Distinct from classical mantra/gem rows (asterwise_get_remedies). Best interpreted alongside asterwise_get_lal_kitab_chart for house context.\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_lal_kitab_chart — see chart before applying totkas.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nBirthData only.\n\nSECTION: OUTPUT CONTRACT\ndata.system (string — 'lal_kitab')\ndata.ayanamsa (string)\ndata.remedies[] — each:\n  planet (string)\n  lk_house (int)\n  rashi (string)\n  pucca_ghar (bool)\n  kachcha_ghar (bool)\n  uchcha (bool)\n  neecha (bool)\n  priority (string — 'high', 'medium', or 'low')\n  remedies[] — { type (string — 'remedy', 'donation', 'keep', or 'avoid'), action (string) }\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — BirthData Pydantic only.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Empty remedies[] possible when no graha needs attention — still success if upstream returns so.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_remedies — mantra/gem prescriptions, not Lal Kitab totkas.\nasterwise_get_gemstone_recommendations — classical Ratna focus, not household remedies."),
+        description=compact_description("asterwise_get_lal_kitab_remedies", "Lists Lal Kitab remedies (from the 1952 Lal Kitab) for the planets that need them, each with its book page, plus remedies for any indicated debts (rin).\n\nSECTION: WHAT THIS TOOL COVERS\nA planet is listed only when its effect is doubtful (it is not in its own house, pakka ghar, or exaltation or debilitation house, or it is a companion planet) and its placement is generally malefic (debilitated or in an enemy's house). Malefic planets with a fixed effect are in not_remediable[]: Lal Kitab says remedies cannot change them. Exalted planets and planets in their own house are never listed. Distinct from classical mantra/gem rows (asterwise_get_remedies).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_lal_kitab_chart — see the chart and malefic reasons first.\nAFTER: None.\n\nSECTION: INPUT CONTRACT\nBirthData only. ayanamsa is ignored: Lal Kitab always uses Lahiri. Unknown birth time: omit time (a sunrise chart is cast and birth_time_provided=false); houses, and so the remedies, are then approximate.\n\nSECTION: OUTPUT CONTRACT\ndata.system (string — 'lal_kitab')\ndata.ayanamsa (string — always 'lahiri')\ndata.birth_time_provided (bool)\ndata.ascendant — { longitude, rashi_index, rashi }\ndata.remedies[] — in planet order Sun..Ketu, each:\n  planet (string), lk_house (int), rashi (string)\n  pucca_ghar (bool), uchcha (bool — always false here), neecha (bool)\n  effect (string — always 'doubtful')\n  malefic_reasons[] (string array)\n  remedies[] — { type ('donation', 'keep', 'avoid' or 'remedy'), action (string), page (int — Goswami & Vashisth, Lal Kitab, based on the 1952 edition), condition (string or null — extra condition the book attaches), note (string, optional — set when the book says 'same as' another placement) }; empty when the book gives none\ndata.not_remediable[] — { planet, lk_house, reasons[] }\ndata.rin_remedies[] — { rin, name, planet, houses[], found[] { planet, house }, remedy, source }\ndata.rule (string)\ndata.sources[] (string array)\n\nSECTION: RESPONSE FORMAT\nresponse_format=json returns the complete response as indented JSON. response_format=markdown renders each planet's remedies with page numbers and conditions; use json for the full data.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — BirthData violations (date that is badly formatted or does not exist, time, lat/lon) → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Empty remedies[] is normal when no planet is both remediable and malefic.\n  — Some remedies carry a condition (another planet's placement, age, family situation); show the condition with the remedy.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_remedies — mantra/gem prescriptions, not Lal Kitab remedies.\nasterwise_get_gemstone_recommendations — classical Ratna focus, not household remedies."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -328,7 +398,7 @@ def register(mcp: FastMCP) -> None:
             return format_tool_result(
                 data,
                 response_format,
-                lambda d: structured_markdown("Lal Kitab remedies", d),
+                _lk_remedies_md,
             )
     @mcp.tool(
         name="asterwise_get_kp_chart",

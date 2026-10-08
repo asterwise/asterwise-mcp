@@ -1,0 +1,38 @@
+"""Lal Kitab markdown is a readable report, not a dump of the JSON keys."""
+
+from tools.natal import _lk_chart_md, _lk_remedies_md
+
+CHART = {"success": True, "data": {
+    "ayanamsa": "lahiri", "birth_time_provided": False,
+    "ascendant": {"longitude": 99.88, "rashi_index": 3, "rashi": "Karka"},
+    "planets": {"Sun": {"lk_house": 11, "rashi": "Vrishabha", "pucca_ghar": False, "uchcha": False,
+                        "neecha": False, "effect": "doubtful",
+                        "malefic_reasons": ["house 11 is owned by its enemy Saturn"]}},
+    "rin_analysis": {"rin_remedies": [{"name": "Debt to mother (Matri rin)", "found": [{"planet": "Ketu", "house": 4}],
+                                       "remedy": "Silver in a river.", "source": "Goswami & Vashisth, p.139"}],
+                     "not_evaluated": "Two checks are not computed."},
+}}
+
+REMEDIES = {"success": True, "data": {
+    "birth_time_provided": True,
+    "remedies": [{"planet": "Sun", "lk_house": 11, "malefic_reasons": ["house 11 is owned by its enemy Saturn"],
+                  "remedies": [{"type": "donation", "action": "Give wheat.", "page": 392, "condition": "Saturn in 3"}]}],
+    "not_remediable": [{"planet": "Saturn", "lk_house": 1, "reasons": ["debilitated in house 1"]}],
+    "rin_remedies": [], "sources": ["Lal Kitab (1952)"],
+}}
+
+
+def test_chart_markdown_is_a_table_with_time_warning():
+    md = _lk_chart_md(CHART)
+    assert "| Sun | 11 | Vrishabha |" in md
+    assert "sunrise chart" in md
+    assert "Matri rin" in md and "Ketu in 4" in md
+    assert "Item 1" not in md and "Success" not in md
+
+
+def test_remedies_markdown_shows_page_and_condition():
+    md = _lk_remedies_md(REMEDIES)
+    assert "### Sun in house 11" in md
+    assert "Give wheat. (when: Saturn in 3) — p.392" in md
+    assert "Saturn in house 1" in md
+    assert "Item 1" not in md and "sunrise chart" not in md
