@@ -49,7 +49,20 @@ class AsterwiseAPIError(AsterwiseMCPError):
         self.api_request_id = api_request_id
 
 
-def map_http_status_to_message(status_code: int, detail: str | None) -> str:
+# 422 codes that describe the request itself; the others (no sunrise at a
+# polar latitude, an instant outside the solar day) are about the sky, so
+# telling the model to fix a field would send it after the wrong cause.
+_INPUT_ERROR_CODES = frozenset({
+    "validation_error",
+    "invalid_request_body",
+    "location_required",
+    "geocode_query_too_short",
+})
+
+
+def map_http_status_to_message(
+    status_code: int, detail: str | None, error_code: str | None = None
+) -> str:
     """Map HTTP status codes to actionable messages for LLM clients."""
     if status_code == 401:
         return (
@@ -57,6 +70,12 @@ def map_http_status_to_message(status_code: int, detail: str | None) -> str:
             "Send a valid key via the X-API-Key header or a Bearer token from POST /oauth/token."
         )
     if status_code == 422:
+        if error_code is not None and error_code not in _INPUT_ERROR_CODES:
+            return (
+                f"The Asterwise API could not compute this ({error_code}): "
+                f"{detail or 'no further detail'}. The inputs are well-formed; "
+                "retrying with the same values will give the same answer."
+            )
         extra = f" Details: {detail}" if detail else ""
         return (
             "Invalid parameters — the Asterwise API rejected the request body or query."

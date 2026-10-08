@@ -58,7 +58,28 @@ async def test_api_envelope_validation_details_reach_the_model():
     with pytest.raises(AsterwiseAPIError) as info:
         await _client_with(handler).post("/v1/astro/natal", "aw_key", {})
     assert "invalid date" in str(info.value)
+    assert "birth.date" in str(info.value)
     assert info.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_route_check_details_keep_the_message_and_field():
+    # Route checks send {"field", "issue", "allowed_*"} items, which have no
+    # loc/msg; they used to render as empty strings and drop the message.
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(422, json={
+            "success": False, "error": "invalid_request_body",
+            "message": "Invalid moon sign: 'foo'. Use English names (e.g. libra, aries).",
+            "details": [{"field": "moon_sign", "issue": "invalid_value",
+                         "allowed_english": ["aries", "taurus", "gemini"]}],
+            "request_id": "rid-422-sign",
+        })
+
+    with pytest.raises(AsterwiseAPIError) as info:
+        await _client_with(handler).get("/v1/horoscope/daily/foo", "aw_key")
+    text = str(info.value)
+    assert "Invalid moon sign: 'foo'" in text
+    assert "moon_sign: invalid_value (allowed: aries, taurus, gemini)" in text
 
 
 # ---- tool_guard reporting --------------------------------------------------
