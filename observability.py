@@ -122,7 +122,36 @@ def scrub_breadcrumb(crumb: dict[str, Any], hint: Any = None) -> dict[str, Any]:
     return crumb
 
 
-def _before_send(event: dict[str, Any], hint: Any = None) -> dict[str, Any]:
+def _is_answered_tool_error(exc: BaseException | None) -> bool:
+    """True when ``exc`` is a tool error already turned into an MCP answer.
+
+    runtime.tool_guard reports what failed on our side (crashes, API 5xx)
+    through capture_tool_failure, then raises McpError; bad input becomes
+    McpError(INVALID_PARAMS), and fastmcp rejects arguments that fail the
+    tool schema with its ValidationError. Sentry's MCP integration and the
+    fastmcp.server logger (via the logging integration) capture those same
+    exceptions again, so a caller's typo looked like a server error and a
+    real failure was sent twice. Follows the cause/context chain because
+    fastmcp wraps the raised error in ToolError. An exception that escapes a
+    tool without passing through these types is still sent.
+    """
+    from fastmcp.exceptions import ValidationError as FastMCPValidationError
+    from mcp.shared.exceptions import McpError
+    from pydantic import ValidationError as PydanticValidationError
+
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen:
+        if isinstance(exc, (McpError, FastMCPValidationError, PydanticValidationError)):
+            return True
+        seen.add(id(exc))
+        exc = exc.__cause__ or exc.__context__
+    return False
+
+
+def _before_send(event: dict[str, Any], hint: Any = None) -> dict[str, Any] | None:
+    exc_info = (hint or {}).get("exc_info") if isinstance(hint, dict) else None
+    if exc_info and _is_answered_tool_error(exc_info[1]):
+        return None
     return scrub_request(event)
 
 

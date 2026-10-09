@@ -190,6 +190,18 @@ def _report_upstream_failure(tool_name: str, exc: AsterwiseMCPError) -> None:
     )
 
 
+# The API answers 400 and 422 when the request body or query is invalid:
+# the caller's arguments, not a failure. Other statuses (auth, quota,
+# rate limit, 5xx) are not about the parameters.
+_INVALID_INPUT_STATUSES = frozenset({400, 422})
+
+
+def _mcp_code_for(exc: AsterwiseMCPError) -> int:
+    if isinstance(exc, AsterwiseAPIError) and exc.status_code in _INVALID_INPUT_STATUSES:
+        return INVALID_PARAMS
+    return INTERNAL_ERROR
+
+
 class _ToolGuard:
     """See tool_guard()."""
 
@@ -208,7 +220,7 @@ class _ToolGuard:
             return False  # already a protocol error: propagate untouched
         if isinstance(exc, AsterwiseMCPError):
             _report_upstream_failure(self.tool_name, exc)
-            tool_error(str(exc))
+            tool_error(str(exc), code=_mcp_code_for(exc))
         if isinstance(exc, ValidationError):
             raise_validation_error(exc)
         if isinstance(exc, Exception):
