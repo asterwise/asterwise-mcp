@@ -129,3 +129,18 @@ def test_domain_specific_name_parameters_are_not_described_as_a_person() -> None
         text = (tools[tool_name].inputSchema["properties"]["name"]["description"]).lower()
         assert expected in text, f"{tool_name}: {text!r}"
         assert "numerology" not in text, f"{tool_name} still uses the person-name text"
+
+
+@pytest.mark.asyncio
+async def test_dream_category_is_an_enum_of_the_api_values() -> None:
+    # Grok 2026-10-09: 'water' was tried as a category and rejected by the API.
+    from server import mcp
+
+    async with Client(mcp) as c:
+        tools = {t.name: t for t in await c.list_tools()}
+    schema = tools["asterwise_get_dream_symbols"].inputSchema["properties"]["category"]
+    enum = next(o["enum"] for o in schema.get("anyOf", [schema]) if "enum" in o)
+    assert sorted(enum) == sorted(
+        ["animals", "nature", "people", "places", "objects", "actions", "body", "abstract"]
+    )
+    assert "water" not in str(schema)

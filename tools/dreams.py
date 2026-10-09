@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any, Literal
+
+from pydantic import Field
 
 from fastmcp import Context, FastMCP
 import mcp.types as mcp_types
@@ -16,6 +18,13 @@ from runtime import (
     require_api_key,
     structured_markdown,
 )
+
+
+# The API accepts exactly these; an enum stops a model guessing others
+# (Grok tried 'water', which is a symbol, not a category).
+DreamCategory = Literal[
+    "animals", "nature", "people", "places", "objects", "actions", "body", "abstract"
+]
 
 
 def register(mcp: FastMCP) -> None:
@@ -34,7 +43,10 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_dream_symbols(
         ctx: Context,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
-        category: str | None = None,
+        category: Annotated[
+            DreamCategory | None,
+            Field(description="One of the 8 categories; omit for all 500 symbols."),
+        ] = None,
     ) -> str:
         """Get dream symbol database."""
         async with tool_guard("asterwise_get_dream_symbols"):

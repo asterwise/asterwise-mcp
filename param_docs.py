@@ -162,7 +162,7 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "Angel number sequence as seen, e.g. '111' or '1234'."
     ),
     ("asterwise_get_dream_symbols", "category"): (
-        "Symbol category to filter by, e.g. 'animals' or 'water'. Omit for all."
+        "Symbol category: animals, nature, people, places, objects, actions, body or abstract. Omit for all 500 symbols."
     ),
     ("asterwise_get_horoscope", "period"): (
         "Horoscope period: daily, weekly, monthly or yearly."
