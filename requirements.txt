@@ -7,12 +7,12 @@
 #
 # Bump deliberately: change the pin, rebuild the image, run the tests, deploy.
 # Test tooling lives in requirements-dev.txt.
-fastmcp==3.4.7
+fastmcp==3.4.8
 mcp[cli]==1.30.0
 uvicorn==0.54.0
 httpx==0.28.1
 pydantic==2.13.5
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 PyJWT==2.15.1
-cryptography==50.0.1
+cryptography==50.0.2
 sentry-sdk==2.71.0
