@@ -768,9 +768,9 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_western_solar_return",
         title="Western Solar Return",
         description=compact_description("asterwise_get_western_solar_return", (
-            "Solar return chart for a given year. Finds the exact moment the Sun returns to its natal "
-            "tropical longitude and builds a complete Western natal chart for that moment at the birth "
-            "location. Provide the year as an integer (e.g. 2026).\n\n"
+            "Western solar return chart for a given year, cast for the exact moment the Sun returns to "
+            "its natal tropical longitude. The chart is a complete Western natal chart for that moment "
+            "at the birth location. Provide the year as an integer (e.g. 2026).\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Annual solar return — the chart cast for the precise instant the transiting Sun reaches "
             "the natal Sun's longitude, relocated to birth place (not relocated charts). The embedded "
@@ -830,8 +830,8 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_western_lunar_return",
         title="Western Lunar Return",
         description=compact_description("asterwise_get_western_lunar_return", (
-            "Next lunar return chart after a given date. Finds the next moment the Moon returns to its "
-            "natal tropical longitude (approximately every 27.3 days) and builds a complete Western "
+            "Western lunar return chart: the next moment after a given date that the Moon returns to "
+            "its natal tropical longitude (approximately every 27.3 days). Builds a complete Western "
             "natal chart for that moment at the birth location.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Monthly emotional reset chart — similar workflow to solar return but cadence is lunar "
@@ -1024,8 +1024,8 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_western_solar_arc",
         title="Western Solar Arc",
         description=compact_description("asterwise_get_western_solar_arc", (
-            "Solar Arc Directions for a target date. The solar arc (progressed Sun minus natal Sun) is "
-            "applied uniformly to every natal planet and angle — approximately 1° per year. Unlike "
+            "Western Solar Arc Directions for a target date: the solar arc (progressed Sun minus natal "
+            "Sun) is added to every natal planet and angle. It is approximately 1° per year; unlike "
             "secondary progressions, all planets advance at the same rate.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "Solar arc directions — one delta longitude applied to every natal body and "

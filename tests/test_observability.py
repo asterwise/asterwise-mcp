@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from unittest.mock import patch
 
@@ -282,3 +283,110 @@ def test_sky_side_details_need_the_issue_or_input_format_ok():
     assert not details_are_sky_side([{"input_format_ok": False}])
     assert not details_are_sky_side("latitude")
     assert not details_are_sky_side(None)
+
+
+# ---- one report per real failure, none for input errors -------------------
+# Each failed tool call is seen by three channels: tool_guard's explicit
+# capture, FastMCP's logger.exception("Error calling tool") and the SDK's MCP
+# integration. Driven through the real FastMCP server so all three run.
+
+
+class _RaisingUpstream:
+    def __init__(self, exc: BaseException) -> None:
+        self.exc = exc
+
+    async def open(self) -> None:
+        return None
+
+    async def close(self) -> None:
+        return None
+
+    async def get(self, path, api_key, params=None, *, timeout=10.0):
+        raise self.exc
+
+    async def post(self, path, api_key, body, *, timeout=20.0):
+        raise self.exc
+
+
+async def _call_tool_through_server(name: str, args: dict, upstream) -> None:
+    import client as client_mod
+    from context import set_request_api_key
+    from fastmcp import Client
+    from server import mcp
+
+    client_mod._client_singleton = upstream
+    set_request_api_key("aw_test_key_0123456789")
+    try:
+        async with Client(mcp) as c:
+            result = await c.call_tool(name, args, raise_on_error=False)
+        assert result.is_error
+    finally:
+        set_request_api_key(None)
+        client_mod._client_singleton = None
+
+
+_NATAL_ARGS = {"birth": {"date": "1990-06-15", "time": "14:30", "lat": 19.076,
+                         "lon": 72.8777, "timezone": "Asia/Kolkata"}}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("name", "args", "exc"),
+    [
+        ("asterwise_get_tarot_card", {"card_id": "eleven-of-cups"},
+         AsterwiseAPIError("Card 'eleven-of-cups' not found.", status_code=404)),
+        ("asterwise_get_natal_chart", _NATAL_ARGS,
+         AsterwiseAPIError("timezone must be a valid IANA timezone", status_code=422)),
+        ("asterwise_get_natal_chart", _NATAL_ARGS,
+         AsterwiseAPIError("rate limited", status_code=429)),
+        # Arguments the tool's schema rejects never reach upstream.
+        ("asterwise_get_natal_chart", {**_NATAL_ARGS, "transit_date": "2026-10-09"}, None),
+        ("asterwise_get_natal_chart",
+         {"birth": {**_NATAL_ARGS["birth"], "time": "25:61"}}, None),
+    ],
+    ids=["upstream-404", "upstream-422", "upstream-429", "unknown-argument", "bad-time"],
+)
+async def test_input_errors_send_no_event(live_sentry, name, args, exc):
+    await _call_tool_through_server(name, args, _RaisingUpstream(exc or RuntimeError("unreached")))
+    sentry_sdk.flush()
+    assert live_sentry.events == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exc", "failure"),
+    [
+        (AsterwiseAPIError("down", status_code=503, api_request_id="rid-503-abcdef"), "upstream"),
+        (RuntimeError("engine bug"), "crash"),
+        (httpx.ReadTimeout("slow"), "upstream"),
+    ],
+    ids=["upstream-503", "crash", "timeout"],
+)
+async def test_real_failures_send_exactly_one_tagged_event(live_sentry, exc, failure):
+    await _call_tool_through_server("asterwise_get_natal_chart", _NATAL_ARGS, _RaisingUpstream(exc))
+    sentry_sdk.flush()
+    (event,) = live_sentry.events
+    assert event["tags"]["tool"] == "asterwise_get_natal_chart"
+    assert event["tags"]["failure"] == failure
+
+
+def test_crash_outside_tool_guard_is_still_reported(live_sentry):
+    try:
+        raise RuntimeError("bug in a route")
+    except RuntimeError:
+        logging.getLogger("fastmcp.server.server").exception("Error calling tool 'x'")
+    sentry_sdk.flush()
+    assert len(live_sentry.events) == 1
+
+
+def test_crash_after_handling_an_input_error_is_reported(live_sentry):
+    # tool_guard's own capture is kept even when the chain holds a 4xx.
+    try:
+        try:
+            raise AsterwiseAPIError("not found", status_code=404)
+        except AsterwiseAPIError:
+            raise RuntimeError("fallback crashed")
+    except RuntimeError as exc:
+        observability.capture_tool_failure("asterwise_get_dasha", exc, failure="crash")
+    sentry_sdk.flush()
+    assert len(live_sentry.events) == 1

@@ -22,7 +22,17 @@ What is never sent:
   there) in spans and breadcrumbs.
 - Request headers outside SAFE_HEADERS (credentials, cookies, client IPs).
 - Extras and breadcrumb data under SCRUB_DENYLIST keys.
-- Client input errors (4xx from the API, invalid parameters).
+- Client input errors (4xx from the API, invalid parameters, arguments
+  that fail the tool's schema, unknown tools).
+
+One reporter for tool calls: tool_guard (runtime.py) decides what is a real
+failure and reports it once. Two other channels see every failed tool call
+and would report it again, input errors included: FastMCP logs "Error calling
+tool" with logger.exception (the logging integration turns that into an
+event), and the SDK's auto-enabled MCP integration captures whatever the tool
+handler raised. _before_send drops their events when the exception chain is a
+client input error or a failure tool_guard already reported; anything else
+(a crash outside tool_guard) still gets through.
 """
 
 from __future__ import annotations
@@ -122,7 +132,63 @@ def scrub_breadcrumb(crumb: dict[str, Any], hint: Any = None) -> dict[str, Any]:
     return crumb
 
 
-def _before_send(event: dict[str, Any], hint: Any = None) -> dict[str, Any]:
+# Tag on the events capture_tool_failure sends; _before_send keeps them.
+REPORTER_TAG = "reporter"
+_TOOL_GUARD = "tool_guard"
+# Set on an exception once capture_tool_failure has reported it.
+_REPORTED_ATTR = "_asterwise_sentry_reported"
+
+
+def _exception_chain(exc: BaseException | None) -> list[BaseException]:
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen and len(chain) < 20:
+        seen.add(id(exc))
+        chain.append(exc)
+        exc = exc.__cause__ or exc.__context__
+    return chain
+
+
+def is_client_input_error(exc: BaseException) -> bool:
+    """True for errors the caller has to fix; nothing on our side failed."""
+    from fastmcp.exceptions import NotFoundError
+    from fastmcp.exceptions import ValidationError as ToolArgumentsError
+    from mcp.shared.exceptions import McpError
+    from mcp.types import INVALID_PARAMS
+    from pydantic import ValidationError
+
+    from errors import AsterwiseAPIError, AuthError
+
+    if isinstance(exc, McpError):
+        return exc.error.code == INVALID_PARAMS
+    if isinstance(exc, AsterwiseAPIError):
+        # 4xx: bad input, auth, rate limit. No status means the API could not
+        # be read at all, which is ours to look at.
+        return exc.status_code is not None and exc.status_code < 500
+    return isinstance(exc, (AuthError, ToolArgumentsError, ValidationError, NotFoundError))
+
+
+def _exc_from_hint(hint: Any) -> BaseException | None:
+    if not isinstance(hint, dict):
+        return None
+    exc_info = hint.get("exc_info")
+    if isinstance(exc_info, tuple) and len(exc_info) == 3 and isinstance(exc_info[1], BaseException):
+        return exc_info[1]
+    return None
+
+
+def _is_noise(event: dict[str, Any], hint: Any) -> bool:
+    if (event.get("tags") or {}).get(REPORTER_TAG) == _TOOL_GUARD:
+        return False
+    chain = _exception_chain(_exc_from_hint(hint))
+    return any(
+        getattr(exc, _REPORTED_ATTR, False) or is_client_input_error(exc) for exc in chain
+    )
+
+
+def _before_send(event: dict[str, Any], hint: Any = None) -> dict[str, Any] | None:
+    if _is_noise(event, hint):
+        return None
     return scrub_request(event)
 
 
@@ -218,6 +284,7 @@ def capture_tool_failure(tool: str, exc: BaseException, **tags: Any) -> None:
     import sentry_sdk
 
     with sentry_sdk.new_scope() as scope:
+        scope.set_tag(REPORTER_TAG, _TOOL_GUARD)
         scope.set_tag("tool", tool)
         for key, value in tags.items():
             if value is not None:
@@ -227,3 +294,7 @@ def capture_tool_failure(tool: str, exc: BaseException, **tags: Any) -> None:
         if status is not None or tags.get("failure") == "upstream":
             scope.fingerprint = ["mcp-upstream", tool, str(status or type(exc).__name__)]
         sentry_sdk.capture_exception(exc)
+    try:
+        setattr(exc, _REPORTED_ATTR, True)
+    except (AttributeError, TypeError):  # exceptions with __slots__
+        pass

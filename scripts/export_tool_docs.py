@@ -86,6 +86,46 @@ def schema_table(schema: dict) -> str:
     return "\n".join(rows)
 
 
+META_DESCRIPTION_MIN = 50
+META_DESCRIPTION_MAX = 160
+# ". " after these is not a sentence end.
+_ABBREVIATIONS = ("e.g", "i.e", "etc", "vs", "approx", "incl", "no", "ch")
+
+
+def meta_description(lead: str) -> str:
+    """The page's <meta name="description">: 50-160 characters, whole words.
+
+    Whole sentences of the tool's lead paragraph are added while they fit;
+    a first sentence over 160 characters is cut at a word with an ellipsis.
+    It used to be the first sentence cut at 150 characters, mid-word for 27
+    tools (Grok SEO watch 2026-10-08). tests/test_tool_docs_meta.py holds
+    every tool to 50-160 with no cut.
+    """
+    text_in = " ".join(lead.split())
+    parts: list[str] = []
+    start = 0
+    for match in re.finditer(r"\. ", text_in):
+        idx = match.start()
+        if text_in[start:idx].lower().endswith(_ABBREVIATIONS):
+            continue
+        parts.append(text_in[start : idx + 1])
+        start = idx + 2
+    if text_in[start:].strip():
+        parts.append(text_in[start:].strip())
+    text = ""
+    for sentence in parts:
+        candidate = f"{text} {sentence}".strip()
+        if len(candidate) > META_DESCRIPTION_MAX:
+            break
+        text = candidate
+        if len(text) >= META_DESCRIPTION_MAX - 40:
+            break
+    if not text and parts:
+        cut = parts[0][: META_DESCRIPTION_MAX - 1]
+        text = cut[: cut.rfind(" ")].rstrip(" ,;:—-") + "…"
+    return text
+
+
 def render_page(tool: dict, full: str) -> str:
     lead, sections = split_sections(full)
     slug = slug_for(tool["name"])
@@ -93,7 +133,7 @@ def render_page(tool: dict, full: str) -> str:
         "---",
         f"id: {slug}",
         f"title: {json.dumps(tool['title'] or tool['name'])}",
-        f"description: {json.dumps(lead.split('. ')[0][:150])}",
+        f"description: {json.dumps(meta_description(lead))}",
         "hide_table_of_contents: false",
         "---",
         "",

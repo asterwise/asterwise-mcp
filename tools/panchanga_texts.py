@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-PANCHANGA = """Panchanga for one date at a location: the limbs at sunrise plus the whole panchanga day (sunrise to next sunrise) with every tithi, nakshatra, yoga and karana active in it, each with ISO start and end times and kshaya/vriddhi flags; sunrise, sunset, moonrise and moonset; Sun and Moon rashi; lunar month (amanta and purnimanta, with Adhik months); Vikram, Shaka and Gujarati samvat; ritu and ayana; and the day's timings (Rahu Kaal, Gulika, Yamaganda, Abhijit, Brahma Muhurta, Durmuhurta, Varjyam, Amrit Kaal, Bhadra with residence, Panchaka, Pradosh, Nishita).
+PANCHANGA = """Panchanga for one date at a location: the limbs at sunrise plus every tithi, nakshatra, yoga and karana of the panchanga day (sunrise to next sunrise). Each comes with ISO start and end times and kshaya/vriddhi flags. Also returns sunrise, sunset, moonrise and moonset; Sun and Moon rashi; lunar month (amanta and purnimanta, with Adhik months); Vikram, Shaka and Gujarati samvat; ritu and ayana; and the day's timings (Rahu Kaal, Gulika, Yamaganda, Abhijit, Brahma Muhurta, Durmuhurta, Varjyam, Amrit Kaal, Bhadra with residence, Panchaka, Pradosh, Nishita).
 
 SECTION: WHAT THIS TOOL COVERS
 The top-level tithi, vara, nakshatra, yoga and karana are the limbs at sunrise. A tithi that starts after sunrise and ends before the next one (kshaya) appears in data.tithis flagged is_kshaya; a tithi that holds two sunrises is flagged is_vriddhi on both days. Times are ISO 8601 local time with offset. data.yoga is the Panchanga Yoga (Sun+Moon), unrelated to natal yogas.
@@ -31,7 +31,7 @@ asterwise_get_yogas — natal chart yogas, not the Panchanga Sun–Moon yoga.
 asterwise_get_panchanga_calendar — one row per day for a whole month.
 asterwise_get_tamil_panchanga — Tamil month and Rahu Kalam/Yamagandam/Kuligai only."""
 
-PANCHANGA_CALENDAR = """Panchanga for every day of a month at a location: each day's sunrise tithi, vara, nakshatra, yoga, karana and Rahu Kaal, plus sunrise, sunset, moonrise, moonset, paksha, lunar month (amanta and purnimanta, with Adhik months), Bhadra windows, and every tithi, nakshatra, yoga and karana active that day with ISO start and end times.
+PANCHANGA_CALENDAR = """Panchanga for every day of a month at a location, one entry per day. Each day has its sunrise tithi, vara, nakshatra, yoga, karana and Rahu Kaal, plus sunrise, sunset, moonrise, moonset, paksha, lunar month (amanta and purnimanta, with Adhik months), Bhadra windows, and every tithi, nakshatra, yoga and karana active that day with ISO start and end times.
 
 SECTION: WHAT THIS TOOL COVERS
 A kshaya tithi (one that no sunrise touches) appears on the day it runs, flagged is_kshaya; a tithi that holds two sunrises is flagged is_vriddhi on both days, so no tithi goes missing and repeats are explained.
@@ -99,7 +99,7 @@ SECTION: DO NOT CONFUSE WITH
 asterwise_get_panchanga_calendar — daily limbs for a month, not festivals.
 asterwise_get_muhurta — auspicious windows for an activity, not festival dates."""
 
-TAMIL_PANCHANGA = """Tamil Panchanga for a date and location: Rahu Kalam, Yamagandam and Kuligai (Gulika), Nalla Neram (daytime windows free of those periods), and the Tamil solar month from the Sun's sidereal sign at sunrise.
+TAMIL_PANCHANGA = """Tamil Panchanga for a date and location: Rahu Kalam, Yamagandam, Kuligai (Gulika), Nalla Neram and the Tamil solar month. Nalla Neram is the daytime windows free of those periods; the month comes from the Sun's sidereal sign at sunrise.
 
 SECTION: WHAT THIS TOOL COVERS
 The three periods are eighths of the daytime from sunrise to sunset by the Tamil weekday table. The emagandam key is the Tamil spelling of Yamagandam and repeats the same period. For tithi, nakshatra and the full timings use asterwise_get_panchanga.
