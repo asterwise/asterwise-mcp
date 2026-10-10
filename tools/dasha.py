@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
+from pydantic import Field
 
 
 import mcp.types as mcp_types
@@ -121,7 +122,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_dasha_transits",
         title="Dasha Transits",
-        description=compact_description("asterwise_get_dasha_transits", "Combines active Vimshottari lords with today's transits and returns scored correlations plus transit longitudes and houses from Moon and Lagna.\n\nSECTION: WHAT THIS TOOL COVERS\nBuilds a snapshot for the current calendar day (no date parameter): active Mahadasha, Antardasha, and Pratyantar; transiting planet positions; pairwise dasha–transit correlations with scores; and a filtered list of stronger correlations. Aspects are cast by the transiting planet (BPHS Ch.26). It does not return full Dasha trees (use asterwise_get_dasha), ingress calendars (asterwise_get_transits), or standalone Gochar without Dasha context (asterwise_get_gochar).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — same birth data should be understood before interpreting houses and lords.\nAFTER: asterwise_get_gochar — optional broader transit snapshot without dasha scoring.\n\nSECTION: INPUT CONTRACT\nNo date field — \"today\" is fixed by the API. All parameters are otherwise defined in the tool schema. BirthData follows the global contract. Birth time is required: this tool has no sunrise fallback. If the user doesn't know it, say so rather than guessing; never pass time='00:00' for unknown.\n\nSECTION: OUTPUT CONTRACT\ndata.target_date (string — YYYY-MM-DD, today)\ndata.active_dasha:\n  start_date (string)\n  end_date (string)\n  maha — { planet (string), start_date (string), end_date (string) }\n  antar — { planet (string), start_date (string), end_date (string) }\n  pratyantar — { planet (string), start_date (string), end_date (string) }\ndata.transit_positions{} — keyed by planet name:\n  rashi_index (int)\n  rashi (string)\n  is_retrograde (bool)\n  house_from_moon (int)\n  house_from_lagna (int)\ndata.correlations[] — each object:\n  dasha_level (string)\n  dasha_lord (string)\n  transit_planet (string)\n  aspect_type (string — conjunction | opposition | trine | square | special)\n  aspect_house (int — natal lord's sign counted from the transiting planet)\n  drishti (string or null — e.g. '3rd'; null for conjunction)\n  score (int — 1=mild, 2=moderate, 3=high)\n  natal_rashi (string)\n  transit_rashi (string)\n  is_retrograde (bool)\n  significance (string)\ndata.periods_of_significance[] — same shape as correlations[] filtered to score ≥ 2\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — upstream rejection surfaces as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Target date is always \"today\"; past/future analysis is not supported by this tool.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_gochar — full nine-planet Gochar with AVK and vedha fields, without dasha–transit correlation scores.\nasterwise_get_transits — ingress and station lists over a chosen range, not today's dasha snapshot.\nasterwise_get_dasha — full Vimshottari tree without transit overlay."),
+        description=compact_description("asterwise_get_dasha_transits", "Combines active Vimshottari lords with transits on one date and returns scored correlations plus transit longitudes and houses from Moon and Lagna.\n\nSECTION: WHAT THIS TOOL COVERS\nBuilds a snapshot for one date (today unless target_date is given): active Mahadasha, Antardasha, and Pratyantar; transiting planet positions; pairwise dasha–transit correlations with scores; and a filtered list of stronger correlations. Aspects are cast by the transiting planet (BPHS Ch.26). It does not return full Dasha trees (use asterwise_get_dasha), ingress calendars (asterwise_get_transits), or standalone Gochar without Dasha context (asterwise_get_gochar).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — same birth data should be understood before interpreting houses and lords.\nAFTER: asterwise_get_gochar — optional broader transit snapshot without dasha scoring.\n\nSECTION: INPUT CONTRACT\ntarget_date (string, optional — YYYY-MM-DD): date to analyse; defaults to today. target_time (string, optional — HH:MM, default 12:00) and target_timezone (IANA, optional — default Asia/Kolkata) set the instant on that date. All parameters are otherwise defined in the tool schema. BirthData follows the global contract. Birth time is required: this tool has no sunrise fallback. If the user doesn't know it, say so rather than guessing; never pass time='00:00' for unknown.\n\nSECTION: OUTPUT CONTRACT\ndata.target_date (string — YYYY-MM-DD, the date analysed)\ndata.active_dasha:\n  start_date (string)\n  end_date (string)\n  maha — { planet (string), start_date (string), end_date (string) }\n  antar — { planet (string), start_date (string), end_date (string) }\n  pratyantar — { planet (string), start_date (string), end_date (string) }\ndata.transit_positions{} — keyed by planet name:\n  rashi_index (int)\n  rashi (string)\n  is_retrograde (bool)\n  house_from_moon (int)\n  house_from_lagna (int)\ndata.correlations[] — each object:\n  dasha_level (string)\n  dasha_lord (string)\n  transit_planet (string)\n  aspect_type (string — conjunction | opposition | trine | square | special)\n  aspect_house (int — natal lord's sign counted from the transiting planet)\n  drishti (string or null — e.g. '3rd'; null for conjunction)\n  score (int — 1=mild, 2=moderate, 3=high)\n  natal_rashi (string)\n  transit_rashi (string)\n  is_retrograde (bool)\n  significance (string)\ndata.periods_of_significance[] — same shape as correlations[] filtered to score ≥ 2\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  — target_date not YYYY-MM-DD or target_time not HH:MM (schema pattern) → MCP INVALID_PARAMS\n\nINVALID_PARAMS (upstream):\n  — Invalid target_date/target_time combination → upstream validation error, surfaces as MCP INTERNAL_ERROR.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Without target_date the snapshot is for today; pass target_date for past or future days (e.g. tomorrow, a week view).\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_gochar — full nine-planet Gochar with AVK and vedha fields, without dasha–transit correlation scores.\nasterwise_get_transits — ingress and station lists over a chosen range, not today's dasha snapshot.\nasterwise_get_dasha — full Vimshottari tree without transit overlay."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -132,13 +133,32 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_dasha_transits(
         ctx: Context,
         birth: TimedBirthData,
-        response_format: ResponseFormat = ResponseFormat.MARKDOWN
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        target_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        target_time: Optional[str] = Field(
+            default=None,
+            pattern=r"^\d{2}:\d{2}$",
+            description="HH:MM on target_date. Defaults to 12:00.",
+        ),
+        target_timezone: Optional[str] = Field(
+            default=None,
+            description="IANA zone for target_date and target_time. Defaults to Asia/Kolkata.",
+        ),
     ) -> str:
         """Dasha-period transits."""
         async with tool_guard("asterwise_get_dasha_transits"):
             api_key = await require_api_key(ctx)
+            body = birth.to_api_dict()
+            # Each is optional upstream: no date means today.
+            for key, value in (
+                ("target_date", target_date),
+                ("target_time", target_time),
+                ("target_timezone", target_timezone),
+            ):
+                if value is not None:
+                    body[key] = value
             data = await get_client().post(
-                "/v1/astro/dasha-transits", api_key, birth.to_api_dict(),
+                "/v1/astro/dasha-transits", api_key, body,
                 timeout=20.0,
             )
             return format_tool_result(
