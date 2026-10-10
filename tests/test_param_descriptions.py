@@ -144,3 +144,24 @@ async def test_dream_category_is_an_enum_of_the_api_values() -> None:
         ["animals", "nature", "people", "places", "objects", "actions", "body", "abstract"]
     )
     assert "water" not in str(schema)
+
+
+def test_shared_vocabulary_makes_no_behaviour_claims() -> None:
+    # Defaults and "is the name used" differ between endpoints; they belong in
+    # TOOL_PARAM_DESCRIPTIONS, written per tool against the API (Grok
+    # 2026-10-09/10: personal cycles and personal year docs were wrong).
+    import re
+
+    from param_docs import PARAM_DESCRIPTIONS
+
+    claim = re.compile(r"\bdefaults? to\b|converted|not used|today|current", re.IGNORECASE)
+    offenders = {k: v for k, v in PARAM_DESCRIPTIONS.items() if claim.search(v)}
+    assert offenders == {}
+
+
+def test_personal_cycles_and_year_say_what_the_api_does() -> None:
+    from param_docs import TOOL_PARAM_DESCRIPTIONS as T
+
+    day = T[("asterwise_get_personal_cycles", "day")]
+    assert "only when day is given" in day and "Defaults" not in day
+    assert T[("asterwise_get_personal_year", "name")].startswith("Not used")

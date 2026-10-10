@@ -8,6 +8,14 @@ every top-level property that lacks one from a single vocabulary.
 
 ``TOOL_PARAM_DESCRIPTIONS`` overrides ``PARAM_DESCRIPTIONS`` when a name
 means something more specific in one tool.
+
+The shared vocabulary only says what a parameter IS. What a tool DOES with
+it (a default when omitted, whether a name is used at all) differs between
+endpoints, so it goes in TOOL_PARAM_DESCRIPTIONS, checked against the API.
+A shared "Defaults to today when omitted" once told agents that personal
+cycles fills in the day (it leaves Personal Day out) and that personal year
+reads the name (it ignores it). tests/test_param_descriptions.py keeps
+behaviour claims out of the shared entries.
 """
 
 from __future__ import annotations
@@ -16,27 +24,23 @@ import re
 from typing import Any
 
 _DATE = "Date in YYYY-MM-DD format."
-_DATE_OPT = "Date in YYYY-MM-DD format. Defaults to today when omitted."
 
 PARAM_DESCRIPTIONS: dict[str, str] = {
     "response_format": (
         "Output format: 'markdown' (default) for a readable report, "
         "or 'json' for the raw structured payload."
     ),
-    "date": _DATE_OPT,
-    "target_date": _DATE_OPT,
-    "start_date": "Start of the window, YYYY-MM-DD. Defaults to today when omitted.",
+    "date": _DATE,
+    "target_date": _DATE,
+    "start_date": "Start of the window, YYYY-MM-DD.",
     "from_date": "Start of the date range, YYYY-MM-DD (inclusive).",
     "to_date": "End of the date range, YYYY-MM-DD (inclusive).",
-    "after_date": (
-        "Find the first occurrence after this date, YYYY-MM-DD. "
-        "Defaults to today when omitted."
-    ),
+    "after_date": "Find the first occurrence after this date, YYYY-MM-DD.",
     "birth_date": "Date of birth, YYYY-MM-DD.",
-    "name": "Person's full name as commonly written; letters are converted to numerology values.",
-    "year": "Four-digit calendar year, e.g. 2026. Defaults to the current year when omitted.",
-    "month": "Month number 1-12. Defaults to the current month when omitted.",
-    "day": "Day of the month 1-31. Defaults to today when omitted.",
+    "name": "Person's full name as commonly written.",
+    "year": "Four-digit calendar year, e.g. 2026.",
+    "month": "Month number 1-12.",
+    "day": "Day of the month 1-31.",
     "planet": "Planet name in English, e.g. 'Jupiter', 'Saturn', 'Rahu'.",
     "allow_reversed": "Whether cards may be drawn reversed (upside down).",
     "question": "The question being asked; it shapes the reading's interpretation.",
@@ -223,6 +227,74 @@ TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
         "(default), 3 Pratyantar, 4 Sookshma, 5 Prana."
     ),
 }
+
+# Name-based numerology: the API reduces the name's letters.
+_NUMEROLOGY_NAME = (
+    "Person's full name as commonly written; its letters are converted to numerology values."
+)
+for _tool in (
+    "asterwise_get_balance_number", "asterwise_get_chaldean_numerology",
+    "asterwise_get_expression_number", "asterwise_get_karmic_lessons",
+    "asterwise_get_lucky_numbers", "asterwise_get_maturity_number",
+    "asterwise_get_name_correction", "asterwise_get_numerology_profile",
+    "asterwise_get_personality_number", "asterwise_get_soul_urge_number",
+):
+    TOOL_PARAM_DESCRIPTIONS[(_tool, "name")] = _NUMEROLOGY_NAME
+
+# Defaults as the API applies them. The API servers run in UTC, so a plain
+# "today" there is the UTC date.
+TOOL_PARAM_DESCRIPTIONS.update({
+    ("asterwise_get_numerology_compatibility", "person1_name"): (
+        "First person's full name. The API requires it, but it does not change the "
+        "score: compatibility compares the two Life Path numbers from the birth dates."
+    ),
+    ("asterwise_get_numerology_compatibility", "person2_name"): (
+        "Second person's full name. The API requires it, but it does not change the "
+        "score: compatibility compares the two Life Path numbers from the birth dates."
+    ),
+    ("asterwise_get_personal_year", "name"): (
+        "Not used: the personal year depends only on the birth date. Omit it; "
+        "it is accepted only so older calls keep working."
+    ),
+    ("asterwise_get_personal_cycles", "year"): (
+        "Four-digit target year, e.g. 2026. Defaults to the current year (UTC)."
+    ),
+    ("asterwise_get_personal_cycles", "month"): (
+        "Target month 1-12. Defaults to the current month (UTC)."
+    ),
+    ("asterwise_get_personal_cycles", "day"): (
+        "Target day of the month 1-31. Personal Day is returned only when day is given; "
+        "omit it to get Personal Year and Personal Month only."
+    ),
+    ("asterwise_get_gochar", "target_date"): (
+        "Date to compute transits for, YYYY-MM-DD (at 12:00 India time). "
+        "Defaults to today in India (Asia/Kolkata)."
+    ),
+    ("asterwise_get_nakshatra_prediction", "target_date"): (
+        "Date of the prediction, YYYY-MM-DD. Defaults to today in the birth time zone."
+    ),
+    ("asterwise_get_western_lunar_return", "after_date"): (
+        "Find the first lunar return after this date, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_planetary_return", "after_date"): (
+        "Find the first return after this date, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_secondary_progressions", "target_date"): (
+        "Date to progress the chart to, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_solar_arc", "target_date"): (
+        "Date to direct the chart to, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_transits_daily", "start_date"): (
+        "Day to compute transits for, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_transits_weekly", "start_date"): (
+        "First day of the 7-day window, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+    ("asterwise_get_western_transits_monthly", "start_date"): (
+        "First day of the 30-day window, YYYY-MM-DD. Defaults to today (UTC)."
+    ),
+})
 
 
 def _described(schema: Any, defs: dict, seen: frozenset[str] = frozenset()) -> bool:
