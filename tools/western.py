@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
+from pydantic import Field
 import mcp.types as mcp_types
 
 from client import get_client
@@ -1317,7 +1318,13 @@ def register(mcp: FastMCP) -> None:
         ctx: Context,
         from_date: str,
         to_date: str,
-        birth: WesternBirthData | None = None,
+        birth: Annotated[
+            WesternBirthData | None,
+            Field(description=(
+                "Optional birth data. When given, each eclipse lists the natal planets and "
+                "angles within 3° of the eclipse degree."
+            )),
+        ] = None,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
     ) -> str:
         """Solar and lunar eclipses in a range, with natal contacts."""
