@@ -567,7 +567,7 @@ mcp = FastMCP(
   You are connected to the Asterwise Astrology and Divination API — the most
   comprehensive structured astrology MCP available.
 
-  This server exposes 104 tools. All tools require an API key
+  This server exposes 108 tools. All tools require an API key
   obtained from asterwise.com.
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -635,6 +635,10 @@ mcp = FastMCP(
   asterwise_get_western_planetary_return — next return chart for any planet
   asterwise_get_western_secondary_progressions — day-for-a-year progressed chart
   asterwise_get_western_solar_arc — Solar Arc Directions
+  asterwise_get_western_void_of_course_moon — void-of-course Moon periods (traditional rule)
+  asterwise_get_western_planetary_hours — 24 planetary hours for a date and place
+  asterwise_get_western_profections — annual profections: house, sign, lord of the year
+  asterwise_get_western_eclipses — solar and lunar eclipses with natal contacts
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DOMAIN 3 — NUMEROLOGY

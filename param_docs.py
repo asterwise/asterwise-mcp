@@ -94,6 +94,10 @@ PARAM_DESCRIPTIONS: dict[str, str] = {
 }
 
 TOOL_PARAM_DESCRIPTIONS: dict[tuple[str, str], str] = {
+    ("asterwise_get_western_eclipses", "birth"): (
+        "Optional birth data (WesternBirthData). When given, each eclipse lists the natal "
+        "planets and angles within 3° of the eclipse degree."
+    ),
     ("asterwise_check_mobile_number", "name"): (
         "Not used: the analysis depends only on the digits. Omit it; "
         "it is accepted only so older calls keep working."
