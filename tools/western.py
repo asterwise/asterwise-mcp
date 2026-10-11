@@ -57,7 +57,7 @@ def register(mcp: FastMCP) -> None:
             "for accurate house cusps. An incorrect timezone shifts the Ascendant.\n"
             "birth.house_system — 'placidus' (default, most common), 'koch', 'equal', 'whole_sign'. "
             "Placidus is standard for most Western traditions. Whole sign is traditional/Hellenistic.\n"
-            "  NOTE: house_system is accepted here but silently ignored by transit, return, synastry, "
+            "  NOTE: house_system is accepted here but silently ignored by return, synastry, "
             "composite, and progression endpoints — those always use the birth location coordinates "
             "without house-system selection.\n"
             "ayanamsa — always tropical regardless of any value supplied; field is not present.\n\n"
@@ -358,11 +358,16 @@ def register(mcp: FastMCP) -> None:
             "BEFORE: asterwise_get_western_natal — establish natal chart first.\n"
             "AFTER: asterwise_get_western_transits_weekly — for week view.\n\n"
             "SECTION: INPUT CONTRACT\n"
-            "birth — WesternBirthData (date, time, lat, lon, timezone). house_system ignored for this endpoint.\n"
+            "birth — WesternBirthData (date, time, lat, lon, timezone, house_system). "
+            "house_system picks the natal houses used for natal_house (default placidus).\n"
             "start_date (optional YYYY-MM-DD) — defaults to today.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
-            "data.date, data.transit_planets[] — name, longitude, sign, is_retrograde, aspects_to_natal[]\n"
-            "data.aspects[] — transit_planet, natal_planet, type, orb, is_applying\n"
+            "data.date, data.house_system, data.birth_time_provided\n"
+            "data.transit_planets[] — name, longitude, sign, is_retrograde, "
+            "natal_house (int 1–12 — the natal house the planet is passing through), aspects_to_natal[]\n"
+            "data.aspects[] — transit_planet, natal_planet, type, orb, is_applying, "
+            "exact_at (string — UTC moment the aspect is exact, ISO with Z; null if none within 30 days), "
+            "days_to_exact (float — days from the snapshot to exact_at, negative = already past)\n"
             "data.total_aspects\n\n"
             "SECTION: RESPONSE FORMAT\n"
             "response_format=json serialises the complete response as indented JSON.\n"
@@ -393,7 +398,7 @@ def register(mcp: FastMCP) -> None:
         """Daily Western transits vs natal."""
         async with tool_guard("asterwise_get_western_transits_daily"):
             api_key = await require_api_key(ctx)
-            body = birth.to_api_dict_no_house()
+            body = birth.to_api_dict()
             if start_date:
                 body["start_date"] = start_date
             data = await get_client().post(
@@ -417,10 +422,13 @@ def register(mcp: FastMCP) -> None:
             "BEFORE: asterwise_get_western_natal.\n"
             "AFTER: asterwise_get_western_transits_monthly — for full month.\n\n"
             "SECTION: INPUT CONTRACT\n"
-            "birth — WesternBirthData. house_system ignored.\n"
+            "birth — WesternBirthData. house_system picks the natal houses used for natal_house "
+            "on each transiting planet (default placidus).\n"
             "start_date (optional YYYY-MM-DD) — week start; defaults to today.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
-            "data.start_date, data.end_date\n"
+            "data.start_date, data.end_date, data.house_system, data.birth_time_provided\n"
+            "Each day snapshot has the daily-transits shape: natal_house per transiting planet and "
+            "exact_at / days_to_exact per aspect (see asterwise_get_western_transits_daily).\n"
             "data.days[] — 7 daily transit objects (same shape as daily transits)\n"
             "data.peak_aspects[] — aspects active on 4 or more days\n\n"
             "SECTION: RESPONSE FORMAT\n"
@@ -450,7 +458,7 @@ def register(mcp: FastMCP) -> None:
         """Weekly Western transits vs natal."""
         async with tool_guard("asterwise_get_western_transits_weekly"):
             api_key = await require_api_key(ctx)
-            body = birth.to_api_dict_no_house()
+            body = birth.to_api_dict()
             if start_date:
                 body["start_date"] = start_date
             data = await get_client().post(
@@ -474,10 +482,13 @@ def register(mcp: FastMCP) -> None:
             "BEFORE: asterwise_get_western_natal.\n"
             "AFTER: None.\n\n"
             "SECTION: INPUT CONTRACT\n"
-            "birth — WesternBirthData. house_system ignored.\n"
+            "birth — WesternBirthData. house_system picks the natal houses used for natal_house "
+            "on each transiting planet (default placidus).\n"
             "start_date (optional YYYY-MM-DD) — month start; defaults to today.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
-            "data.start_date, data.end_date\n"
+            "data.start_date, data.end_date, data.house_system, data.birth_time_provided\n"
+            "Each day snapshot has the daily-transits shape: natal_house per transiting planet and "
+            "exact_at / days_to_exact per aspect (see asterwise_get_western_transits_daily).\n"
             "data.days[] — 30 daily transit objects\n"
             "data.peak_aspects[] — aspects active on 10 or more days\n\n"
             "SECTION: RESPONSE FORMAT\n"
@@ -509,7 +520,7 @@ def register(mcp: FastMCP) -> None:
         """Monthly Western transits vs natal."""
         async with tool_guard("asterwise_get_western_transits_monthly"):
             api_key = await require_api_key(ctx)
-            body = birth.to_api_dict_no_house()
+            body = birth.to_api_dict()
             if start_date:
                 body["start_date"] = start_date
             data = await get_client().post(
