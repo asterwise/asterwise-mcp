@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
+from pydantic import Field
 import mcp.types as mcp_types
 
 from client import get_client
-from models import ResponseFormat, WesternBirthData
+from models import LocationInput, ResponseFormat, WesternBirthData
 from runtime import (
     compact_description,
     tool_guard,
@@ -1092,4 +1093,250 @@ def register(mcp: FastMCP) -> None:
             return format_tool_result(
                 data, response_format,
                 lambda d: structured_markdown("Solar Arc directions", d),
+            )
+    # ── Lore Western timing tools (2026-10) ──────────────────────────
+    @mcp.tool(
+        name="asterwise_get_western_void_of_course_moon",
+        title="Void-of-Course Moon",
+        description=compact_description("asterwise_get_western_void_of_course_moon", (
+            "Lists void-of-course Moon periods in a date range (UTC), each with start, end, "
+            "duration, the Moon's sign, the next sign and the last exact aspect. "
+            "Rule: traditional — the Moon is void from its last exact Ptolemaic aspect "
+            "(conjunction, sextile, square, trine, opposition) to the Sun, Mercury, Venus, Mars, "
+            "Jupiter or Saturn until it enters the next sign (Lilly, Christian Astrology 1647, "
+            "p. 112). Outer planets are not counted.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\n"
+            "Tropical (Western) void-of-course Moon tables for planning: one period per Moon "
+            "sign passage (about every 2.5 days). No birth data needed.\n\n"
+            "SECTION: WORKFLOW\n"
+            "BEFORE: None — standalone.\n"
+            "AFTER: asterwise_get_western_planetary_hours — pick an hour inside a non-void window.\n\n"
+            "SECTION: INPUT CONTRACT\n"
+            "from_date (string YYYY-MM-DD, UTC) — first day of the range.\n"
+            "to_date (string YYYY-MM-DD, UTC, inclusive) — last day; at most 92 days after from_date.\n\n"
+            "SECTION: OUTPUT CONTRACT\n"
+            "data.from_date, data.to_date, data.definition (string — the rule in plain English)\n"
+            "data.periods[] — each:\n"
+            "  start_utc, end_utc (string — ISO 8601 UTC with Z)\n"
+            "  duration_hours (float)\n"
+            "  moon_sign, moon_sign_index, next_sign, next_sign_index\n"
+            "  last_aspect (object or null — planet, aspect, exact_at)\n"
+            "  whole_sign_void (bool — true when the Moon made no exact aspect in that sign)\n\n"
+            "SECTION: RESPONSE FORMAT\n"
+            "response_format=json — structured periods. response_format=markdown — readable table.\n\n"
+            "SECTION: COMPUTE CLASS\n"
+            "MEDIUM_COMPUTE\n\n"
+            "SECTION: ERROR CONTRACT\n"
+            "INVALID_PARAMS (upstream): bad dates, to_date before from_date or a range over 92 days → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
+            "SECTION: DO NOT CONFUSE WITH\n"
+            "asterwise_get_western_moon_phase — phase (new/full), not void periods.\n"
+            "asterwise_get_transits — sign ingresses for all planets, no aspects."
+        )),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False,
+            idempotentHint=True, openWorldHint=False,
+        ),
+    )
+    async def asterwise_get_western_void_of_course_moon(
+        ctx: Context,
+        from_date: str,
+        to_date: str,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+    ) -> str:
+        """Void-of-course Moon periods in a date range."""
+        async with tool_guard("asterwise_get_western_void_of_course_moon"):
+            api_key = await require_api_key(ctx)
+            body = {"from_date": from_date, "to_date": to_date}
+            data = await get_client().post("/v1/western/moon/void-of-course", api_key, body, timeout=20.0)
+            return format_tool_result(
+                data, response_format,
+                lambda d: structured_markdown("Void-of-course Moon", d),
+            )
+
+    @mcp.tool(
+        name="asterwise_get_western_planetary_hours",
+        title="Planetary Hours",
+        description=compact_description("asterwise_get_western_planetary_hours", (
+            "The 24 planetary hours for a date and place, with the planet ruling each hour and "
+            "local plus UTC start and end times. Day (sunrise to sunset) and night (sunset to next "
+            "sunrise) are each split into 12 equal parts; the first hour after sunrise belongs to "
+            "the weekday's planet and the rest follow the Chaldean order (Saturn, Jupiter, Mars, "
+            "Sun, Venus, Mercury, Moon).\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\n"
+            "Western planetary hours (same maths as asterwise_get_hora, Western naming, ISO times "
+            "in both local time and UTC). No birth data needed.\n\n"
+            "SECTION: WORKFLOW\n"
+            "BEFORE: None — standalone.\n"
+            "AFTER: asterwise_get_western_void_of_course_moon — avoid void-of-course windows.\n\n"
+            "SECTION: INPUT CONTRACT\n"
+            "location — LocationInput (date YYYY-MM-DD, lat, lon, timezone, response_format).\n\n"
+            "SECTION: OUTPUT CONTRACT\n"
+            "data.date, data.weekday, data.day_ruler, data.convention\n"
+            "data.sunrise_local, data.sunset_local, data.next_sunrise_local (+ *_utc twins)\n"
+            "data.day_hour_minutes, data.night_hour_minutes\n"
+            "data.hours[] — hour (1–24), period (day|night), planet, start_local, end_local, "
+            "start_utc, end_utc, length_minutes, is_current\n\n"
+            "SECTION: RESPONSE FORMAT\n"
+            "response_format=json — structured hours. response_format=markdown — readable table.\n\n"
+            "SECTION: COMPUTE CLASS\n"
+            "FAST_LOOKUP\n\n"
+            "SECTION: ERROR CONTRACT\n"
+            "INVALID_PARAMS (local): LocationInput validation failures.\n"
+            "INVALID_PARAMS (upstream): polar day/night with no sunrise → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
+            "SECTION: DO NOT CONFUSE WITH\n"
+            "asterwise_get_hora — the Vedic version with Sanskrit framing and activity notes.\n"
+            "asterwise_get_choghadiya — 8 Vedic day/night parts, not 12."
+        )),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False,
+            idempotentHint=True, openWorldHint=False,
+        ),
+    )
+    async def asterwise_get_western_planetary_hours(
+        ctx: Context,
+        location: LocationInput,
+    ) -> str:
+        """Planetary hours for a date and place."""
+        async with tool_guard("asterwise_get_western_planetary_hours"):
+            api_key = await require_api_key(ctx)
+            body = {
+                "date": location.date,
+                "latitude": location.lat,
+                "longitude": location.lon,
+                "timezone": location.timezone,
+            }
+            data = await get_client().post("/v1/western/planetary-hours", api_key, body, timeout=10.0)
+            return format_tool_result(
+                data, location.response_format,
+                lambda d: structured_markdown("Planetary hours", d),
+            )
+
+    @mcp.tool(
+        name="asterwise_get_western_profections",
+        title="Annual Profections",
+        description=compact_description("asterwise_get_western_profections", (
+            "Annual profections for a birth chart and a date: the activated whole-sign house, its "
+            "sign and the lord of the year. Also gives where the year lord sits natally and the "
+            "next twelve profection years. Rule: the Ascendant "
+            "sign is the 1st house at age 0 and the activated sign moves one sign forward every "
+            "birthday, so at age N the house is (N mod 12) + 1.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\n"
+            "Hellenistic time-lord technique on the tropical chart. Needs the birth time (the count "
+            "starts from the Ascendant). Lords are the traditional rulers (Ptolemy, Tetrabiblos I.17): "
+            "no Uranus, Neptune or Pluto.\n\n"
+            "SECTION: WORKFLOW\n"
+            "BEFORE: asterwise_get_western_natal — see the Ascendant and the year lord's placement.\n"
+            "AFTER: asterwise_get_western_transits_monthly — transits to the year lord.\n\n"
+            "SECTION: INPUT CONTRACT\n"
+            "birth — WesternBirthData (date, time, lat, lon, timezone, house_system). time is required.\n"
+            "target_date (optional YYYY-MM-DD) — date to profect to; defaults to today (UTC).\n\n"
+            "SECTION: OUTPUT CONTRACT\n"
+            "data.target_date, data.age, data.year_start, data.year_end\n"
+            "data.ascendant_sign, data.profected_house (1–12), data.profected_sign, data.year_lord\n"
+            "data.year_lord_natal — sign, degree_in_sign, whole_sign_house, house (requested house_system), is_retrograde, dignity\n"
+            "data.natal_planets_in_profected_sign[] — planet, degree_in_sign, is_retrograde\n"
+            "data.upcoming_years[] — age, year_start, year_end, profected_house, profected_sign, year_lord\n\n"
+            "SECTION: RESPONSE FORMAT\n"
+            "response_format=json — structured. response_format=markdown — readable report.\n\n"
+            "SECTION: COMPUTE CLASS\n"
+            "FAST_LOOKUP\n\n"
+            "SECTION: ERROR CONTRACT\n"
+            "INVALID_PARAMS (local): WesternBirthData validation failures (time is required).\n"
+            "INVALID_PARAMS (upstream): target_date before birth → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
+            "SECTION: DO NOT CONFUSE WITH\n"
+            "asterwise_get_dasha — Vedic Vimshottari periods, a different time-lord system.\n"
+            "asterwise_get_western_solar_return — the chart of the birthday moment, not the year lord."
+        )),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False,
+            idempotentHint=True, openWorldHint=False,
+        ),
+    )
+    async def asterwise_get_western_profections(
+        ctx: Context,
+        birth: WesternBirthData,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        target_date: str | None = None,
+    ) -> str:
+        """Annual profections for a birth chart and a date."""
+        async with tool_guard("asterwise_get_western_profections"):
+            api_key = await require_api_key(ctx)
+            body = birth.to_api_dict()
+            if target_date:
+                body["target_date"] = target_date
+            data = await get_client().post("/v1/western/profections", api_key, body, timeout=10.0)
+            return format_tool_result(
+                data, response_format,
+                lambda d: structured_markdown("Annual profections", d),
+            )
+
+    @mcp.tool(
+        name="asterwise_get_western_eclipses",
+        title="Eclipses",
+        description=compact_description("asterwise_get_western_eclipses", (
+            "Solar and lunar eclipses in a date range, past or future, up to 10 years. Each gives "
+            "the type, time of greatest eclipse, start and end (UTC) and the eclipse degree in the "
+            "tropical zodiac. With birth data, each eclipse also lists the natal planets and angles "
+            "within 3° of the eclipse degree by conjunction or opposition.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\n"
+            "Swiss Ephemeris global eclipse search. Natal contacts use a fixed 3° orb. Without a "
+            "birth time the Ascendant and MC are skipped (angles_checked=false) and the natal Moon "
+            "is approximate.\n\n"
+            "SECTION: WORKFLOW\n"
+            "BEFORE: None — standalone; add birth for personal contacts.\n"
+            "AFTER: asterwise_get_western_transits_monthly — transits around an eclipse date.\n\n"
+            "SECTION: INPUT CONTRACT\n"
+            "from_date, to_date (string YYYY-MM-DD, UTC, inclusive) — at most 10 years apart.\n"
+            "birth (optional WesternBirthData) — adds natal_contacts; house_system sets the Ascendant/MC computation.\n\n"
+            "SECTION: OUTPUT CONTRACT\n"
+            "data.from_date, data.to_date, data.orb_degrees (3.0)\n"
+            "data.birth_data_provided, data.birth_time_provided, data.angles_checked (bool)\n"
+            "data.eclipses[] — kind (solar|lunar), type (total|annular|hybrid|partial|penumbral), "
+            "max_utc, begin_utc, end_utc, sun_longitude, moon_longitude, eclipse_longitude, sign, "
+            "sign_index, degree_in_sign, natal_contacts[] (natal_point, natal_longitude, aspect, orb)\n\n"
+            "SECTION: RESPONSE FORMAT\n"
+            "response_format=json — structured. response_format=markdown — readable list.\n\n"
+            "SECTION: COMPUTE CLASS\n"
+            "MEDIUM_COMPUTE\n\n"
+            "SECTION: ERROR CONTRACT\n"
+            "INVALID_PARAMS (local): WesternBirthData validation failures when birth is given.\n"
+            "INVALID_PARAMS (upstream): bad dates or a range over 10 years → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+            "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n"
+            "SECTION: DO NOT CONFUSE WITH\n"
+            "asterwise_get_western_moon_phase — ordinary new and full moons, not eclipses.\n"
+            "asterwise_get_western_moon_calendar — monthly phase table."
+        )),
+        annotations=mcp_types.ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False,
+            idempotentHint=True, openWorldHint=False,
+        ),
+    )
+    async def asterwise_get_western_eclipses(
+        ctx: Context,
+        from_date: str,
+        to_date: str,
+        birth: Annotated[
+            WesternBirthData | None,
+            Field(description=(
+                "Optional birth data. When given, each eclipse lists the natal planets and "
+                "angles within 3° of the eclipse degree."
+            )),
+        ] = None,
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+    ) -> str:
+        """Solar and lunar eclipses in a range, with natal contacts."""
+        async with tool_guard("asterwise_get_western_eclipses"):
+            api_key = await require_api_key(ctx)
+            body: dict[str, Any] = {"from_date": from_date, "to_date": to_date}
+            if birth is not None:
+                b = birth.to_api_dict()
+                body["house_system"] = b.pop("house_system")
+                body["birth"] = b
+            data = await get_client().post("/v1/western/eclipses", api_key, body, timeout=20.0)
+            return format_tool_result(
+                data, response_format,
+                lambda d: structured_markdown("Eclipses", d),
             )

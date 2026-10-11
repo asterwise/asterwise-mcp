@@ -26,7 +26,7 @@ TOOLS = sorted(FULL_TOOL_DESCRIPTIONS)
 
 
 def test_every_tool_is_covered():
-    assert len(TOOLS) == 104
+    assert len(TOOLS) == 108
 
 
 @pytest.mark.parametrize("name", TOOLS)

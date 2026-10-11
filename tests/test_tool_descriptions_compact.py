@@ -11,7 +11,7 @@ from runtime import FULL_TOOL_DESCRIPTIONS, tool_doc_url
 from server import mcp
 
 MAX_DESCRIPTION_CHARS = 3_300
-MAX_TOOLS_LIST_BYTES = 260 * 1024
+MAX_TOOLS_LIST_BYTES = 272 * 1024  # ~2.5 KB per tool; 108 tools since 2026-10-11
 
 
 def _tools():
@@ -23,7 +23,7 @@ def _tools():
 
 def test_every_description_is_compact_and_links_to_docs():
     tools = _tools()
-    assert len(tools) == 104
+    assert len(tools) == 108
     for t in tools:
         assert len(t["description"]) <= MAX_DESCRIPTION_CHARS, (t["name"], len(t["description"]))
         assert tool_doc_url(t["name"]) in t["description"], t["name"]
