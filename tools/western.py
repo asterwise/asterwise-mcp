@@ -361,7 +361,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: INPUT CONTRACT\n"
             "birth — WesternBirthData (date, time, lat, lon, timezone, house_system). "
             "house_system picks the natal houses used for natal_house (default placidus).\n"
-            "start_date (optional YYYY-MM-DD) — defaults to today.\n\n"
+            "start_date (optional YYYY-MM-DD) — defaults to today. snapshot_time (optional HH:MM) and snapshot_timezone (IANA) read each day's sky at the user's own clock time instead of 12:00 UTC; data.snapshot_utc says which instant was used.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
             "data.date, data.house_system, data.birth_time_provided\n"
             "data.transit_planets[] — name, longitude, sign, is_retrograde, "
@@ -1340,3 +1340,156 @@ def register(mcp: FastMCP) -> None:
                 data, response_format,
                 lambda d: structured_markdown("Eclipses", d),
             )
+
+    # ── Lore-era Western tools (2026-10) ─────────────────────────────
+    _RO = mcp_types.ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+    _WFMT = ("SECTION: RESPONSE FORMAT\nresponse_format=json — structured data. response_format=markdown — readable report.\n\n"
+             "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\n"
+             "SECTION: ERROR CONTRACT\nINVALID_PARAMS (local): input validation failures.\n"
+             "INVALID_PARAMS (upstream): bad dates, a range over 31 days or an unknown timezone → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+             "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n")
+
+    @mcp.tool(
+        name="asterwise_get_western_day",
+        title="Western Day View",
+        description=compact_description("asterwise_get_western_day", (
+            "One calendar day at a place, Western style: planetary hours, void-of-course Moon periods, Moon sign changes and the Moon phase. "
+            "The day runs from local midnight to midnight; every planetary hour that falls in it is listed with the void-of-course periods that overlap it.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\nThe Western counterpart of the panchanga civil day, from the same engines as asterwise_get_western_planetary_hours and asterwise_get_western_void_of_course_moon, in one call. No birth data needed.\n\n"
+            "SECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_western_daily_factors — the personal picture for the same day.\n\n"
+            "SECTION: INPUT CONTRACT\nlocation — LocationInput (date YYYY-MM-DD, lat, lon, timezone, response_format).\n\n"
+            "SECTION: OUTPUT CONTRACT\ndata.start, data.end (local midnight to midnight, with offset), data.start_utc, data.end_utc\ndata.status (ok|no_sunrise)\n"
+            "data.planetary_hours[] — hour, period, planet, start_local, end_local, start_utc, end_utc, length_minutes, is_current\n"
+            "data.void_of_course[] — start_utc, end_utc, duration_hours, moon_sign, next_sign, last_aspect, whole_sign_void\n"
+            "data.moon — sign_at_start, sign_at_end, sign_changes[] {at_utc, at_local, from_sign, to_sign}, phase_name, illumination_pct, is_waxing\n\n" + _WFMT +
+            "SECTION: DO NOT CONFUSE WITH\nasterwise_get_panchanga — the Vedic day with tithi, nakshatra and the Vedic windows."
+        )), annotations=_RO,
+    )
+    async def asterwise_get_western_day(ctx: Context, location: LocationInput) -> str:
+        """Western day view for a date and place."""
+        async with tool_guard("asterwise_get_western_day"):
+            api_key = await require_api_key(ctx)
+            body = {"date": location.date, "latitude": location.lat, "longitude": location.lon, "timezone": location.timezone}
+            data = await get_client().post("/v1/western/day", api_key, body, timeout=20.0)
+            return format_tool_result(data, location.response_format, lambda d: structured_markdown("Western day", d))
+
+    @mcp.tool(
+        name="asterwise_get_western_daily_factors",
+        title="Western Daily Factors",
+        description=compact_description("asterwise_get_western_daily_factors", (
+            "Every Western factor for one person on one day, in one shape, with no weighting. Each factor carries its raw value and range, "
+            "its frame, the verdict Lilly's rules give, the rule's source, signification ids, the time it holds and whether it depends on the birth time.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\nEvery transit-to-natal aspect with its exact time (sextile and trine favourable, square and opposition unfavourable, conjunctions by the planet: "
+            "Jupiter and Venus the fortunes, Saturn and Mars the infortunes), each transiting planet's sign, essential dignity and natal house, the Moon's phase, sign changes and "
+            "void-of-course periods, the planetary hours, and the lord of the year. Uranus, Neptune and Pluto carry no verdict.\n\n"
+            "SECTION: WORKFLOW\nBEFORE: asterwise_get_western_natal.\nAFTER: asterwise_get_western_events — the same over a range, as a timeline.\n\n"
+            "SECTION: INPUT CONTRACT\nbirth — WesternBirthData (house_system used for natal_house). target_date (optional YYYY-MM-DD; defaults to today in the birth timezone). target_timezone (optional IANA).\n\n"
+            "SECTION: OUTPUT CONTRACT\ndata.factors[] — id, group (aspect|transit|moon_phase|void_of_course|planetary_hour|profection), name, planet, frame, value{}, ranges{}, verdict, verdict_rule, rule_source, "
+            "significations[] (ids from asterwise_get_western_significations), time{}, depends_on_birth_time\ndata.frames{}, data.counts{}, data.natal{}, data.birth_time_provided\n\n" + _WFMT +
+            "SECTION: DO NOT CONFUSE WITH\nasterwise_get_western_transits_daily — the aspects only, with no rules.\nasterwise_get_western_horoscope — AI-written sun-sign text."
+        )), annotations=_RO,
+    )
+    async def asterwise_get_western_daily_factors(
+        ctx: Context, birth: WesternBirthData, response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        target_date: Annotated[str | None, Field(description="Day to read, YYYY-MM-DD. Defaults to today in the birth timezone.")] = None,
+        target_timezone: Annotated[str | None, Field(description="IANA timezone of the day. Defaults to the birth timezone.")] = None,
+    ) -> str:
+        """Every Western factor for a person on a day."""
+        async with tool_guard("asterwise_get_western_daily_factors"):
+            api_key = await require_api_key(ctx)
+            body = birth.to_api_dict()
+            if target_date:
+                body["target_date"] = target_date
+            if target_timezone:
+                body["target_timezone"] = target_timezone
+            data = await get_client().post("/v1/western/daily-factors", api_key, body, timeout=30.0)
+            return format_tool_result(data, response_format, lambda d: structured_markdown("Western daily factors", d))
+
+    @mcp.tool(
+        name="asterwise_get_western_events",
+        title="Western Events (date range)",
+        description=compact_description("asterwise_get_western_events", (
+            "One timeline of everything that happens to a chart over 1 to 31 days, each event with its exact time. "
+            "It holds the exact major aspects from the transiting planets to the natal planets and angles with Lilly's verdicts, tropical sign ingresses and stations, Moon sign changes, void-of-course periods, New and Full Moons "
+            "and quarters, eclipses with their contacts, and the profection year turning on the birthday.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\nThe backbone for calendars and notifications on the Western track, in time order, UTC and local. Uranus, Neptune and Pluto carry no verdict. No weighting.\n\n"
+            "SECTION: WORKFLOW\nBEFORE: asterwise_get_western_natal.\nAFTER: asterwise_get_western_daily_factors — the full picture of one of the days.\n\n"
+            "SECTION: INPUT CONTRACT\nbirth — WesternBirthData. from_date (optional YYYY-MM-DD; defaults to today). days (1-31, default 7). target_timezone (optional IANA).\n\n"
+            "SECTION: OUTPUT CONTRACT\ndata.events[] — kind (aspect_exact|ingress|moon_sign|station|void_of_course|moon_phase|eclipse|profection_year), planet, title, time_utc, time_local, "
+            "time_precision, detail{}, verdict, verdict_rule, rule_source, significations[], depends_on_birth_time\ndata.kinds{}\n\n" + _WFMT +
+            "SECTION: DO NOT CONFUSE WITH\nasterwise_get_western_transits_monthly — day snapshots, not a timeline of exact moments."
+        )), annotations=_RO,
+    )
+    async def asterwise_get_western_events(
+        ctx: Context, birth: WesternBirthData, response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        from_date: Annotated[str | None, Field(description="First day, YYYY-MM-DD. Defaults to today in the birth timezone.")] = None,
+        days: Annotated[int, Field(ge=1, le=31, description="Number of civil days, 1 to 31 (7 for a week, 30 for a month).")] = 7,
+        target_timezone: Annotated[str | None, Field(description="IANA timezone for the days and local times. Defaults to the birth timezone.")] = None,
+    ) -> str:
+        """Western events over a date range."""
+        async with tool_guard("asterwise_get_western_events"):
+            api_key = await require_api_key(ctx)
+            body = {**birth.to_api_dict(), "days": days}
+            if from_date:
+                body["from_date"] = from_date
+            if target_timezone:
+                body["target_timezone"] = target_timezone
+            data = await get_client().post("/v1/western/events", api_key, body, timeout=30.0)
+            return format_tool_result(data, response_format, lambda d: structured_markdown("Western events", d))
+
+    @mcp.tool(
+        name="asterwise_get_western_horary",
+        title="Western Horary Chart",
+        description=compact_description("asterwise_get_western_horary", (
+            "The chart of a question's moment with the facts Lilly's horary method reads, each rule named. "
+            "It gives the house rulers, the significators (lord of the 1st and the Moon for the querent, lord of the quesited house), their aspects with Lilly's orbs and whether an applying aspect perfects before a sign change, the Moon's last and next "
+            "aspects and void-of-course state, combustion, and the considerations before judgement. The yes or no is left to the reader.\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\nChristian Astrology (1647) applied to the moment and place a question is asked. Lilly used Regiomontanus houses, not yet available; Placidus is the default.\n\n"
+            "SECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_western_significations — what the quesited house and its ruler stand for.\n\n"
+            "SECTION: INPUT CONTRACT\ndate (YYYY-MM-DD) and time (HH:MM) the question was asked, local. latitude, longitude, timezone (IANA) of the place. "
+            "quesited_house (optional 1-12): the house of the matter (7 partner, 10 job, 2 money …). house_system (placidus|koch|equal|whole_sign).\n\n"
+            "SECTION: OUTPUT CONTRACT\ndata.house_rulers[], data.significators[], data.aspects_between_significators[] {planets, aspect, orb, moiety_of_orbs, is_applying, exact_at, perfects_before_sign_change}, "
+            "data.moon {separating_from, applying_to[], is_void_of_course, in_via_combusta, leaves_sign_at}, data.considerations {lord_of_hour, is_radical_by_hour, saturn_in_7th, …}, data.planets[], data.orbs\n\n" + _WFMT +
+            "SECTION: DO NOT CONFUSE WITH\nasterwise_get_prashna_chart — the Vedic question chart.\nasterwise_get_western_natal — a birth chart."
+        )), annotations=_RO,
+    )
+    async def asterwise_get_western_horary(
+        ctx: Context,
+        date: Annotated[str, Field(description="Date the question was asked, YYYY-MM-DD (local).")],
+        time: Annotated[str, Field(description="Time the question was asked, HH:MM (24-hour, local).")],
+        latitude: Annotated[float, Field(ge=-90, le=90, description="Latitude of the place in decimal degrees.")],
+        longitude: Annotated[float, Field(ge=-180, le=180, description="Longitude of the place in decimal degrees.")],
+        timezone: Annotated[str, Field(description="IANA timezone of the place, e.g. Europe/London.")],
+        response_format: ResponseFormat = ResponseFormat.MARKDOWN,
+        quesited_house: Annotated[int | None, Field(ge=1, le=12, description="House of the matter asked about (7 partner, 10 job, 2 money …).")] = None,
+        house_system: Annotated[str, Field(description="placidus (default), koch, equal or whole_sign.")] = "placidus",
+    ) -> str:
+        """Horary chart facts for a question moment."""
+        async with tool_guard("asterwise_get_western_horary"):
+            api_key = await require_api_key(ctx)
+            body: dict[str, Any] = {"date": date, "time": time, "latitude": latitude, "longitude": longitude, "timezone": timezone, "house_system": house_system}
+            if quesited_house:
+                body["quesited_house"] = quesited_house
+            data = await get_client().post("/v1/western/horary", api_key, body, timeout=20.0)
+            return format_tool_result(data, response_format, lambda d: structured_markdown("Horary chart", d))
+
+    @mcp.tool(
+        name="asterwise_get_western_significations",
+        title="Western Significations (Lilly)",
+        description=compact_description("asterwise_get_western_significations", (
+            "What each house and planet signifies in William Lilly's Christian Astrology (1647), as a fixed list with stable ids: the twelve houses (pp. 50-56) and the seven planets "
+            "(pp. 57-83: kinds of people, professions, manners when well and ill dignified).\n\n"
+            "SECTION: WHAT THIS TOOL COVERS\nTwo levels: a domain and the signification, each with its page. Ids are never renamed or reused; a retired entry stays with deprecated=true and replaced_by. "
+            "Uranus, Neptune and Pluto are left out because Lilly has none.\n\n"
+            "SECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_western_daily_factors — factors cite these ids.\n\n"
+            "SECTION: INPUT CONTRACT\nNo inputs beyond response_format.\n\n"
+            "SECTION: OUTPUT CONTRACT\ndata.domains[], data.houses[] {house, id, significations[] {id, label, domain, source, deprecated, replaced_by}}, data.planets[], data.version, data.source, data.id_policy\n\n" + _WFMT.replace("MEDIUM_COMPUTE", "FAST_LOOKUP") +
+            "SECTION: DO NOT CONFUSE WITH\nasterwise_get_vedic_significations — the BPHS list for the Vedic track."
+        )), annotations=_RO,
+    )
+    async def asterwise_get_western_significations(ctx: Context, response_format: ResponseFormat = ResponseFormat.MARKDOWN) -> str:
+        """Lilly significations list."""
+        async with tool_guard("asterwise_get_western_significations"):
+            api_key = await require_api_key(ctx)
+            data = await get_client().get("/v1/western/significations", api_key, timeout=10.0)
+            return format_tool_result(data, response_format, lambda d: structured_markdown("Western significations (Lilly)", d))
