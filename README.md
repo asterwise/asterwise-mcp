@@ -120,7 +120,7 @@ Copy `.env.example` to `.env` and set at least:
 
 ## Tools (118 total)
 
-The MCP server exposes **108 tools** organized by Python module. The categorization reflects code organization; tools may serve multiple traditions (e.g. matchmaking includes both Sanskrit Dashakoot and Tamil Porutham methods).
+The MCP server exposes **118 tools** organized by Python module. The categorization reflects code organization; tools may serve multiple traditions (e.g. matchmaking includes both Sanskrit Dashakoot and Tamil Porutham methods).
 
 - **western** — 25 tools (chart, transits, returns, progressions, void-of-course Moon, planetary hours, profections, eclipses, day view, daily factors, events, horary, significations)
 - **natal** — 13 tools (chart, dasha trees, ascendant systems)
