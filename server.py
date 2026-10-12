@@ -43,6 +43,7 @@ from tools import (
     angel_numbers, crystals, dasha, dreams, horoscope, matchmaking, natal,
     numerology, numerology_gaps, panchanga, panchanga_ext, tarot, vedic_reference,
     varshaphal, western, yoga_dosha,
+    factors,
 )
 
 logger = logging.getLogger("asterwise_mcp.server")
@@ -567,7 +568,7 @@ mcp = FastMCP(
   You are connected to the Asterwise Astrology and Divination API — the most
   comprehensive structured astrology MCP available.
 
-  This server exposes 108 tools. All tools require an API key
+  This server exposes 118 tools. All tools require an API key
   obtained from asterwise.com.
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -585,6 +586,11 @@ mcp = FastMCP(
   asterwise_get_dasha_transits — dasha-lord transit correlation
   asterwise_get_gochar — 9-planet Gochar with AVK scores and vedha
   asterwise_get_transits — ingress and station event tables
+  asterwise_get_tarabala — Tarabala and Chandrabala over 1-31 days with Moon change times
+  asterwise_get_vedic_daily_factors — every Vedic factor for a person on a day, rules named, no weighting
+  asterwise_get_vedic_events — timeline of ingresses, stations, Moon, natal conjunctions, eclipses, dasha changes
+  asterwise_get_vedic_significations — BPHS house and planet significations with stable ids
+  asterwise_get_reference_charts — published test charts with PyJHora / Swiss Ephemeris reference values
   asterwise_get_ashtakavarga — bindu matrices, trikona/ekadhipatya reductions
   asterwise_get_varshaphal — Tajika annual solar return
   asterwise_get_varshaphal_saham — 10 Tajika Saham sensitive points (Arabic Parts equivalent) for a solar return: Punya/Fortune, Vidya/Education, Yashas/Fame, Mitra/Friends, Mahatmya/Status, Asha/Desires, Karmakarya/Career, Vyapara/Business, Vivaha/Marriage, Santapa/Sorrow
@@ -639,6 +645,11 @@ mcp = FastMCP(
   asterwise_get_western_planetary_hours — 24 planetary hours for a date and place
   asterwise_get_western_profections — annual profections: house, sign, lord of the year
   asterwise_get_western_eclipses — solar and lunar eclipses with natal contacts
+  asterwise_get_western_day — one calendar day: planetary hours, void-of-course Moon, Moon sign changes, phase
+  asterwise_get_western_daily_factors — every Western factor for a person on a day, Lilly's rules named, no weighting
+  asterwise_get_western_events — timeline of exact aspects, ingresses, stations, Moon, eclipses over 1-31 days
+  asterwise_get_western_horary — horary chart facts for a question moment (Lilly)
+  asterwise_get_western_significations — Lilly's house and planet significations with stable ids
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DOMAIN 3 — NUMEROLOGY
@@ -724,6 +735,7 @@ def _register_tools() -> None:
     dreams.register(mcp)
     horoscope.register(mcp)
     western.register(mcp)
+    factors.register(mcp)
     tarot.register(mcp)
 
 

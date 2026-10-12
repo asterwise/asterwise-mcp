@@ -2,7 +2,7 @@
   "name": "asterwise",
   "displayName": "Asterwise astrology API",
   "version": "1.0.1",
-  "description": "108 read-only astrology, numerology and tarot tools from the Asterwise API: Vedic and Western natal charts, Vimshottari dasha, kundli matching, panchanga, transits. Remote MCP server over OAuth 2.1; free Sandbox plan, no key to paste.",
+  "description": "118 read-only astrology, numerology and tarot tools from the Asterwise API: Vedic and Western natal charts, Vimshottari dasha, kundli matching, panchanga, transits. Remote MCP server over OAuth 2.1; free Sandbox plan, no key to paste.",
   "author": {
     "name": "Asterwise Labs Private Limited",
     "email": "support@asterwise.com",
