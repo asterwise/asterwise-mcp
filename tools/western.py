@@ -1343,11 +1343,18 @@ def register(mcp: FastMCP) -> None:
 
     # ── Lore-era Western tools (2026-10) ─────────────────────────────
     _RO = mcp_types.ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
-    _WFMT = ("SECTION: RESPONSE FORMAT\nresponse_format=json — structured data. response_format=markdown — readable report.\n\n"
-             "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\n"
-             "SECTION: ERROR CONTRACT\nINVALID_PARAMS (local): input validation failures.\n"
-             "INVALID_PARAMS (upstream): bad dates, a range over 31 days or an unknown timezone → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
-             "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n")
+    def _wfmt(compute: str, local: str, upstream: str | None) -> str:
+        errors = f"INVALID_PARAMS (local): {local}\n"
+        if upstream:
+            errors += f"INVALID_PARAMS (upstream): {upstream} → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+        return ("SECTION: RESPONSE FORMAT\nresponse_format=json — structured data. response_format=markdown — readable report.\n\n"
+                f"SECTION: COMPUTE CLASS\n{compute}\n\n"
+                f"SECTION: ERROR CONTRACT\n{errors}INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n")
+
+    # days is bounded 1-31 by the tool schema, so a longer range never reaches the API.
+    _W_DAY_FMT = _wfmt("MEDIUM_COMPUTE", "input validation failures.", "a bad date or an unknown timezone")
+    _W_RANGE_FMT = _wfmt("MEDIUM_COMPUTE", "input validation failures; days outside 1-31.", "a bad date or an unknown timezone")
+    _W_LOOKUP_FMT = _wfmt("FAST_LOOKUP", "None.", None)
 
     @mcp.tool(
         name="asterwise_get_western_day",
@@ -1361,7 +1368,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: OUTPUT CONTRACT\ndata.start, data.end (local midnight to midnight, with offset), data.start_utc, data.end_utc\ndata.status (ok|no_sunrise)\n"
             "data.planetary_hours[] — hour, period, planet, start_local, end_local, start_utc, end_utc, length_minutes, is_current\n"
             "data.void_of_course[] — start_utc, end_utc, duration_hours, moon_sign, next_sign, last_aspect, whole_sign_void\n"
-            "data.moon — sign_at_start, sign_at_end, sign_changes[] {at_utc, at_local, from_sign, to_sign}, phase_name, illumination_pct, is_waxing\n\n" + _WFMT +
+            "data.moon — sign_at_start, sign_at_end, sign_changes[] {at_utc, at_local, from_sign, to_sign}, phase_name, illumination_pct, is_waxing\n\n" + _W_DAY_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_panchanga — the Vedic day with tithi, nakshatra and the Vedic windows."
         )), annotations=_RO,
     )
@@ -1385,7 +1392,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: WORKFLOW\nBEFORE: asterwise_get_western_natal.\nAFTER: asterwise_get_western_events — the same over a range, as a timeline.\n\n"
             "SECTION: INPUT CONTRACT\nbirth — WesternBirthData (house_system used for natal_house). target_date (optional YYYY-MM-DD; defaults to today in the birth timezone). target_timezone (optional IANA).\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.factors[] — id, group (aspect|transit|moon_phase|void_of_course|planetary_hour|profection), name, planet, frame, value{}, ranges{}, verdict, verdict_rule, rule_source, "
-            "significations[] (ids from asterwise_get_western_significations), time{}, depends_on_birth_time\ndata.frames{}, data.counts{}, data.natal{}, data.birth_time_provided\n\n" + _WFMT +
+            "significations[] (ids from asterwise_get_western_significations), time{}, depends_on_birth_time\ndata.frames{}, data.counts{}, data.natal{}, data.birth_time_provided\n\n" + _W_DAY_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_western_transits_daily — the aspects only, with no rules.\nasterwise_get_western_horoscope — AI-written sun-sign text."
         )), annotations=_RO,
     )
@@ -1416,7 +1423,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: WORKFLOW\nBEFORE: asterwise_get_western_natal.\nAFTER: asterwise_get_western_daily_factors — the full picture of one of the days.\n\n"
             "SECTION: INPUT CONTRACT\nbirth — WesternBirthData. from_date (optional YYYY-MM-DD; defaults to today). days (1-31, default 7). target_timezone (optional IANA).\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.events[] — kind (aspect_exact|ingress|moon_sign|station|void_of_course|moon_phase|eclipse|profection_year), planet, title, time_utc, time_local, "
-            "time_precision, detail{}, verdict, verdict_rule, rule_source, significations[], depends_on_birth_time\ndata.kinds{}\n\n" + _WFMT +
+            "time_precision, detail{}, verdict, verdict_rule, rule_source, significations[], depends_on_birth_time\ndata.kinds{}\n\n" + _W_RANGE_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_western_transits_monthly — day snapshots, not a timeline of exact moments."
         )), annotations=_RO,
     )
@@ -1449,7 +1456,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: INPUT CONTRACT\ndate (YYYY-MM-DD) and time (HH:MM) the question was asked, local. latitude, longitude, timezone (IANA) of the place. "
             "quesited_house (optional 1-12): the house of the matter (7 partner, 10 job, 2 money …). house_system (placidus|koch|equal|whole_sign).\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.house_rulers[], data.significators[], data.aspects_between_significators[] {planets, aspect, orb, moiety_of_orbs, is_applying, exact_at, perfects_before_sign_change}, "
-            "data.moon {separating_from, applying_to[], is_void_of_course, in_via_combusta, leaves_sign_at}, data.considerations {lord_of_hour, is_radical_by_hour, saturn_in_7th, …}, data.planets[], data.orbs\n\n" + _WFMT +
+            "data.moon {separating_from, applying_to[], is_void_of_course, in_via_combusta, leaves_sign_at}, data.considerations {lord_of_hour, is_radical_by_hour, saturn_in_7th, …}, data.planets[], data.orbs\n\n" + _W_DAY_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_prashna_chart — the Vedic question chart.\nasterwise_get_western_natal — a birth chart."
         )), annotations=_RO,
     )
@@ -1483,7 +1490,7 @@ def register(mcp: FastMCP) -> None:
             "Uranus, Neptune and Pluto are left out because Lilly has none.\n\n"
             "SECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_western_daily_factors — factors cite these ids.\n\n"
             "SECTION: INPUT CONTRACT\nNo inputs beyond response_format.\n\n"
-            "SECTION: OUTPUT CONTRACT\ndata.domains[], data.houses[] {house, id, significations[] {id, label, domain, source, deprecated, replaced_by}}, data.planets[], data.version, data.source, data.id_policy\n\n" + _WFMT.replace("MEDIUM_COMPUTE", "FAST_LOOKUP") +
+            "SECTION: OUTPUT CONTRACT\ndata.domains[], data.houses[] {house, id, significations[] {id, label, domain, source, deprecated, replaced_by}}, data.planets[], data.version, data.source, data.id_policy\n\n" + _W_LOOKUP_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_vedic_significations — the BPHS list for the Vedic track."
         )), annotations=_RO,
     )

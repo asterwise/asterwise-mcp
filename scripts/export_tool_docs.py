@@ -77,8 +77,13 @@ def schema_table(schema: dict) -> str:
             typ = "enum: " + ", ".join(f"`{v}`" for v in p["enum"])
         desc = p.get("description", "")
         if "properties" in p:
-            inner = ", ".join(f"`{k}`{'*' if k in set(p.get('required', [])) else ''}" for k in p["properties"])
-            desc = (desc + " Fields: " + inner).strip()
+            # Named lists, not a trailing "*": Markdown read `a`*, `b`* as emphasis.
+            inner_required = [k for k in p["properties"] if k in set(p.get("required", []))]
+            inner_optional = [k for k in p["properties"] if k not in inner_required]
+            for label, names in (("Required fields", inner_required), ("Optional fields", inner_optional)):
+                if names:
+                    desc = f"{desc} {label}: " + ", ".join(f"`{k}`" for k in names) + "."
+            desc = desc.strip()
         # One table row per parameter: a line break or pipe inside a cell
         # (multi-line model docstrings) would end the row and break the table.
         cell = " ".join(desc.split()).replace("|", "\\|")

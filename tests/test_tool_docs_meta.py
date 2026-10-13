@@ -44,3 +44,46 @@ def test_title_fits(name):
     tool = mcp._local_provider._components
     titles = {c.name: (getattr(c, "title", None) or c.name) for c in tool.values() if hasattr(c, "fn")}
     assert len(titles[name] + " | Asterwise Docs") <= 60, titles[name]
+
+
+def _input_schemas() -> dict:
+    import asyncio
+
+    from fastmcp import Client
+    from server import mcp
+
+    async def _load():
+        async with Client(mcp) as c:
+            return {t.name: t.inputSchema for t in await c.list_tools()}
+    return asyncio.run(_load())
+
+
+INPUT_SCHEMAS = _input_schemas()
+
+
+@pytest.mark.parametrize("name", TOOLS)
+def test_parameter_table_has_no_markdown_emphasis(name):
+    # Grok 2026-10-13: `lat`*, `lon`* rendered as italics with a stray "*".
+    table = exporter.schema_table(INPUT_SCHEMAS[name])
+    assert "`*" not in table, table
+
+
+def test_nested_fields_are_listed_as_required_and_optional():
+    schema = {"properties": {"request": {"type": "object", "properties": {"a": {}, "b": {}, "c": {}}, "required": ["a", "c"]}}}
+    row = exporter.schema_table(schema).splitlines()[-1]
+    assert "Required fields: `a`, `c`." in row and "Optional fields: `b`." in row, row
+
+
+@pytest.mark.parametrize("name", [n for n in TOOLS if set(INPUT_SCHEMAS[n].get("properties", {})) <= {"response_format"}])
+def test_no_input_tools_promise_no_input_errors(name):
+    # Grok 2026-10-13: a no-input lookup listed BirthData and date-range errors.
+    _, sections = exporter.split_sections(FULL_TOOL_DESCRIPTIONS[name])
+    errors = sections.get("ERROR CONTRACT", "")
+    for word in ("BirthData", "date", "timezone", "range", "validation failures"):
+        assert word not in errors, (name, errors)
+
+
+@pytest.mark.parametrize("name", [n for n in TOOLS if "days" not in INPUT_SCHEMAS[n].get("properties", {})])
+def test_single_day_tools_do_not_promise_range_errors(name):
+    _, sections = exporter.split_sections(FULL_TOOL_DESCRIPTIONS[name])
+    assert "range over 31 days" not in sections.get("ERROR CONTRACT", ""), name
