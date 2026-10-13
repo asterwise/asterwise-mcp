@@ -20,11 +20,20 @@ from runtime import (
 )
 
 _RO = mcp_types.ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
-_FMT = ("SECTION: RESPONSE FORMAT\nresponse_format=json — structured data. response_format=markdown — readable report.\n\n"
-        "SECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\n"
-        "SECTION: ERROR CONTRACT\nINVALID_PARAMS (local): BirthData validation failures.\n"
-        "INVALID_PARAMS (upstream): bad dates, a range over 31 days or an unknown timezone → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
-        "INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n")
+def _fmt(compute: str, local: str, upstream: str | None) -> str:
+    """Response format, compute class and error contract for one tool."""
+    errors = f"INVALID_PARAMS (local): {local}\n"
+    if upstream:
+        errors += f"INVALID_PARAMS (upstream): {upstream} → 422, surfaces as MCP INTERNAL_ERROR with the API message.\n"
+    return ("SECTION: RESPONSE FORMAT\nresponse_format=json — structured data. response_format=markdown — readable report.\n\n"
+            f"SECTION: COMPUTE CLASS\n{compute}\n\n"
+            f"SECTION: ERROR CONTRACT\n{errors}INTERNAL_ERROR: Any upstream API failure → MCP INTERNAL_ERROR\n\n")
+
+
+# days is bounded 1-31 by the tool schema, so a longer range never reaches the API.
+_RANGE_FMT = _fmt("MEDIUM_COMPUTE", "BirthData validation failures; days outside 1-31.", "a bad date or an unknown timezone")
+_DAY_FMT = _fmt("MEDIUM_COMPUTE", "BirthData validation failures.", "a bad date or an unknown timezone")
+_LOOKUP_FMT = _fmt("FAST_LOOKUP", "None.", None)
 
 
 def register(mcp: FastMCP) -> None:
@@ -42,7 +51,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: INPUT CONTRACT\nbirth — BirthData. target_date (optional YYYY-MM-DD) — first day; defaults to today in the birth timezone. "
             "days (1-31, default 1). target_timezone (optional IANA) — defines the civil days; defaults to the birth timezone.\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.natal — moon_nakshatra, moon_sign\ndata.moon_nakshatras[] — index, name, start, end, start_utc, end_utc, tarabala {count_from_birth, tara_number, name, meaning, is_favorable}\n"
-            "data.moon_signs[] — name, start, end, chandrabala {moon_house_from_natal, is_favorable, is_ashtama}\ndata.rules — the rules in plain words\ndata.birth_time_provided\n\n" + _FMT +
+            "data.moon_signs[] — name, start, end, chandrabala {moon_house_from_natal, is_favorable, is_ashtama}\ndata.rules — the rules in plain words\ndata.birth_time_provided\n\n" + _RANGE_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_nakshatra_prediction — a one-day prediction, not timed spans.\nasterwise_get_gochar — all planets from the Moon, not the Moon's own tara."
         )), annotations=_RO,
     )
@@ -79,7 +88,7 @@ def register(mcp: FastMCP) -> None:
             "target_timezone (optional IANA; defaults to the birth timezone). The day's sky is read at local noon.\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.factors[] — id, group, name, planet, frame, value{}, ranges{}, verdict (favorable|unfavorable|neutral|null), "
             "verdict_rule, rule_source, significations[] (ids from asterwise_get_vedic_significations), time{kind, start, end, at_utc}, depends_on_birth_time\n"
-            "data.frames{}, data.counts{}, data.natal{}, data.birth_time_provided, data.instant_utc\n\n" + _FMT +
+            "data.frames{}, data.counts{}, data.natal{}, data.birth_time_provided, data.instant_utc\n\n" + _DAY_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_gochar — the transit section only, with interpretations.\nasterwise_get_horoscope — AI-written text, not factors."
         )), annotations=_RO,
     )
@@ -111,7 +120,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: WORKFLOW\nBEFORE: asterwise_get_natal_chart.\nAFTER: asterwise_get_vedic_daily_factors — the full picture of one of the days.\n\n"
             "SECTION: INPUT CONTRACT\nbirth — BirthData. from_date (optional YYYY-MM-DD; defaults to today). days (1-31, default 7). target_timezone (optional IANA; defaults to the birth timezone).\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.events[] — kind (ingress|station|moon_nakshatra|moon_sign|natal_conjunction|eclipse|dasha_change), planet, title, time_utc, time_local, "
-            "time_precision (second|day), detail{}, verdict, verdict_rule, rule_source, significations[], depends_on_birth_time\ndata.kinds{}, data.range_start_utc, data.range_end_utc\n\n" + _FMT +
+            "time_precision (second|day), detail{}, verdict, verdict_rule, rule_source, significations[], depends_on_birth_time\ndata.kinds{}, data.range_start_utc, data.range_end_utc\n\n" + _RANGE_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_transits — ingresses and stations for everyone, nothing personal.\nasterwise_get_dasha — the whole dasha tree."
         )), annotations=_RO,
     )
@@ -144,7 +153,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_vedic_daily_factors — factors cite these ids.\n\n"
             "SECTION: INPUT CONTRACT\nNo inputs beyond response_format.\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.domains[] — id, label\ndata.houses[] — house, id, name, significations[] {id, label, domain, source, deprecated, replaced_by}\n"
-            "data.planets[] — planet, id, significations[]\ndata.version, data.source, data.id_policy\n\n" + _FMT.replace("MEDIUM_COMPUTE", "FAST_LOOKUP") +
+            "data.planets[] — planet, id, significations[]\ndata.version, data.source, data.id_policy\n\n" + _LOOKUP_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_western_significations — Lilly's list for the Western track.\nasterwise_get_planet_nature — a planet's nature in one chart."
         )), annotations=_RO,
     )
@@ -168,7 +177,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: WORKFLOW\nBEFORE: None — standalone.\nAFTER: asterwise_get_natal_chart — send an input and compare.\n\n"
             "SECTION: INPUT CONTRACT\nNo inputs beyond response_format.\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.charts[] — id, covers, input{}, expected{utc, local_time_status, ayanamsa_true, planets{}, ascendant{}}, reference_source, tolerance{}\n"
-            "data.how_to_use, data.harness\n\n" + _FMT.replace("MEDIUM_COMPUTE", "FAST_LOOKUP") +
+            "data.how_to_use, data.harness\n\n" + _LOOKUP_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_natal_chart — computes a chart; this lists charts to check it against."
         )), annotations=_RO,
     )
