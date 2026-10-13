@@ -115,11 +115,12 @@ def register(mcp: FastMCP) -> None:
             "One timeline of everything that happens to a chart over 1 to 31 days, each event with its exact time. "
             "Sidereal sign ingresses with the new sign's house from the natal Moon, stations, Moon nakshatra changes with "
             "Tarabala, Moon sign changes with Chandrabala, exact degree conjunctions with natal planets, eclipses with "
-            "their contacts, and Vimshottari dasha changes (to the day). Each event carries the verdict its own rule gives, or null.\n\n"
+            "their contacts, Purnima and Amavasya (exact full and new Moon, with the tithi's start and end), and Vimshottari "
+            "dasha changes (to the day). Each event carries the verdict its own rule gives, or null.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\nThe backbone for calendars and notifications: every dated event over a week or a month, in time order, UTC and local. No weighting.\n\n"
             "SECTION: WORKFLOW\nBEFORE: asterwise_get_natal_chart.\nAFTER: asterwise_get_vedic_daily_factors — the full picture of one of the days.\n\n"
             "SECTION: INPUT CONTRACT\nbirth — BirthData. from_date (optional YYYY-MM-DD; defaults to today). days (1-31, default 7). target_timezone (optional IANA; defaults to the birth timezone).\n\n"
-            "SECTION: OUTPUT CONTRACT\ndata.events[] — kind (ingress|station|moon_nakshatra|moon_sign|natal_conjunction|eclipse|dasha_change), planet, title, time_utc, time_local, "
+            "SECTION: OUTPUT CONTRACT\ndata.events[] — kind (ingress|station|moon_nakshatra|moon_sign|natal_conjunction|eclipse|moon_phase|dasha_change), planet, title, time_utc, time_local, "
             "time_precision (second|day), detail{}, verdict, verdict_rule, rule_source, significations[], depends_on_birth_time\ndata.kinds{}, data.range_start_utc, data.range_end_utc\n\n" + _RANGE_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_transits — ingresses and stations for everyone, nothing personal.\nasterwise_get_dasha — the whole dasha tree."
         )), annotations=_RO,
