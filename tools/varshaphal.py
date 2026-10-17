@@ -16,6 +16,14 @@ from runtime import (
 )
 
 
+# year_lord keeps its old name for API compatibility but is the weekday (vara)
+# lord; a bare "Year Lord" in the report reads as the Tajika year lord (Grok
+# MCP review 2026-10-17).
+VARSHAPHAL_MARKDOWN_LABELS = {
+    "year_lord": "Year Lord (weekday lord; the Tajika year lord is Varsha Pati)",
+}
+
+
 def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_varshaphal",
@@ -42,7 +50,9 @@ def register(mcp: FastMCP) -> None:
             return format_tool_result(
                 data,
                 response_format,
-                lambda d: structured_markdown(f"Varshaphal ({year})", d),
+                lambda d: structured_markdown(
+                    f"Varshaphal ({year})", d, labels=VARSHAPHAL_MARKDOWN_LABELS
+                ),
             )
     @mcp.tool(
         name="asterwise_get_varshaphal_saham",
