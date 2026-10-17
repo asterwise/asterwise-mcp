@@ -47,3 +47,21 @@ def test_structured_markdown_nested() -> None:
     assert "Yes" in md
     assert "Nested" in md or "nested" in md.lower()
     assert "empty" in md.lower() or "(empty)" in md
+
+
+def test_structured_markdown_label_override_applies_at_any_depth() -> None:
+    md = structured_markdown(
+        "T",
+        {"year_lord": "Venus", "nested": {"year_lord": "Venus"}, "rows": [{"year_lord": "Venus"}]},
+        labels={"year_lord": "Year Lord (weekday lord)"},
+    )
+    assert md.count("**Year Lord (weekday lord)**: Venus") == 3
+    assert "**Year Lord**:" not in md
+
+
+def test_varshaphal_markdown_says_year_lord_is_the_weekday_lord() -> None:
+    from tools.varshaphal import VARSHAPHAL_MARKDOWN_LABELS
+
+    md = structured_markdown("Varshaphal (2026)", {"data": {"year_lord": "Venus", "varsha_pati": {"planet": "Mercury"}}}, labels=VARSHAPHAL_MARKDOWN_LABELS)
+    assert "**Year Lord (weekday lord; the Tajika year lord is Varsha Pati)**: Venus" in md
+    assert "**Varsha Pati**" in md

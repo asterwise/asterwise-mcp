@@ -373,14 +373,22 @@ def format_tool_result(
     return to_markdown(cleaned)
 
 
-def structured_markdown(title: str, data: dict[str, Any]) -> str:
-    """Readable markdown for arbitrary nested API payloads."""
+def structured_markdown(
+    title: str, data: dict[str, Any], labels: dict[str, str] | None = None
+) -> str:
+    """Readable markdown for arbitrary nested API payloads.
+
+    ``labels`` overrides the label printed for a key wherever it appears, for
+    fields whose name alone would mislead a reader (the key itself, and the
+    JSON output, are unchanged).
+    """
     lines = [f"## {title}", ""]
-    lines.append(_md_value(data))
+    lines.append(_md_value(data, labels=labels or {}))
     return "\n".join(lines)
 
 
-def _md_value(obj: Any, depth: int = 0) -> str:
+def _md_value(obj: Any, depth: int = 0, labels: dict[str, str] | None = None) -> str:
+    labels = labels or {}
     indent = "  " * depth
     if obj is None:
         return "*null*"
@@ -391,12 +399,12 @@ def _md_value(obj: Any, depth: int = 0) -> str:
     if isinstance(obj, dict):
         parts: list[str] = []
         for k, v in obj.items():
-            label = str(k).replace("_", " ").title()
+            label = labels.get(str(k)) or str(k).replace("_", " ").title()
             if isinstance(v, (dict, list)):
                 parts.append(f"{indent}- **{label}**")
-                parts.append(_md_value(v, depth + 1))
+                parts.append(_md_value(v, depth + 1, labels))
             else:
-                parts.append(f"{indent}- **{label}**: {_md_value(v, depth)}")
+                parts.append(f"{indent}- **{label}**: {_md_value(v, depth, labels)}")
         return "\n".join(parts)
     if isinstance(obj, list):
         if not obj:
@@ -405,8 +413,8 @@ def _md_value(obj: Any, depth: int = 0) -> str:
         for i, item in enumerate(obj):
             if isinstance(item, dict):
                 parts.append(f"{indent}- **Item {i + 1}**")
-                parts.append(_md_value(item, depth + 1))
+                parts.append(_md_value(item, depth + 1, labels))
             else:
-                parts.append(f"{indent}- {_md_value(item, depth)}")
+                parts.append(f"{indent}- {_md_value(item, depth, labels)}")
         return "\n".join(parts)
     return str(obj)
