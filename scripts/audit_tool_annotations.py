@@ -2,7 +2,9 @@
 """Audit FastMCP tool annotations for OpenAI Apps submission readiness.
 
 Fails (exit 1) if any tool is missing title, or if annotations are not exactly:
-  readOnlyHint=True, openWorldHint=False, destructiveHint=False
+  readOnlyHint=True, destructiveHint=False, openWorldHint=False
+except openWorldHint=True for the tools in OPEN_WORLD_TOOLS (they query an
+outside service over open-ended public data). idempotentHint must be a bool.
 """
 
 from __future__ import annotations
@@ -15,6 +17,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+
+# Tools that reach an outside service: asterwise_geocode looks place names up in
+# OpenStreetMap (Nominatim).
+OPEN_WORLD_TOOLS = frozenset({"asterwise_geocode"})
 
 
 def _ann_val(annotations: object | None, key: str) -> object | None:
@@ -47,10 +54,13 @@ async def _run() -> int:
             failures.append(f"{name}: missing title")
         if read_only is not True:
             failures.append(f"{name}: readOnlyHint={read_only!r} (expected True)")
-        if open_world is not False:
+        expected_open = name in OPEN_WORLD_TOOLS
+        if open_world is not expected_open:
             failures.append(
-                f"{name}: openWorldHint={open_world!r} (expected False explicitly)"
+                f"{name}: openWorldHint={open_world!r} (expected {expected_open} explicitly)"
             )
+        if not isinstance(_ann_val(ann, "idempotentHint"), bool):
+            failures.append(f"{name}: idempotentHint must be true or false")
         if destructive is not False:
             failures.append(
                 f"{name}: destructiveHint={destructive!r} (expected False explicitly)"

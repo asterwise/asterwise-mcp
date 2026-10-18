@@ -119,11 +119,14 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_geocode",
         title="Geocode a place",
         description=compact_description("asterwise_geocode", texts.GEOCODE),
+        # openWorldHint=True: the API looks the place text up in OpenStreetMap
+        # (Nominatim), an outside service over open-ended public place names.
+        # Every other tool computes from its inputs and Asterwise's own data.
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
             idempotentHint=True,
-            openWorldHint=False,
+            openWorldHint=True,
         ),
     )
     async def asterwise_geocode(
