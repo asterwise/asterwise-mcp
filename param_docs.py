@@ -233,13 +233,24 @@ _NUMEROLOGY_NAME = (
     "Person's full name as commonly written; its letters are converted to numerology values."
 )
 for _tool in (
-    "asterwise_get_balance_number", "asterwise_get_chaldean_numerology",
-    "asterwise_get_expression_number", "asterwise_get_karmic_lessons",
-    "asterwise_get_lucky_numbers", "asterwise_get_maturity_number",
+    "asterwise_get_chaldean_numerology", "asterwise_get_lucky_numbers",
     "asterwise_get_name_correction", "asterwise_get_numerology_profile",
-    "asterwise_get_personality_number", "asterwise_get_soul_urge_number",
 ):
     TOOL_PARAM_DESCRIPTIONS[(_tool, "name")] = _NUMEROLOGY_NAME
+
+# The Pythagorean name numbers say in their own descriptions that they take the
+# full name at birth; the parameter table said "as commonly written", so the two
+# disagreed on the same page (Grok docs check 2026-10-18).
+_BIRTH_NAME = (
+    "Full legal name as used at birth, all parts; its letters are converted to "
+    "numerology values."
+)
+for _tool in (
+    "asterwise_get_balance_number", "asterwise_get_expression_number",
+    "asterwise_get_karmic_lessons", "asterwise_get_maturity_number",
+    "asterwise_get_personality_number", "asterwise_get_soul_urge_number",
+):
+    TOOL_PARAM_DESCRIPTIONS[(_tool, "name")] = _BIRTH_NAME
 
 # Defaults as the API applies them. The API servers run in UTC, so a plain
 # "today" there is the UTC date.

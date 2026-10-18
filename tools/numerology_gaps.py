@@ -333,7 +333,7 @@ def register(mcp: FastMCP) -> None:
             "AFTER: asterwise_get_numerology_profile — see karmic lessons alongside all core numbers.\n\n"
             "SECTION: INPUT CONTRACT\n"
             "name — Full legal name as used at birth.\n"
-            "  Example: 'Arjun Mehta' — scan all 9 letters for their Pythagorean digit values.\n"
+            "  Example: 'Arjun Mehta' — scan all 10 letters for their Pythagorean digit values.\n"
             "  Letters present: A=1, R=9, J=1, U=3, N=5, M=4, E=5, H=8, T=2, A=1\n"
             "  Digits present: {1,2,3,4,5,8,9} → Missing: {6,7}\n\n"
             "SECTION: OUTPUT CONTRACT\n"
