@@ -395,6 +395,8 @@ def register(mcp: FastMCP) -> None:
         birth: WesternBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         start_date: str | None = None,
+        snapshot_time: Annotated[str | None, Field(pattern=r"^\d{2}:\d{2}$", description="Local clock time HH:MM at which each day's sky is read. Default 12:00 UTC.")] = None,
+        snapshot_timezone: Annotated[str | None, Field(description="IANA timezone for snapshot_time. Defaults to the birth timezone.")] = None,
     ) -> str:
         """Daily Western transits vs natal."""
         async with tool_guard("asterwise_get_western_transits_daily"):
@@ -402,6 +404,10 @@ def register(mcp: FastMCP) -> None:
             body = birth.to_api_dict()
             if start_date:
                 body["start_date"] = start_date
+            if snapshot_time:
+                body["snapshot_time"] = snapshot_time
+            if snapshot_timezone:
+                body["snapshot_timezone"] = snapshot_timezone
             data = await get_client().post(
                 "/v1/western/transits/daily", api_key, body, timeout=20.0
             )
@@ -425,7 +431,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: INPUT CONTRACT\n"
             "birth — WesternBirthData. house_system picks the natal houses used for natal_house "
             "on each transiting planet (default placidus).\n"
-            "start_date (optional YYYY-MM-DD) — week start; defaults to today.\n\n"
+            "start_date (optional YYYY-MM-DD) — week start; defaults to today. snapshot_time (optional HH:MM) and snapshot_timezone (IANA) read each day's sky at that local clock time instead of 12:00 UTC.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
             "data.start_date, data.end_date, data.house_system, data.birth_time_provided\n"
             "Each day snapshot has the daily-transits shape: natal_house per transiting planet and "
@@ -455,6 +461,8 @@ def register(mcp: FastMCP) -> None:
         birth: WesternBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         start_date: str | None = None,
+        snapshot_time: Annotated[str | None, Field(pattern=r"^\d{2}:\d{2}$", description="Local clock time HH:MM at which each day's sky is read. Default 12:00 UTC.")] = None,
+        snapshot_timezone: Annotated[str | None, Field(description="IANA timezone for snapshot_time. Defaults to the birth timezone.")] = None,
     ) -> str:
         """Weekly Western transits vs natal."""
         async with tool_guard("asterwise_get_western_transits_weekly"):
@@ -462,6 +470,10 @@ def register(mcp: FastMCP) -> None:
             body = birth.to_api_dict()
             if start_date:
                 body["start_date"] = start_date
+            if snapshot_time:
+                body["snapshot_time"] = snapshot_time
+            if snapshot_timezone:
+                body["snapshot_timezone"] = snapshot_timezone
             data = await get_client().post(
                 "/v1/western/transits/weekly", api_key, body, timeout=30.0
             )
@@ -485,7 +497,7 @@ def register(mcp: FastMCP) -> None:
             "SECTION: INPUT CONTRACT\n"
             "birth — WesternBirthData. house_system picks the natal houses used for natal_house "
             "on each transiting planet (default placidus).\n"
-            "start_date (optional YYYY-MM-DD) — month start; defaults to today.\n\n"
+            "start_date (optional YYYY-MM-DD) — month start; defaults to today. snapshot_time (optional HH:MM) and snapshot_timezone (IANA) read each day's sky at that local clock time instead of 12:00 UTC.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
             "data.start_date, data.end_date, data.house_system, data.birth_time_provided\n"
             "Each day snapshot has the daily-transits shape: natal_house per transiting planet and "
@@ -517,6 +529,8 @@ def register(mcp: FastMCP) -> None:
         birth: WesternBirthData,
         response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         start_date: str | None = None,
+        snapshot_time: Annotated[str | None, Field(pattern=r"^\d{2}:\d{2}$", description="Local clock time HH:MM at which each day's sky is read. Default 12:00 UTC.")] = None,
+        snapshot_timezone: Annotated[str | None, Field(description="IANA timezone for snapshot_time. Defaults to the birth timezone.")] = None,
     ) -> str:
         """Monthly Western transits vs natal."""
         async with tool_guard("asterwise_get_western_transits_monthly"):
@@ -524,6 +538,10 @@ def register(mcp: FastMCP) -> None:
             body = birth.to_api_dict()
             if start_date:
                 body["start_date"] = start_date
+            if snapshot_time:
+                body["snapshot_time"] = snapshot_time
+            if snapshot_timezone:
+                body["snapshot_timezone"] = snapshot_timezone
             data = await get_client().post(
                 "/v1/western/transits/monthly", api_key, body, timeout=60.0
             )
