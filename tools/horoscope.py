@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from fastmcp import Context, FastMCP
 
@@ -11,7 +11,7 @@ import mcp.types as mcp_types
 from pydantic import Field
 
 from client import get_client, safe_segment
-from models import BirthData, HoroscopePeriod, ResponseFormat, TimedBirthData
+from models import HoroscopePeriod, ResponseFormat, TimedBirthData
 from runtime import (
     compact_description,
     tool_guard,
@@ -121,7 +121,7 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(
         name="asterwise_get_transits",
         title="Transits",
-        description=compact_description("asterwise_get_transits", "Lists sign ingresses and retrograde/direct stations for all planets between two dates against the natal context and returns chronological astronomical events.\n\nSECTION: WHAT THIS TOOL COVERS\nAggregates ingress rows (with sankranti flag for Sun) and station rows with Julian day, UTC timestamps (date_iso, datetime_utc), and ecliptic longitude. Lahiri sidereal by default; birth.ayanamsa='tropical' switches to the Western zodiac. The upstream API enforces ordering and a 24-month window; violations are not pre-checked in this MCP layer. It does not return today's full Gochar row (asterwise_get_gochar) or dasha-transit scores (asterwise_get_dasha_transits).\n\nSECTION: WORKFLOW\nBEFORE: RECOMMENDED — asterwise_get_natal_chart — clarifies the natal reference for the same birth data.\nAFTER: asterwise_get_gochar — optional current snapshot after scanning the range.\n\nSECTION: INPUT CONTRACT\nfrom_date and to_date are strings in the format expected by the upstream API (typically YYYY-MM-DD). Range cap (24 months), date order, and validity are enforced upstream, not locally.\nbirth.ayanamsa picks the zodiac: 'lahiri' (default), 'raman', 'kp' are sidereal; 'tropical' gives Western sign changes (Sun into Aries at the March equinox, Moon sign changes every ~2.5 days). Station moments do not depend on it, only their longitude.\n\nSECTION: OUTPUT CONTRACT\ndata.ingresses[] — each:\n  planet (string)\n  from_sign (int — 0–11)\n  to_sign (int — 0–11)\n  jd (float)\n  date_iso (string — UTC, ISO without offset)\n  datetime_utc (string — UTC with Z)\n  is_sankranti (bool — true for Sun ingresses only)\n  retrograde_ingress (bool)\n  from_sign_name, to_sign_name (string — e.g. Pisces, Aries)\n  zodiac (string — 'sidereal' or 'tropical'), ayanamsa (string)\ndata.stations[] — each:\n  planet (string)\n  station_type (string — 'retrograde' or 'direct')\n  jd (float)\n  date_iso (string — UTC, ISO without offset)\n  datetime_utc (string — UTC with Z)\n  longitude (float — in the requested zodiac)\n  sign (int 0–11), sign_name (string)\n  zodiac (string), ayanamsa (string)\ndata.zodiac, data.ayanamsa — echo of the zodiac used\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — range/order violations surface as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Exceeding the 24-month cap or bad date order fails upstream and is not turned into MCP INVALID_PARAMS here.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_gochar — single-day transit snapshot with houses from Moon/Lagna, not ingress/station lists.\nasterwise_get_dasha_transits — dasha lord vs transit scoring for today only."),
+        description=compact_description("asterwise_get_transits", "Lists sign ingresses and retrograde/direct stations for all planets between two dates and returns chronological astronomical events. No birth data is needed.\n\nSECTION: WHAT THIS TOOL COVERS\nAggregates ingress rows (with sankranti flag for Sun) and station rows with Julian day, UTC timestamps (date_iso, datetime_utc), and ecliptic longitude. Lahiri sidereal by default; ayanamsa='tropical' switches to the Western zodiac. The upstream API enforces ordering and a 3-year (1095-day) window; violations are not pre-checked in this MCP layer. It does not return today's full Gochar row (asterwise_get_gochar) or dasha-transit scores (asterwise_get_dasha_transits).\n\nSECTION: WORKFLOW\nBEFORE: None — no birth data or natal chart is needed.\nAFTER: asterwise_get_gochar — optional snapshot of transits against a natal chart.\n\nSECTION: INPUT CONTRACT\nfrom_date and to_date are strings in the format expected by the upstream API (typically YYYY-MM-DD). Range cap (3 years, 1095 days), date order, and validity are enforced upstream, not locally.\nayanamsa picks the zodiac: 'lahiri' (default), 'raman', 'kp' are sidereal; 'tropical' gives Western sign changes (Sun into Aries at the March equinox, Moon sign changes every ~2.5 days). Station moments do not depend on it, only their longitude.\n\nSECTION: OUTPUT CONTRACT\ndata.ingresses[] — each:\n  planet (string)\n  from_sign (int — 0–11)\n  to_sign (int — 0–11)\n  jd (float)\n  date_iso (string — UTC, ISO without offset)\n  datetime_utc (string — UTC with Z)\n  is_sankranti (bool — true for Sun ingresses only)\n  retrograde_ingress (bool)\n  from_sign_name, to_sign_name (string — e.g. Pisces, Aries)\n  zodiac (string — 'sidereal' or 'tropical'), ayanamsa (string)\ndata.stations[] — each:\n  planet (string)\n  station_type (string — 'retrograde' or 'direct')\n  jd (float)\n  date_iso (string — UTC, ISO without offset)\n  datetime_utc (string — UTC with Z)\n  longitude (float — in the requested zodiac)\n  sign (int 0–11), sign_name (string)\n  zodiac (string), ayanamsa (string)\ndata.zodiac, data.ayanamsa — echo of the zodiac used\n\nSECTION: RESPONSE FORMAT\nresponse_format=json serialises the complete response as indented JSON — use this for programmatic parsing, typed clients, and downstream tool chaining. response_format=markdown renders the same data as a human-readable report. Both modes return identical underlying data — no fields are added, removed, or filtered by either mode.\n\nSECTION: COMPUTE CLASS\nMEDIUM_COMPUTE\n\nSECTION: ERROR CONTRACT\nINVALID_PARAMS (local — caught before upstream call):\n  None — all validation is upstream.\n\nINVALID_PARAMS (upstream):\n  — None — range/order violations surface as MCP INTERNAL_ERROR at the tool layer.\n\nINTERNAL_ERROR:\n  — Any upstream API failure or timeout → MCP INTERNAL_ERROR\n\nEdge cases:\n  — Exceeding the 3-year cap or bad date order fails upstream and is not turned into MCP INVALID_PARAMS here.\n\nSECTION: DO NOT CONFUSE WITH\nasterwise_get_gochar — single-day transit snapshot with houses from Moon/Lagna, not ingress/station lists.\nasterwise_get_dasha_transits — dasha lord vs transit scoring for today only."),
         annotations=mcp_types.ToolAnnotations(
             readOnlyHint=True,
             destructiveHint=False,
@@ -131,15 +131,18 @@ def register(mcp: FastMCP) -> None:
     )
     async def asterwise_get_transits(
         ctx: Context,
-        birth: BirthData,
         from_date: str,
         to_date: str,
+        ayanamsa: Literal["lahiri", "raman", "kp", "tropical"] = Field(
+            default="lahiri",
+            description="Zodiac: lahiri (default), raman or kp sidereal; tropical for Western sign changes.",
+        ),
         response_format: ResponseFormat = ResponseFormat.MARKDOWN
     ) -> str:
         """Date-range transits."""
         async with tool_guard("asterwise_get_transits"):
             api_key = await require_api_key(ctx)
-            body = {**birth.to_api_dict(), "from_date": from_date, "to_date": to_date}
+            body = {"from_date": from_date, "to_date": to_date, "ayanamsa": ayanamsa}
             data = await get_client().post(
                 "/v1/astro/transits", api_key, body, timeout=10.0
             )
