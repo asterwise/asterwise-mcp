@@ -13,7 +13,12 @@ from urllib.parse import quote
 
 import httpx
 
-from errors import AsterwiseAPIError, details_are_sky_side, map_http_status_to_message
+from errors import (
+    MONTHLY_LIMIT_CODE,
+    AsterwiseAPIError,
+    details_are_sky_side,
+    map_http_status_to_message,
+)
 from auth import forwarded_client_ip_headers
 from context import get_request_client_ip
 
@@ -70,6 +75,27 @@ def _render_details(details: Any) -> str | None:
     return "; ".join(p for p in parts if p) or None
 
 
+def _seconds(value: Any) -> int | None:
+    """A Retry-After header or retry_after body field as whole seconds."""
+    if isinstance(value, bool):
+        return None
+    try:
+        seconds = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return seconds if seconds > 0 else None
+
+
+def _error_code(response: httpx.Response) -> str | None:
+    """The API envelope's error code, or None when the body is not one."""
+    try:
+        body = response.json()
+    except Exception:
+        return None
+    code = body.get("error") if isinstance(body, dict) else None
+    return code if isinstance(code, str) else None
+
+
 class AsterwiseClient:
     """Process-wide HTTP client — opened in app lifespan."""
 
@@ -112,12 +138,15 @@ class AsterwiseClient:
         error_code: str | None = None
         sky_side = False
         api_request_id = response.headers.get("X-Request-ID")
+        retry_after = _seconds(response.headers.get("Retry-After"))
         try:
             body = response.json()
             if isinstance(body, dict):
                 api_request_id = api_request_id or body.get("request_id")
                 if isinstance(body.get("error"), str):
                     error_code = body["error"]
+                if retry_after is None:
+                    retry_after = _seconds(body.get("retry_after"))
                 sky_side = details_are_sky_side(body.get("details"))
                 d = body.get("detail")
                 if d is not None:
@@ -136,13 +165,14 @@ class AsterwiseClient:
             if text:
                 detail = text[:500]
         msg = map_http_status_to_message(
-            response.status_code, detail, error_code, sky_side=sky_side
+            response.status_code, detail, error_code, sky_side=sky_side, retry_after=retry_after
         )
         raise AsterwiseAPIError(
             msg,
             hint=msg,
             status_code=response.status_code,
             api_request_id=api_request_id if isinstance(api_request_id, str) else None,
+            error_code=error_code,
         )
 
     async def _request_with_retry(
@@ -192,7 +222,9 @@ class AsterwiseClient:
                     self._raise_for_status(response)
 
                 if response.status_code == 429:
-                    if attempt < MAX_RETRIES:
+                    # The monthly limit does not lift for weeks; retrying it
+                    # only repeats the refusal.
+                    if attempt < MAX_RETRIES and _error_code(response) != MONTHLY_LIMIT_CODE:
                         ra = response.headers.get("Retry-After")
                         try:
                             delay = float(ra) if ra is not None else BASE_DELAY * (2**attempt)
