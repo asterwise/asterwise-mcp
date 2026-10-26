@@ -590,7 +590,7 @@ mcp = FastMCP(
   asterwise_get_vedic_daily_factors — every Vedic factor for a person on a day, rules named, no weighting
   asterwise_get_vedic_events — timeline of ingresses, stations, Moon, natal conjunctions, eclipses, dasha changes
   asterwise_get_vedic_significations — BPHS house and planet significations with stable ids
-  asterwise_get_reference_charts — published test charts with PyJHora / Swiss Ephemeris reference values
+  asterwise_get_reference_charts — published test charts with independent reference values
   asterwise_get_ashtakavarga — bindu matrices, trikona/ekadhipatya reductions
   asterwise_get_varshaphal — Tajika annual solar return
   asterwise_get_varshaphal_saham — 10 Tajika Saham sensitive points (Arabic Parts equivalent) for a solar return: Punya/Fortune, Vidya/Education, Yashas/Fame, Mitra/Friends, Mahatmya/Status, Asha/Desires, Karmakarya/Career, Vyapara/Business, Vivaha/Marriage, Santapa/Sorrow
