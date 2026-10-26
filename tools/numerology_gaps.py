@@ -205,7 +205,7 @@ def register(mcp: FastMCP) -> None:
         description=compact_description("asterwise_get_maturity_number", (
             "Calculates the Maturity number as the sum of Life Path and Expression numbers, "
             "reduced to a single digit or master number. Represents the underlying wish or "
-            "true desire that becomes conscious around age 35 and fully emerges by midlife.\n\n"
+            "true desire that surfaces from around age 35 and fully emerges by midlife.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
             "The Maturity number is sometimes called the True Goal — the final attainment "
             "that Life Path and Expression together point toward. It becomes increasingly "
