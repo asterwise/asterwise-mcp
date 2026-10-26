@@ -77,7 +77,7 @@ SECTION: DO NOT CONFUSE WITH
 asterwise_get_choghadiya — the sixteen slots of one day, not a ranked search.
 asterwise_get_panchanga — one day's limbs and timings."""
 
-FESTIVAL_CALENDAR = """Hindu festivals, vrats, sankrantis, eclipses and periods for a year at a location. Each lunar festival is fixed by its lunar month (amanta, with Adhik months found from new moons and sankrantis), its tithi, and the part of the day the tithi must hold (sunrise, forenoon, Madhyahna, Aparahna, Pradosh, Nishita, moonrise), with the classical tie-breaks when a tithi spans two days, Bhadra rules for Holika Dahan and Raksha Bandhan, and the Smarta Ekadashi rule. Checked against Drik Panchang (New Delhi).
+FESTIVAL_CALENDAR = """Hindu festivals, vrats, sankrantis, eclipses and periods for a year at a location. Each lunar festival is fixed by its lunar month (amanta, with Adhik months found from new moons and sankrantis), its tithi, and the part of the day the tithi must hold (sunrise, forenoon, Madhyahna, Aparahna, Pradosh, Nishita, moonrise), with the classical tie-breaks when a tithi spans two days, Bhadra rules for Holika Dahan and Raksha Bandhan, and the Smarta Ekadashi rule. Checked against published panchang dates (New Delhi).
 
 SECTION: WHAT THIS TOOL COVERS
 Categories: festival (about 50: Diwali, Holi, Dussehra, Janmashtami, Karva Chauth, Govardhan, Chhath, Chaitra Navratri ...), vrat (every Ekadashi, Pradosh, Sankashti Chaturthi, Masik Shivaratri, Purnima, the Purnima vrat (fast) day — Purnima at Madhyahna, often the day before — Amavasya), sankranti (12 solar ingresses), eclipse (with local visibility and contact times), period (Adhik Maas, Chaturmas, Pitru Paksha, both Navratris, Holashtak, Kharmas). Dates depend on the location's sunrise and sunset.
@@ -154,7 +154,7 @@ asterwise_get_panchanga — daily panchanga (tithi, yoga, karana), not Tarabala.
 DIVISIONAL_CHART = """Computes divisional (varga) charts from BirthData; pass chart_type for one varga, or omit chart_type for all sixteen. Each planet in each varga comes with its dignity there and whether it is vargottama; with a known birth time, each chart also has its own lagna, every planet's whole-sign house from that lagna, and a houses table.
 
 SECTION: WHAT THIS TOOL COVERS
-Charts: D1, D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45, D60. D30 uses the BPHS odd/even Trimshamsa table and places every body, Sun and Moon included; D60 counts from the planet's own sign (Jagannatha Hora defaults). dignity (exalted, debilitated, own_sign, friendly, neutral, enemy) is given for the seven classical planets; is_vargottama means the same sign as in D1. Does not return Shadbala (asterwise_get_chart_strength) or graha drishti (asterwise_get_natal_chart).
+Charts: D1, D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45, D60. D30 uses the BPHS odd/even Trimshamsa table and places every body, Sun and Moon included; D60 counts from the planet's own sign (BPHS). dignity (exalted, debilitated, own_sign, friendly, neutral, enemy) is given for the seven classical planets; is_vargottama means the same sign as in D1. Does not return Shadbala (asterwise_get_chart_strength) or graha drishti (asterwise_get_natal_chart).
 
 SECTION: WORKFLOW
 BEFORE: RECOMMENDED — asterwise_get_natal_chart — anchor D1 before reading higher vargas.
