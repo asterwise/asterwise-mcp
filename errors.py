@@ -45,10 +45,12 @@ class AsterwiseAPIError(AsterwiseMCPError):
         hint: str | None = None,
         status_code: int | None = None,
         api_request_id: str | None = None,
+        error_code: str | None = None,
     ) -> None:
         super().__init__(message, hint=hint)
         self.status_code = status_code
         self.api_request_id = api_request_id
+        self.error_code = error_code
 
 
 # 422 codes that describe the request itself; the others (no sunrise at a
@@ -79,12 +81,45 @@ def details_are_sky_side(details: Any) -> bool:
     )
 
 
+# The API refuses with 429 for limits that need different answers from the
+# caller: the monthly limit only lifts on the 1st (UTC) or with a higher plan,
+# while the per-minute ones lift within a minute. One "retry shortly" message
+# for all of them sent a tester round in circles for hours (2026-10-26).
+MONTHLY_LIMIT_CODE = "monthly_usage_limit_exceeded"
+
+
+def _rate_limit_message(error_code: str | None, detail: str | None, retry_after: int | None) -> str:
+    wait = f"{retry_after} seconds" if retry_after and retry_after > 0 else "a minute"
+    if error_code == MONTHLY_LIMIT_CODE:
+        said = f" The API said: {detail.rstrip('.')}." if detail else ""
+        return (
+            f"Monthly call limit reached ({error_code}): this Asterwise account has used every "
+            "call its plan includes this month. Retrying will not help: the limit resets on the "
+            "1st of next month at 00:00 UTC, or sooner with a higher plan at "
+            "https://asterwise.com/dashboard." + said
+        )
+    if error_code == "burst_limit_exceeded":
+        return (
+            f"Per-minute limit reached ({error_code}): this account's plan allows a set number "
+            f"of calls a minute. Wait {wait}, then continue at a slower pace."
+        )
+    if error_code == "ip_rate_limit_exceeded":
+        return (
+            f"Per-network limit reached ({error_code}): too many calls came from this network "
+            f"in the last minute. Wait {wait}, then continue at a slower pace."
+        )
+    code = f" ({error_code})" if error_code else ""
+    said = f" The API said: {detail.rstrip('.')}." if detail else ""
+    return f"Rate limit reached{code}. Wait {wait} before retrying." + said
+
+
 def map_http_status_to_message(
     status_code: int,
     detail: str | None,
     error_code: str | None = None,
     *,
     sky_side: bool = False,
+    retry_after: int | None = None,
 ) -> str:
     """Map HTTP status codes to actionable messages for LLM clients."""
     if status_code == 401:
@@ -107,9 +142,7 @@ def map_http_status_to_message(
             "latitude/longitude ranges, and enum values) and retry."
         )
     if status_code == 429:
-        return (
-            "Rate limit exceeded. Please retry after a short wait."
-        )
+        return _rate_limit_message(error_code, detail, retry_after)
     if status_code >= 500:
         return (
             "Asterwise API error. Check status at https://status.asterwise.com and retry later."
