@@ -1408,7 +1408,7 @@ def register(mcp: FastMCP) -> None:
             "Jupiter and Venus the fortunes, Saturn and Mars the infortunes), each transiting planet's sign, essential dignity and natal house, the Moon's phase, sign changes and "
             "void-of-course periods, the planetary hours, and the lord of the year. Uranus, Neptune and Pluto carry no verdict.\n\n"
             "SECTION: WORKFLOW\nBEFORE: asterwise_get_western_natal.\nAFTER: asterwise_get_western_events — the same over a range, as a timeline.\n\n"
-            "SECTION: INPUT CONTRACT\nbirth — WesternBirthData (house_system used for natal_house). target_date (optional YYYY-MM-DD; defaults to today in the birth timezone). target_timezone (optional IANA).\n\n"
+            "SECTION: INPUT CONTRACT\nbirth — WesternBirthData (house_system used for natal_house). target_date (optional YYYY-MM-DD; defaults to today in the birth timezone). target_time (optional HH:MM; defaults to 12:00) — the local time the day's sky is read. target_timezone (optional IANA).\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.factors[] — id, group (aspect|transit|moon_phase|void_of_course|planetary_hour|profection), name, planet, frame, value{}, ranges{}, verdict, verdict_rule, rule_source, "
             "significations[] (ids from asterwise_get_western_significations), time{}, depends_on_birth_time\ndata.frames{}, data.counts{}, data.natal{}, data.birth_time_provided\n\n" + _W_DAY_FMT +
             "SECTION: DO NOT CONFUSE WITH\nasterwise_get_western_transits_daily — the aspects only, with no rules.\nasterwise_get_western_horoscope — AI-written sun-sign text."
@@ -1417,6 +1417,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_western_daily_factors(
         ctx: Context, birth: WesternBirthData, response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: Annotated[str | None, Field(description="Day to read, YYYY-MM-DD. Defaults to today in the birth timezone.")] = None,
+        target_time: Annotated[str | None, Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$", description="Local time HH:MM (24-hour) on the day at which the sky is read. Defaults to 12:00. Pass the user's own time so the Moon is where the user sees it.")] = None,
         target_timezone: Annotated[str | None, Field(description="IANA timezone of the day. Defaults to the birth timezone.")] = None,
     ) -> str:
         """Every Western factor for a person on a day."""
@@ -1425,6 +1426,8 @@ def register(mcp: FastMCP) -> None:
             body = birth.to_api_dict()
             if target_date:
                 body["target_date"] = target_date
+            if target_time:
+                body["target_time"] = target_time
             if target_timezone:
                 body["target_timezone"] = target_timezone
             data = await get_client().post("/v1/western/daily-factors", api_key, body, timeout=30.0)
