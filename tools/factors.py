@@ -85,7 +85,7 @@ def register(mcp: FastMCP) -> None:
             "tithi, yoga, karana, vara and the Moon's phase. The caller decides what matters; counts are counts, not scores.\n\n"
             "SECTION: WORKFLOW\nBEFORE: asterwise_get_natal_chart.\nAFTER: asterwise_get_vedic_events — the same over a range, as a timeline.\n\n"
             "SECTION: INPUT CONTRACT\nbirth — BirthData. target_date (optional YYYY-MM-DD; defaults to today in the birth timezone). "
-            "target_timezone (optional IANA; defaults to the birth timezone). The day's sky is read at local noon.\n\n"
+            "target_time (optional HH:MM; defaults to 12:00) — the local time the day's sky is read. target_timezone (optional IANA; defaults to the birth timezone).\n\n"
             "SECTION: OUTPUT CONTRACT\ndata.factors[] — id, group, name, planet, frame, value{}, ranges{}, verdict (favorable|unfavorable|neutral|null), "
             "verdict_rule, rule_source, significations[] (ids from asterwise_get_vedic_significations), time{kind, start, end, at_utc}, depends_on_birth_time\n"
             "data.frames{}, data.counts{}, data.natal{}, data.birth_time_provided, data.instant_utc\n\n" + _DAY_FMT +
@@ -95,6 +95,7 @@ def register(mcp: FastMCP) -> None:
     async def asterwise_get_vedic_daily_factors(
         ctx: Context, birth: BirthData, response_format: ResponseFormat = ResponseFormat.MARKDOWN,
         target_date: Annotated[str | None, Field(description="Day to read, YYYY-MM-DD. Defaults to today in the birth timezone.")] = None,
+        target_time: Annotated[str | None, Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$", description="Local time HH:MM (24-hour) on the day at which the sky is read. Defaults to 12:00. Pass the user's own time so the Moon is where the user sees it.")] = None,
         target_timezone: Annotated[str | None, Field(description="IANA timezone of the day. Defaults to the birth timezone.")] = None,
     ) -> str:
         """Every Vedic factor for a person on a day."""
@@ -103,6 +104,8 @@ def register(mcp: FastMCP) -> None:
             body = birth.to_api_dict()
             if target_date:
                 body["target_date"] = target_date
+            if target_time:
+                body["target_time"] = target_time
             if target_timezone:
                 body["target_timezone"] = target_timezone
             data = await get_client().post("/v1/astro/daily-factors", api_key, body, timeout=30.0)

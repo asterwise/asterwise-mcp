@@ -44,7 +44,7 @@ SECTION: INPUT CONTRACT
 calendar.year 1900-2100, calendar.month 1-12, calendar.lat, calendar.lon, calendar.timezone (IANA; default Asia/Kolkata — set it for places outside India).
 
 SECTION: OUTPUT CONTRACT
-data.days[]: date, tithi, vara, nakshatra, yoga, karana (sunrise limbs), rahu_kaal (HH:MM), sunrise, sunset, moonrise, moonset, paksha, masa, tithis[], nakshatras[], yogas[], karanas[] (start, end, at_sunrise, is_kshaya, is_vriddhi), bhadra[].
+data.days[]: date, tithi, vara, nakshatra, yoga, karana (sunrise limbs), rahu_kaal (HH:MM), sunrise, sunset, moonrise, moonset, paksha, masa, tithis[], nakshatras[], yogas[], karanas[] (start, end, at_sunrise, is_kshaya, is_vriddhi), bhadra[], moon_rashi[] (index, name, start, end: every sign the Moon is in between this sunrise and the next).
 
 SECTION: ERROR CONTRACT
 INVALID_PARAMS (local): year or month out of range. INTERNAL_ERROR: upstream failure.
