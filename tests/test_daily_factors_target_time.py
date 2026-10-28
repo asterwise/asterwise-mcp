@@ -63,7 +63,7 @@ async def test_target_time_is_sent_only_when_given(tool):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool", sorted(TOOLS))
-@pytest.mark.parametrize("bad", ["24:00", "7:30", "07:60", "noon"])
+@pytest.mark.parametrize("bad", ["24:00", "7:30", "07:60", "noon", "1٢:30", "07:3٣"])
 async def test_a_malformed_time_is_refused_before_the_api(tool, bad):
     result, calls = await _call(tool, {"target_time": bad})
 
