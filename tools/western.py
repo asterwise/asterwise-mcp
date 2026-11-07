@@ -628,7 +628,7 @@ def register(mcp: FastMCP) -> None:
             "person1, person2 — WesternBirthData each. house_system ignored.\n\n"
             "SECTION: OUTPUT CONTRACT\n"
             "data.planets[] — 10 composite planets with name, longitude, sign, degree_in_sign, dignity, dignity_score, dignity_disputed\n"
-            "data.ascendant_longitude, data.ascendant_sign, data.ascendant_sign_index\n"
+            "data.ascendant_longitude, data.ascendant_sign, data.ascendant_sign_index (composite Ascendant = midpoint of the two natal Ascendants, the midpoint method; no MC or houses)\n"
             "data.aspects[] — internal aspects within the composite chart: planet_a, planet_b, type, exact_angle, orb (person1_planet/person2_planet = legacy names for planet_a/planet_b)\n\n"
             "SECTION: RESPONSE FORMAT\n"
             "response_format=json serialises the complete response as indented JSON.\n"
