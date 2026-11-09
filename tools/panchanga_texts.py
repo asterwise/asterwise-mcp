@@ -131,7 +131,7 @@ BEFORE: None — birth data computes everything needed.
 AFTER: asterwise_get_panchanga — the day's full panchanga; asterwise_get_muhurta — Tarabala-aware windows for an activity.
 
 SECTION: INPUT CONTRACT
-birth: BirthData (date, time, lat, lon, timezone). Unknown birth time: omit time; never pass '00:00'. target_date (optional, YYYY-MM-DD): defaults to today at the birth place.
+birth: BirthData (date, time, lat, lon, timezone). The birth time is required: this tool has no sunrise fallback. If the user does not know it, say so instead of guessing; never pass '00:00'. target_date (optional, YYYY-MM-DD): defaults to today at the birth place.
 
 SECTION: OUTPUT CONTRACT
 data.target_date, data.birth_nakshatra {name, index}, data.natal_moon_sign_index.

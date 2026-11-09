@@ -265,3 +265,14 @@ def test_char_dasha_forwards_cycles_only_when_given_and_checks_the_range():
     assert upstream.calls[1][2]["cycles"] == 2
     bad = _call("asterwise_get_char_dasha", {"birth": BIRTH, "cycles": 4}, upstream)
     assert bad.is_error and "cycles" in bad.content[0].text and len(upstream.calls) == 2
+
+
+def test_time_required_tools_never_tell_the_model_to_omit_time():
+    """asterwise_get_nakshatra_prediction said "Unknown birth time: omit time"
+    although its time is required (Grok site check, 2026-10-29)."""
+    async def _load():
+        async with Client(mcp) as c:
+            return {t.name: t.description or "" for t in await c.list_tools()}
+    descriptions = asyncio.run(_load())
+    offenders = {name for name in TIME_REQUIRED if "omit time" in descriptions[name].lower()}
+    assert not offenders, offenders
