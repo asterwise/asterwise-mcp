@@ -28,7 +28,7 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_western_natal",
         title="Western Natal Chart",
         description=compact_description("asterwise_get_western_natal", (
-            "Calculate a complete Western natal chart using the tropical zodiac and Swiss Ephemeris. "
+            "Calculate a complete Western natal chart using the tropical zodiac. "
             "Returns 10 planet positions with Placidus (or chosen) house placements, sign-level "
             "dignities plus Lilly essential-dignity scores, all active aspects, and element/modality/hemisphere balance statistics.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -143,7 +143,7 @@ def register(mcp: FastMCP) -> None:
         name="asterwise_get_western_moon_phase",
         title="Western Moon Phase",
         description=compact_description("asterwise_get_western_moon_phase", (
-            "Calculates the tropical lunar phase for any date using Swiss Ephemeris. "
+            "Calculates the tropical lunar phase for any given date. "
             "Returns the phase name, phase angle, illumination percentage, Moon age in days, "
             "and the next major phase transition.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
@@ -1304,7 +1304,7 @@ def register(mcp: FastMCP) -> None:
             "tropical zodiac. With birth data, each eclipse also lists the natal planets and angles "
             "within 3° of the eclipse degree by conjunction or opposition.\n\n"
             "SECTION: WHAT THIS TOOL COVERS\n"
-            "Swiss Ephemeris global eclipse search. Natal contacts use a fixed 3° orb. Without a "
+            "Global eclipse search. Natal contacts use a fixed 3° orb. Without a "
             "birth time the Ascendant and MC are skipped (angles_checked=false) and the natal Moon "
             "is approximate.\n\n"
             "SECTION: WORKFLOW\n"
