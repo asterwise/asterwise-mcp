@@ -3,11 +3,11 @@
 [![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/asterwise/asterwise-mcp)
 [![Quality, license and maintenance score on Glama](https://glama.ai/mcp/servers/asterwise/asterwise-mcp/badges/score.svg)](https://glama.ai/mcp/servers/asterwise/asterwise-mcp)
 
-Astrology and divination calculations as MCP tools. **118 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking and Panchanga, with interpretations that follow classical Jyotish method. Every position is verified against an independent Swiss Ephemeris run ([asterwise.com/proof](https://asterwise.com/proof/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)) and checked against NASA JPL Horizons, median 0.050 arcseconds over 80 positions ([asterwise.com/accuracy](https://asterwise.com/accuracy/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)). How it compares with seven other astrology APIs, sourced and dated: [asterwise.com/compare](https://asterwise.com/compare/?utm_source=github&utm_medium=readme).
+Astrology and divination calculations as MCP tools. **118 tools** covering Vedic and Western astrology, numerology, tarot, crystals, dreams, natal charts, Dasha, matchmaking and Panchanga, with interpretations that follow classical Jyotish method. Positions are checked against NASA JPL Horizons ([asterwise.com/accuracy](https://asterwise.com/accuracy/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)) and checked against NASA JPL Horizons, median 0.050 arcseconds over 80 positions ([asterwise.com/accuracy](https://asterwise.com/accuracy/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp)). How it compares with seven other astrology APIs, sourced and dated: [asterwise.com/compare](https://asterwise.com/compare/?utm_source=github&utm_medium=readme).
 
 ## Quick Start (2 minutes)
 
-See it first: [46-second demo of Claude Desktop casting a chart through this server](https://youtu.be/Oe17c6pXl8c), and the [independent Swiss Ephemeris cross-check](https://asterwise.com/proof/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp).
+See it first: [46-second demo of Claude Desktop casting a chart through this server](https://youtu.be/Oe17c6pXl8c), and the [accuracy check against NASA JPL Horizons](https://asterwise.com/accuracy/?utm_source=github&utm_medium=readme&utm_campaign=asterwise-mcp).
 
 ### Get your API key
 
